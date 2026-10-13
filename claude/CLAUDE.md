@@ -15,7 +15,8 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
 | `reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
 | `scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
 
-- Main does no hands-on work: no reading code or diffs, no running gates. A step outside
+- Main does no hands-on work: no reading code or diffs, no running gates, no ops
+  (container rebuilds, backups). A step outside
   a plan goes to an implementer. The contract's role exceptions override this.
 - Subagents default to Sonnet (`settings.json`). Pass `model: "opus"` only where the
   table says Opus.
