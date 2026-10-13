@@ -31,8 +31,12 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
 - Batch questions, each saying what the answer changes for him. A question never
   blocks work: take the smallest reversible default, record it, carry on.
 - Status is a short table.
-- Images for him go in a gitignored folder inside the working directory (e.g.
-  `build/`), then Read them; `/tmp` paths do not render for him.
+- Screenshots for a UI task: the orchestrator picks 2-4 single shots (the changed
+  screen, light and dark; a strip only for motion) in a gitignored folder inside the
+  repo (e.g. `build/`) and reports their paths, one per line. Main sends them with
+  `SendUserFile` without opening them. When it reports "not delivered" (e.g. Remote
+  Control bridge sessions), main Reads those files instead, which renders them for
+  him. Never a contact sheet, a folder or a `/tmp` path.
 
 ## Verifying
 
@@ -40,6 +44,8 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
   click-through checklists.
 - Ask him only for what a human must observe (which speaker played, does it look right).
 - Require him present for a step whose failure would leave no trace afterwards.
+- Motion and feel are his call, early: the material reaches him (via main) before
+  merge, and his verdict is the gate. Tests still pin the timing.
 
 ## Planning
 
@@ -64,13 +70,16 @@ shortest sentence that keeps the reason.
 ## Rules and decisions
 
 - Prefer a rule a test enforces over a paragraph of prose.
+- Gates run as git hooks so they cannot be skipped: pre-commit runs the fast gate,
+  pre-push the full gate. The contract's `Gate hooks` line says which.
 - Settled product and process decisions: one line each in the project's decisions log
   (`my-decision-log`).
 
 ## Git
 
 Commit only when asked; push and open a PR only when asked. Casper merges unless the
-contract's merge policy says otherwise.
+contract's merge policy says otherwise. Every commit and push goes through the hooks:
+agents never pass `--no-verify`.
 
 ## Compact instructions
 

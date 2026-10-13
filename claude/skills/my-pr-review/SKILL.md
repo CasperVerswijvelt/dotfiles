@@ -15,6 +15,10 @@ The orchestrator runs it as nested `reviewer` agents, never inline in a context 
 wrote the code. Each agent's prompt holds only the refs (`base...head`), the ticket and
 the approved approach: never the author's rationale or a hint where to look. Commit first.
 
+**Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
+change): ONE reviewer covers every area below (product and interface included when UI
+changed), then the judge; no verify step. Larger: the full set.
+
 1. **Areas**, in parallel, one reviewer each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
@@ -46,7 +50,8 @@ change never claimed, or a refactor taste is a follow-up, never a finding.
 ## Severity
 
 - **Blocker**: wrong output, crash, data loss, hang or security hole on a reachable
-  path; a broken project principle; the ticket's problem still reachable.
+  path; a broken project principle; the ticket's problem still reachable; a bypassed
+  gate (`--no-verify`).
 - **Major**: wrong in a rare reachable state; risky logic with no test; a UI rule
   broken; logic duplicated where a shared helper exists; dead code added; docs now
   contradicting the code; a product dead end; a requirement missing or unasked work added.

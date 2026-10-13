@@ -35,7 +35,8 @@ Done when every task has files, interfaces, test names and acceptance.
 ## 3. Implement
 
 One `implementer` per task, tests first. Tasks run in parallel only when their files
-are disjoint.
+are disjoint, and each parallel task gets its own worktree: the implementer's prompt
+names the exact path and it works only there. Remove the worktree after the merge.
 
 ## 4. Gate
 

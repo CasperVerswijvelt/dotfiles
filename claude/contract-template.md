@@ -9,7 +9,8 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 - Stage: mature                 # mvp: review then merge, no changelog or screenshots
 - Tracker: GitHub issues; read with `gh issue view <n> --comments`
 - Host CLI: gh                  # gh | glab
-- Gate: `just check`
+- Gate: `just check`             # add the full gate if there is one: (full: `just check-all`)
+- Gate hooks: pre-commit runs `just check`, pre-push the full gate; installed by `just setup`   # or: none
 - Base branch: main
 - Merge policy: Casper merges   # or: orchestrator merges after the review passes
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
