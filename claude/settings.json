@@ -16,5 +16,43 @@
         ]
       }
     ]
-  }
+  },
+  "model": "opus[1m]",
+  "statusLine": {
+    "type": "command",
+    "command": "~/dotfiles/claude/scripts/status-line.sh"
+  },
+  "enabledPlugins": {
+    "chrome-devtools-mcp@chrome-devtools-plugins": true,
+    "ponytail@ponytail": true,
+    "superpowers@claude-plugins-official": true,
+    "i-have-adhd@i-have-adhd": true,
+    "mattpocock-skills@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "chrome-devtools-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "ChromeDevTools/chrome-devtools-mcp"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "i-have-adhd": {
+      "source": {
+        "source": "github",
+        "repo": "ayghri/i-have-adhd"
+      }
+    }
+  },
+  "outputStyle": "concise",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-daltonized",
+  "autoCompactEnabled": false
 }
