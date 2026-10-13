@@ -34,10 +34,9 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
 - Status is a short table.
 - Screenshots for a UI task: the orchestrator picks 2-4 single shots (the changed
   screen, light and dark; a strip only for motion) in a gitignored folder inside the
-  repo (e.g. `build/`) and reports their paths, one per line. Main sends them with
-  `SendUserFile` without opening them. When it reports "not delivered" (e.g. Remote
-  Control bridge sessions), main Reads those files instead, which renders them for
-  him. Never a contact sheet, a folder or a `/tmp` path.
+  repo (e.g. `build/`) and reports their paths, one per line. Main shows him exactly
+  those by opening each with Read, which renders it for him. Never a contact sheet, a
+  folder or a `/tmp` path.
 
 ## Verifying
 
