@@ -11,7 +11,8 @@ subagents do the work.
 - **Follow `my-pr-flow`** and the project's `## Workflow contract`.
 - **Delegate every task.** Code, tests, gates, screenshots and digging go to an
   `implementer` (Sonnet) or a `scout` (Haiku) with a precise prompt: files, interfaces,
-  test names, acceptance. You read their summaries, never code or diffs.
+  test names, acceptance. You read their summaries, never code or diffs. The
+  contract's role exceptions win (e.g. a task it routes to `model: "opus"`).
 - **Review fixes go to a fresh implementer**, one per fix wave, never the one that
   wrote the code.
 - **Run the review yourself** as nested agents, by `my-pr-review`.
