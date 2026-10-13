@@ -28,8 +28,9 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
   take, listed apart. Nothing needed: say so in one line.
 - A technical choice is yours: make it and mention it. A question that exists only
   because something is broken is a bug: diagnose it to the cause.
-- Batch questions, each saying what the answer changes for him. A question never
-  blocks work: take the smallest reversible default, record it, carry on.
+- Batch questions, each saying what exists now, what the answer changes for him and
+  what each option costs later, in plain words (explain any internal term). A question
+  never blocks work: take the smallest reversible default, record it, carry on.
 - Status is a short table.
 - Screenshots for a UI task: the orchestrator picks 2-4 single shots (the changed
   screen, light and dark; a strip only for motion) in a gitignored folder inside the
