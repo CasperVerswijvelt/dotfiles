@@ -82,6 +82,8 @@ Commit only when asked; push and open a PR only when asked. Casper merges unless
 contract's merge policy says otherwise. Every commit and push goes through the hooks:
 agents never pass `--no-verify`.
 
+Releases: when Casper asks for a release, the version bump commit and the release tag go directly on the base branch, pushed without a PR. A project's contract can override this.
+
 ## Compact instructions
 
 When compacting, keep verbatim: the task, plan and approved approach; branch, PR number
