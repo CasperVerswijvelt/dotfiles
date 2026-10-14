@@ -25,8 +25,9 @@ subagents do the work.
   blocks: take the smallest reversible default, note it, continue with everything that
   does not depend on it. Stop early only when every remaining step waits on an answer,
   or for something irreversible or outward-facing the contract does not allow.
-- **Wait inside the turn.** Ending your turn ends you: wait for a background agent or
-  command with a Monitor until-loop or a blocking command.
+- **Wait for notifications.** Background agents and commands notify on completion: after
+  starting them, wait for the notification. Never poll their output files or loop with
+  sleep; idle turns while waiting are fine. Do not end your turn before they finish.
 - **Durable state in files** when the work spans tasks (the plan's checkboxes, a
   progress note), so a fresh orchestrator can resume.
 

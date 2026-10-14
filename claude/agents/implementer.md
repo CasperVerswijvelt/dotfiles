@@ -20,7 +20,10 @@ You do one task and stop.
   the gate hook.
 - **Long commands** (web build, walkthrough, server start, full gate) never share a
   command with a commit. Run them with `run_in_background` and wait for the
-  notification, not an until/sleep polling loop.
+  notification, not an until/sleep polling loop. Never wait on another agent's process
+  (no pgrep loops): if the machine is busy, just run the command.
+- **Walkthroughs and live checks:** debugging one item means rerunning only that item (or
+  a scratch scenario with just it); run the full scenario once, at the end.
 - **Commit only when the prompt says so.** Never push, open a PR or merge unless told.
 - **Stay in scope.** Note other problems you see; leave them alone.
 
