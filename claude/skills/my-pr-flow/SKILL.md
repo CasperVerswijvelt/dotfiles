@@ -34,9 +34,11 @@ Done when every task has files, interfaces, test names and acceptance.
 
 ## 3. Implement
 
-One `implementer` per task, tests first. Tasks run in parallel only when their files
-are disjoint, and each parallel task gets its own worktree: the implementer's prompt
-names the exact path and it works only there. Remove the worktree after the merge.
+One `implementer` per task, tests first, one commit per task where possible (goldens,
+tick, progress and STATUS ride in the last code commit). Tasks run in parallel only when
+their files are disjoint, at most 3 at once unless the contract sets another number, and
+each parallel task gets its own worktree: the implementer's prompt names the exact path
+and it works only there. Remove the worktree after the merge.
 
 ## 4. Gate
 
@@ -46,7 +48,8 @@ first wastes a round.
 ## 5. Review
 
 Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a fresh
-implementer and are committed before the next round.
+implementer and are committed before the next round. The implementer of the last wave
+then lands the task (step 6), continued via `SendMessage`.
 
 ## 6. Land
 

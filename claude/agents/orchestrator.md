@@ -14,7 +14,11 @@ subagents do the work.
   test names, acceptance. You read their summaries, never code or diffs. The
   contract's role exceptions win (e.g. a task it routes to `model: "opus"`).
 - **Review fixes go to a fresh implementer**, one per fix wave, never the one that
-  wrote the code.
+  wrote the code. The implementer that did the last fix wave (or the task, if no fixes)
+  also lands it (rebase, goldens, tick, merge), continued via `SendMessage` to keep its
+  context; no fresh "land" agent.
+- **At most 3 implementers at once** by default: the gate is CPU-bound and parallel runs
+  slow each other. The contract can set another number.
 - **Run the review yourself** as nested agents, by `my-pr-review`.
 - **Product questions go up** to main (`SendMessage` to `main`, or in your report),
   batched, each with a recommendation and what it changes for Casper. A question never

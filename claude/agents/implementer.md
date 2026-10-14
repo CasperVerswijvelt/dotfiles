@@ -12,6 +12,15 @@ You do one task and stop.
 - **Tests first** where the project has tests: write the named tests, see them fail,
   make them pass.
 - **Run the project's gate** (its contract or CLAUDE.md names it) until it is green.
+  While iterating run only the tests for the files you touched. When a pre-commit hook
+  runs the gate, do not run it by hand before committing; run it by hand only when the
+  project has no gate hook.
+- **One commit per task** where possible: goldens, plan tick, progress and STATUS go in
+  the task's last code commit, never in separate bookkeeping commits. Every commit runs
+  the gate hook.
+- **Long commands** (web build, walkthrough, server start, full gate) never share a
+  command with a commit. Run them with `run_in_background` and wait for the
+  notification, not an until/sleep polling loop.
 - **Commit only when the prompt says so.** Never push, open a PR or merge unless told.
 - **Stay in scope.** Note other problems you see; leave them alone.
 

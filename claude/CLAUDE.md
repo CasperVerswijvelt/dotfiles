@@ -34,7 +34,7 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
   never blocks work: take the smallest reversible default, record it, carry on.
 - Status is a short table.
 - Screenshots for a UI task: the orchestrator picks 2-4 single shots (the changed
-  screen, light and dark; a strip only for motion) in a gitignored folder inside the
+  screen, light and dark; never a frame strip) in a gitignored folder inside the
   repo (e.g. `build/`) and reports their paths, one per line. Main shows him exactly
   those by opening each with Read, which renders it for him. Never a contact sheet, a
   folder or a `/tmp` path.
@@ -45,8 +45,10 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
   click-through checklists.
 - Ask him only for what a human must observe (which speaker played, does it look right).
 - Require him present for a step whose failure would leave no trace afterwards.
-- Motion and feel are his call, early: the material reaches him (via main) before
-  merge, and his verdict is the gate. Tests still pin the timing.
+- Motion and feel are his call, judged live: he taps through a running preview build on
+  his phone (via main) before the plan is written and again before merge, and his verdict
+  is the gate. Frame strips are for agents only (they read them to check timing); tests
+  still pin the timing.
 
 ## Planning
 
@@ -55,6 +57,8 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
 - Shape first: a new screen or changed layout starts with a mockup on the real UI (the
   actual app with only the asked change, the current look beside it), approved before
   the plan.
+- A plan item about motion or feel carries Casper's verdict from a live preview
+  (see Verifying); without it the item waits.
 - Propose the narrower scope; Casper prunes rather than grows.
 
 ## Shell hygiene
@@ -72,7 +76,8 @@ shortest sentence that keeps the reason.
 
 - Prefer a rule a test enforces over a paragraph of prose.
 - Gates run as git hooks so they cannot be skipped: pre-commit runs the fast gate,
-  pre-push the full gate. The contract's `Gate hooks` line says which.
+  pre-push the full gate. The contract's `Gate hooks` line says which. One commit per
+  task where possible: goldens, plan tick and status notes ride in the last code commit.
 - Settled product and process decisions: one line each in the project's decisions log
   (`my-decision-log`).
 
