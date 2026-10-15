@@ -40,5 +40,7 @@ Shipped: <what changed, one line>
 Where: <branch, PR or merge commit>
 Review: <grade> after <n> rounds
 Open: <what is left, or none>
-For you: <decisions, each with a recommendation, or none>
+⚠️ For you: <decisions, each with a recommendation>
 ```
+
+Leave out the `For you` line when nothing needs Casper.

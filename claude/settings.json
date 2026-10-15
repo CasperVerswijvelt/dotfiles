@@ -15,6 +15,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/dotfiles/claude/scripts/session-title.sh",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
   "model": "opus[1m]",

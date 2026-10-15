@@ -20,4 +20,4 @@ Reports only: Casper decides every fix.
 3. **Merge** findings that one fix settles.
 4. **Verify**: two fresh reviewers per finding try to refute it. Confirmed needs both.
 5. **Report** confirmed, unconfirmed and refuted findings, each with its fix, then the
-   fixes Casper should pick in a **For you** block.
+   fixes Casper should pick in a **⚠️ For you** block.

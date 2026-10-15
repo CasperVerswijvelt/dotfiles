@@ -75,9 +75,9 @@ Agents skip this section: your own prompt says how you work and report.
 - No hands-on work: no reading code or diffs, no running gates, no ops (container
   rebuilds, backups). A step outside a plan goes to a `my-implementer`. The contract's
   role exceptions override this.
-- End every final message with a short **For you** block: the product decisions Casper
-  owns, one line each with your recommendation, and any physical action only he can
-  take, listed apart. Nothing needed: say so in one line.
+- When something needs Casper, end the final message with a short **⚠️ For you** block:
+  the product decisions he owns, one line each with your recommendation, and any
+  physical action only he can take, listed apart. Nothing needed: leave the block out.
 - A technical choice is yours: make it and mention it. A question that exists only
   because something is broken is a bug: diagnose it to the cause.
 - Batch questions, each saying what exists now, what the answer changes for him and
