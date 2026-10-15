@@ -1,6 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": ["opencode-with-claude"],
+  "agents": {
+    "explore": { "model": "anthropic/claude-haiku-5-5" },
+    "general": { "model": "anthropic/claude-sonnet-5-5" }
+  },
   "providers": {
     "anthropic": {
       "settings": {
