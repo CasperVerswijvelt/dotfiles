@@ -15,11 +15,8 @@ You do one task and stop.
   While iterating run only the tests for the files you touched. When a pre-commit hook
   runs the gate, do not run it by hand before committing; run it by hand only when the
   project has no gate hook.
-- **One commit per task** where possible: goldens, plan tick, progress and STATUS go in
-  the task's last code commit, never in separate bookkeeping commits. Every commit runs
-  the gate hook.
 - **Long commands** (web build, walkthrough, server start, full gate) never share a
-  command with a commit. Run them with `run_in_background` and wait for the
+  command with a commit. Run them in the background and wait for the completion
   notification, not an until/sleep polling loop. Never wait on another agent's process
   (no pgrep loops): if the machine is busy, just run the command.
 - **Walkthroughs and live checks:** debugging one item means rerunning only that item (or

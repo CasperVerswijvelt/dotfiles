@@ -36,7 +36,7 @@ changed), then the judge; no verify step. Larger: the full set.
 2. **Verify**: each blocker and major gets two fresh reviewers that see only the claim,
    the cited lines and the diff, and try to refute it. Confirmed needs both. Anything
    else is refuted (with evidence) or unconfirmed; neither counts, both are reported.
-3. **Judge**: one `my-reviewer` spawned with `model: "opus"`. It merges duplicates, drops
+3. **Judge**: one `my-reviewer` spawned on Opus. It merges duplicates, drops
    out-of-scope findings into follow-ups, checks severities against this skill and
    computes the grade.
 

@@ -12,9 +12,9 @@ orchestrator runs these steps, delegating each one. Read the project's
 ## 1. Branch off the base
 
 ```bash
-git fetch origin <base>
-git switch -c <type>/<slug> origin/<base>
-git branch --unset-upstream
+git -C <repo> fetch origin <base>
+git -C <repo> switch -c <type>/<slug> origin/<base>
+git -C <repo> branch --unset-upstream
 ```
 
 The last line keeps a bare `git push` off the base branch.
@@ -22,21 +22,24 @@ The last line keeps a bare `git push` off the base branch.
 ## 2. Plan
 
 Read the ticket (the contract says how). Write a lean plan: per task the goal, files,
-interfaces, test names with what each asserts, acceptance. A `my-scout` gathers what you
-need to know about the code.
+interfaces (signatures), test names with what each asserts, acceptance. Never full code.
+A `my-scout` gathers what you need to know about the code.
 
-- A new screen or changed layout: a mockup on the real UI goes up for approval first.
-- Product questions go up in one batch, each with a recommended default. Continue on
-  the defaults; a changed answer becomes a follow-up task.
+- A new screen or changed layout: a mockup on the real UI (the actual app with only the
+  asked change, the current look beside it) goes up for approval first.
+- A task about motion or feel carries Casper's verdict from a live preview; without it
+  the task waits.
+- Product questions go up as `my-orchestrator` says; a changed answer becomes a
+  follow-up task.
 - A big change (new screen, data model change) waits for Casper's approval of the plan.
 
 Done when every task has files, interfaces, test names and acceptance.
 
 ## 3. Implement
 
-One `my-implementer` per task, tests first, one commit per task where possible (goldens,
-tick, progress and STATUS ride in the last code commit). Tasks run in parallel only when
-their files are disjoint, at most 3 at once unless the contract sets another number, and
+One `my-implementer` per task, tests first. Tasks run in parallel only when their files
+are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
+number, and
 each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there. Remove the worktree after the merge.
 
@@ -49,7 +52,7 @@ first wastes a round.
 
 Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a fresh
 implementer and are committed before the next round. The implementer of the last wave
-then lands the task (step 6), continued via `SendMessage`.
+then lands the task (step 6), continued as the same agent.
 
 ## 6. Land
 

@@ -12,19 +12,21 @@ subagents do the work.
 - **Delegate every task.** Code, tests, gates, screenshots and digging go to an
   `my-implementer` (Sonnet) or a `my-scout` (Haiku) with a precise prompt: files, interfaces,
   test names, acceptance. You read their summaries, never code or diffs. The
-  contract's role exceptions win (e.g. a task it routes to `model: "opus"`).
+  contract's role exceptions win (e.g. a task it routes to Opus).
 - **Review fixes go to a fresh `my-implementer`**, one per fix wave, never the one that
   wrote the code. The `my-implementer` that did the last fix wave (or the task, if no
-  fixes) also lands it (rebase, goldens, tick, merge), continued via `SendMessage` to keep
-  its context; no fresh "land" agent.
-- **At most 3 implementers at once** by default: the gate is CPU-bound and parallel runs
-  slow each other. The contract can set another number.
+  fixes) also lands it (rebase, goldens, tick, and the merge only when the merge policy
+  allows), continued as the same agent to keep its context; no fresh "land" agent.
 - **Run the review yourself** as nested agents, by `my-pr-review`.
-- **Product questions go up** to main (`SendMessage` to `main`, or in your report),
-  batched, each with a recommendation and what it changes for Casper. A question never
-  blocks: take the smallest reversible default, note it, continue with everything that
-  does not depend on it. Stop early only when every remaining step waits on an answer,
-  or for something irreversible or outward-facing the contract does not allow.
+- **Product questions go up** to main (a message to main where your tools allow it, else
+  your report), batched, each with a recommendation and what it changes for Casper. A
+  question never blocks: take the smallest reversible default, log it (`my-decision-log`),
+  continue with everything that does not depend on it. Stop early only when every
+  remaining step waits on an answer, or for something irreversible or outward-facing the
+  contract does not allow.
+- **Screenshots for a UI task:** pick 2-4 single shots (the changed screen, light and
+  dark; never a frame strip) in a gitignored folder inside the repo (e.g. `build/`) and
+  list their paths after the report, one per line.
 - **Wait for notifications.** Background agents and commands notify on completion: after
   starting them, wait for the notification. Never poll their output files or loop with
   sleep; idle turns while waiting are fine. Do not end your turn before they finish.
