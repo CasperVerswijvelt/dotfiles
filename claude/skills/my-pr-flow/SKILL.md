@@ -5,7 +5,7 @@ description: Take a change from branch to merge or open PR, in any project, by i
 
 # Branch to PR
 
-The main thread starts an `orchestrator` with the task and relays its report. The
+The main thread starts a `my-orchestrator` with the task and relays its report. The
 orchestrator runs these steps, delegating each one. Read the project's
 `## Workflow contract` first: its stage picks the path in step 6.
 
@@ -22,7 +22,7 @@ The last line keeps a bare `git push` off the base branch.
 ## 2. Plan
 
 Read the ticket (the contract says how). Write a lean plan: per task the goal, files,
-interfaces, test names with what each asserts, acceptance. A scout gathers what you
+interfaces, test names with what each asserts, acceptance. A `my-scout` gathers what you
 need to know about the code.
 
 - A new screen or changed layout: a mockup on the real UI goes up for approval first.
@@ -34,11 +34,11 @@ Done when every task has files, interfaces, test names and acceptance.
 
 ## 3. Implement
 
-One `implementer` per task, tests first, one commit per task where possible (goldens,
+One `my-implementer` per task, tests first, one commit per task where possible (goldens,
 tick, progress and STATUS ride in the last code commit). Tasks run in parallel only when
 their files are disjoint, at most 3 at once unless the contract sets another number, and
-each parallel task gets its own worktree: the implementer's prompt names the exact path
-and it works only there. Remove the worktree after the merge.
+each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
+path and it works only there. Remove the worktree after the merge.
 
 ## 4. Gate
 

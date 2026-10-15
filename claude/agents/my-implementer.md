@@ -1,5 +1,5 @@
 ---
-name: implementer
+name: my-implementer
 description: Implements one scoped task from a precise prompt (files, interfaces, test names, acceptance) and reports back in a few lines. Use for feature and UI work, review fixes, docs edits, gates and screenshots once the approach is decided. Not for a task whose approach is still open.
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 model: sonnet

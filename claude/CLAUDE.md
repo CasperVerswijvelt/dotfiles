@@ -9,15 +9,15 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
 
 | Role | Model | Job |
 |---|---|---|
-| Main thread | Opus | Product decisions with Casper; starts orchestrators; relays their reports verbatim. |
-| `orchestrator` | Opus | One plan or PR, delegated end to end. |
-| `implementer` | Sonnet | One task from a precise prompt. |
-| `reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
-| `scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
+| Main thread | Opus | Product decisions with Casper; starts `my-orchestrator` agents; relays their reports verbatim. |
+| `my-orchestrator` | Opus | One plan or PR, delegated end to end. |
+| `my-implementer` | Sonnet | One task from a precise prompt. |
+| `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
+| `my-scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
 
 - Main does no hands-on work: no reading code or diffs, no running gates, no ops
   (container rebuilds, backups). A step outside
-  a plan goes to an implementer. The contract's role exceptions override this.
+  a plan goes to a `my-implementer`. The contract's role exceptions override this.
 - Subagents default to Sonnet (`settings.json`). Pass `model: "opus"` only where the
   table says Opus.
 - A subagent saw none of this conversation: its prompt carries everything it needs.
@@ -33,7 +33,7 @@ No contract: infer what you can from the repo and treat the stage as `mature`.
   what each option costs later, in plain words (explain any internal term). A question
   never blocks work: take the smallest reversible default, record it, carry on.
 - Status is a short table.
-- Screenshots for a UI task: the orchestrator picks 2-4 single shots (the changed
+- Screenshots for a UI task: the `my-orchestrator` picks 2-4 single shots (the changed
   screen, light and dark; never a frame strip) in a gitignored folder inside the
   repo (e.g. `build/`) and reports their paths, one per line. Main shows him exactly
   those by opening each with Read, which renders it for him. Never a contact sheet, a

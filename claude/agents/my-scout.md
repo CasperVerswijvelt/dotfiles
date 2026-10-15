@@ -1,5 +1,5 @@
 ---
-name: scout
+name: my-scout
 description: Read-only lookups with a checkable answer - find every caller of X, does pattern Y exist, which file owns Z, run the gate and report what failed. Use when the answer is a fact, not a judgement.
 tools: Read, Grep, Glob, Bash
 model: haiku

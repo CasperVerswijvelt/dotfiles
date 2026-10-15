@@ -16,7 +16,7 @@ current base. List open PRs with the host CLI, so nothing in flight is re-found.
 
 ## 2. Audit
 
-One `reviewer` per specialty, in parallel, blind to each other: correctness, state and
+One `my-reviewer` per specialty, in parallel, blind to each other: correctness, state and
 concurrency, architecture, over-engineering and dead code, code quality and resource
 leaks, UI and responsive layout, copy and accessibility, docs against code, security
 and leaked data, tests and CI, product fit. Add the contract's extra areas; drop what
@@ -35,7 +35,7 @@ a human to settle, the smallest fix and the files it touches.
 
 ## 4. Plan
 
-One Opus reviewer merges duplicates and groups the kept findings into PRs: one theme
+One Opus `my-reviewer` merges duplicates and groups the kept findings into PRs: one theme
 each, reviewable in one sitting, every PR off the base and independent of the others
 (no stacking). Per PR: title, why, files, screenshots yes/no, overlap with an open PR,
 risk. Then a merge order, and the product decisions, each with options and a
@@ -46,5 +46,5 @@ recommendation. Technical choices are made, not asked.
 Counts (reported, kept, needs a human, rejected), the PR table, the merge order, then
 the decisions in a **For you** block. Spot-check two kept findings first.
 
-Afterwards each PR runs through its own `orchestrator`, one at a time, never as a
+Afterwards each PR runs through its own `my-orchestrator`, one at a time, never as a
 parallel fan-out. The plan entry and its decisions are that orchestrator's input.

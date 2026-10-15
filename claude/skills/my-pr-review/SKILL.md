@@ -11,15 +11,15 @@ areas) comes from the project's `## Workflow contract` and the files it points t
 
 ## Running it
 
-The orchestrator runs it as nested `reviewer` agents, never inline in a context that
+The orchestrator runs it as nested `my-reviewer` agents, never inline in a context that
 wrote the code. Each agent's prompt holds only the refs (`base...head`), the ticket and
 the approved approach: never the author's rationale or a hint where to look. Commit first.
 
 **Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
-change): ONE reviewer covers every area below (product and interface included when UI
+change): ONE `my-reviewer` covers every area below (product and interface included when UI
 changed), then the judge; no verify step. Larger: the full set.
 
-1. **Areas**, in parallel, one reviewer each (Sonnet), blind to each other:
+1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
    - **interface**: UI at every supported size, the project's UI rules, copy and l10n.
@@ -36,7 +36,7 @@ changed), then the judge; no verify step. Larger: the full set.
 2. **Verify**: each blocker and major gets two fresh reviewers that see only the claim,
    the cited lines and the diff, and try to refute it. Confirmed needs both. Anything
    else is refuted (with evidence) or unconfirmed; neither counts, both are reported.
-3. **Judge**: one reviewer spawned with `model: "opus"`. It merges duplicates, drops
+3. **Judge**: one `my-reviewer` spawned with `model: "opus"`. It merges duplicates, drops
    out-of-scope findings into follow-ups, checks severities against this skill and
    computes the grade.
 

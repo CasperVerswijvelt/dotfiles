@@ -1,5 +1,5 @@
 ---
-name: reviewer
+name: my-reviewer
 description: Read-only reviewer with a clean context that never saw the authoring session. Used by my-pr-review, my-consistency-sweep and my-repo-audit for one area, one verification or the judgement, and directly for a one-off review of a branch or PR. Not for fixing findings.
 tools: Read, Grep, Glob, Bash, Skill
 model: sonnet

@@ -12,7 +12,7 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 - Gate: `just check`             # add the full gate if there is one: (full: `just check-all`)
 - Gate hooks: pre-commit runs `just check`, pre-push the full gate; installed by `just setup`   # or: none
 - Base branch: main
-- Merge policy: Casper merges   # or: orchestrator merges after the review passes
+- Merge policy: Casper merges   # or: my-orchestrator merges after the review passes
 - Max parallel implementers: 3  # optional; default 3, the gate is CPU-bound
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Screenshots: the `pr-screenshots` skill       # or: none

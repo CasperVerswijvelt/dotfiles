@@ -10,7 +10,7 @@ Reports only: Casper decides every fix.
 1. **Group the files**: the root CLAUDE.md, each nested CLAUDE.md, the agent config
    (`.claude/skills`, `.claude/agents`, settings, task runner), and the human docs
    (README, docs/).
-2. **Sweep**: one `reviewer` per group, in parallel. Each reads its group in full,
+2. **Sweep**: one `my-reviewer` per group, in parallel. Each reads its group in full,
    using the other files and the code as evidence, and reports:
    - contradiction: a statement another file or the code contradicts (cite both sides),
    - duplicate: a rule written out at length where its home is elsewhere, so the copies drift,
