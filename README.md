@@ -8,6 +8,10 @@ Personal config, private.
 - `install.sh`: symlinks `claude/` into `~/.claude`. Idempotent, backs up anything it
   would replace to `<name>.bak.<timestamp>`, never deletes. Try `./install.sh --dry-run`
   first.
+- OpenCode shares the same config with no copies: it reads `~/.claude/skills` itself,
+  gets `CLAUDE.md` as `~/.config/opencode/AGENTS.md`, and gets agents generated into
+  `~/.config/opencode/agents` by `claude/scripts/opencode-agents.sh`. The git hooks in
+  `.githooks` regenerate them after every pull and commit, so edit only the Claude agents.
 
 Installing replaces `~/.claude/settings.json` with the shared one (the old file is kept
 as a backup). Carry over the settings you want into `claude/settings.json` first. Since it
