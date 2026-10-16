@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UserPromptSubmit hook: names an unnamed session "<PROJECT>: <SUMMARY>" from its first
-# prompt. The OpenCode plugin opencode/plugins/session-title.ts builds the same title.
+# prompt. PROJECT is only set inside a git repo; elsewhere the title is just the summary. The OpenCode plugin opencode/plugins/session-title.ts builds the same title.
 set -uo pipefail
 
 # The nested `claude -p` below would run this hook again.
@@ -15,7 +15,8 @@ cwd=$(jq -r '.cwd // empty' <<<"$input")
 
 # The main checkout's folder, also from inside a worktree.
 common=$(git -C "$cwd" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
-if [ -n "$common" ]; then project=$(basename "$(dirname "$common")"); else project=$(basename "$cwd"); fi
+project=""
+[ -n "$common" ] && project=$(basename "$(dirname "$common")")
 
 instruction=$(cat "$(dirname "$0")/../session-title.md")
 summary=$(SESSION_TITLE_HOOK=1 claude -p --model haiku --tools "" --no-session-persistence \
@@ -23,5 +24,5 @@ summary=$(SESSION_TITLE_HOOK=1 claude -p --model haiku --tools "" --no-session-p
 slug=$(tr '[:lower:]' '[:upper:]' <<<"$summary" | tr -cs 'A-Z0-9' ' ' | awk '{ for (i = 1; i <= NF && i <= 3; i++) printf "%s%s", (i > 1 ? "-" : ""), $i }')
 [ -z "$slug" ] && exit 0
 
-title="$(tr '[:lower:]' '[:upper:]' <<<"$project"): $slug"
+if [ -n "$project" ]; then title="$(tr '[:lower:]' '[:upper:]' <<<"$project"): $slug"; else title=$slug; fi
 jq -n --arg t "$title" '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", sessionTitle: $t}}'

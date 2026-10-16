@@ -15,7 +15,7 @@ Personal config, private.
 - `opencode/`: OpenCode's global config and plugins, linked into `~/.config/opencode`.
   `plugins/claude-md.ts` loads each project's `CLAUDE.md`, since OpenCode only reads
   `AGENTS.md` on its own.
-- Session titles (`PROJECT: THREE-WORD-SLUG`): `claude/session-title.md` holds the
+- Session titles (`PROJECT: THREE-WORD-SLUG`, no prefix outside a git repo): `claude/session-title.md` holds the
   instruction, used by the Claude hook `claude/scripts/session-title.sh` and the OpenCode
   plugin `opencode/plugins/session-title.ts`.
 
