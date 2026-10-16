@@ -1,25 +1,72 @@
 # dotfiles
 
-Personal config, private.
+My shared config for Claude Code and OpenCode: one workflow, kept in one repo and
+symlinked into place.
 
-- `claude/`: Claude Code workflow used in every project: `CLAUDE.md`, `settings.json`,
-  agents and `my-*` skills. Projects opt in to details through a `## Workflow contract`
-  section (`claude/contract-template.md`).
-- `install.sh`: symlinks `claude/` into `~/.claude`. Idempotent, backs up anything it
-  would replace to `<name>.bak.<timestamp>`, never deletes. Try `./install.sh --dry-run`
-  first.
-- OpenCode shares the same config with no copies: it reads `~/.claude/skills` itself,
-  gets `CLAUDE.md` as `~/.config/opencode/AGENTS.md`, and gets agents generated into
-  `~/.config/opencode/agents` by `claude/scripts/opencode-agents.sh`. The git hooks in
-  `.githooks` regenerate them after every pull and commit, so edit only the Claude agents.
-- `opencode/`: OpenCode's global config and plugins, linked into `~/.config/opencode`.
-  `plugins/claude-md.ts` loads each project's `CLAUDE.md`, since OpenCode only reads
-  `AGENTS.md` on its own.
-- Session titles (`PROJECT: THREE-WORD-SLUG`, no prefix outside a git repo): `claude/session-title.md` holds the
-  instruction, used by the Claude hook `claude/scripts/session-title.sh` and the OpenCode
-  plugin `opencode/plugins/session-title.ts`.
+## Contents
 
-Installing replaces `~/.claude/settings.json` with the shared one (the old file is kept
-as a backup). Carry over the settings you want into `claude/settings.json` first. Since it
-is a symlink, `/config` changes land in this repo: commit them or the startup pull stops
-fast-forwarding.
+| Path | What |
+|---|---|
+| `claude/` | Claude Code config: `CLAUDE.md`, `settings.json`, `agents/`, `skills/`, `contract-template.md`, `scripts/`. |
+| `opencode/` | OpenCode config (`opencode.json`) and plugins. |
+| `.githooks/` | `post-commit` and `post-merge` hooks that regenerate the OpenCode agents. |
+| `install.sh` | Symlinks everything into `~/.claude` and `~/.config/opencode`. |
+
+## Install
+
+Clone the repo, then preview and run the installer:
+
+```sh
+git clone <this repo> ~/dotfiles
+~/dotfiles/install.sh --dry-run
+~/dotfiles/install.sh
+```
+
+The installer:
+
+- links `CLAUDE.md`, `settings.json`, each skill and each agent into `~/.claude`
+- links the repo to `~/dotfiles` if it lives elsewhere, since the config refers to that path
+- links `CLAUDE.md` as `~/.config/opencode/AGENTS.md`, plus `opencode.json` and `plugins/`
+- sets `core.hooksPath` to `.githooks` and generates the OpenCode agents
+
+It is idempotent and never deletes your own files. It only regenerates the OpenCode
+agent files it generated itself. Anything it would replace is moved to
+`<name>.bak.<timestamp>`. That includes your existing `~/.claude/settings.json`, so copy
+over any settings you want to keep into `claude/settings.json` first. Because that file
+is now a symlink, changes made through `/config` land in this repo. Commit them, or the
+startup pull stops fast-forwarding.
+
+## Claude Code workflow
+
+- **Roles** (`claude/agents/`): `my-orchestrator` (Opus) owns one plan or PR,
+  `my-implementer` (Sonnet) does one scoped task, `my-reviewer` (Sonnet, judge on
+  Opus) reviews read-only, `my-scout` (Haiku) does fact lookups. The main thread decides and delegates.
+- **Skills** (`claude/skills/`): `my-pr-flow` (branch to PR), `my-pr-review` (review and
+  grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`.
+- **Workflow contract**: each project can add a `## Workflow contract` section to its own
+  `CLAUDE.md`: stage, gate, base branch, merge policy and so on. The template is
+  `claude/contract-template.md`. Without one, the project is treated as mature.
+- **Gates as git hooks**: the contract names the checks and the hooks that run them
+  (pre-commit for the fast gate, pre-push for the full one), so they cannot be skipped.
+- **Startup pull**: a `SessionStart` hook in `settings.json` runs
+  `git -C ~/dotfiles pull --ff-only`, so every machine stays current.
+- **Session titles**: a `UserPromptSubmit` hook (`claude/scripts/session-title.sh`) names
+  a session `PROJECT: THREE-WORD-SLUG` from its first prompt, using Haiku. Outside a git
+  repo there is no `PROJECT:` prefix. The instruction lives in `claude/session-title.md`.
+- **Status line**: `claude/scripts/status-line.sh` shows the model and context usage.
+
+## OpenCode
+
+OpenCode reuses the same config without copies:
+
+- it reads `~/.claude/skills` itself
+- it gets `CLAUDE.md` as its global `AGENTS.md`
+- `claude/scripts/opencode-agents.sh` translates the Claude agents into
+  `~/.config/opencode/agents`. The git hooks rerun it after every commit and pull, so edit
+  only the Claude agents.
+- `opencode/plugins/claude-md.ts` loads each project's `CLAUDE.md`
+- `opencode/plugins/session-title.ts` builds the same session titles as the Claude hook
+- `opencode.json` also configures a Linear MCP server and model overrides for the built-in
+  `explore` (Haiku) and `general` (Sonnet) agents.
+- `opencode.json` routes the Anthropic provider through a local proxy and loads the
+  `opencode-with-claude` plugin, so adjust or remove that for your own setup.
