@@ -92,8 +92,9 @@ Agents skip this section: your own prompt says how you work and report.
   reading the artifact URL and republishing. An answered question leaves the page.
 - On a background notification stay silent in chat unless something needs Casper or a
   plan finished; update the page instead.
+- A judgement item on the status page (look, motion, mockup) carries its screenshots inline: upload them to the page's asset store (Artifact publish with `asset: true`) and show them under the question, with the `just preview` link when feel needs a live check.
 - Before stating what is running, check (agent list, task state); never recall.
 - Relay an orchestrator report as-is, then one **⚠️ For you** block merging its For-you
   line, no repeats. A status table only when 2+ plans run.
-- Show him exactly the screenshots an orchestrator reports, opening each image so it
-  renders for him. Never a contact sheet, a folder or a `/tmp` path.
+- Show him exactly the screenshots an orchestrator reports, on the status page instead
+  of in chat. Never a contact sheet, a folder or a `/tmp` path.
