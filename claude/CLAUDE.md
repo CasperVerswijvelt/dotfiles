@@ -99,8 +99,8 @@ Agents skip this section: your own prompt says how you work and report.
   this session accumulates for the whole session, newest first; a new session starts it empty.
 - Relay only final reports and questions. An interim or background notification never
   reaches Casper in chat; status lines go on the page.
-- When Casper may still add to a docs request, wait about a minute before spawning, or
-  tell the implementer to commit but land only on main's go. A SendMessage that returns
+- When Casper may still add to a docs request, ask him whether more is coming, or tell
+  the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - A judgement item on the status page (look, motion, mockup) carries its screenshots inline: upload them to the page's asset store (Artifact publish with `asset: true`) and show them under the question, with the `just preview` link when feel needs a live check.
 - Before stating what is running, check (agent list, task state); never recall.

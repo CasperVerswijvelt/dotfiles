@@ -486,7 +486,7 @@ def render(r):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("sessions", nargs="*")
-    ap.add_argument("--project-dir", default=os.path.expanduser("~/.claude/projects/-Users-casper-Documents-Projecten-gym-app"))
+    ap.add_argument("--project-dir", default=os.path.expanduser("~/.claude/projects/" + os.getcwd().replace("/", "-")))
     ap.add_argument("--tasks-dir", action="append", default=[])
     ap.add_argument("--json")
     ap.add_argument("--last", type=int)

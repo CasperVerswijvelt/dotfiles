@@ -29,7 +29,7 @@ most 12 findings, most severe first; read-only.
 
 ## 3. Verify
 
-One fresh reviewer per finding tries to refute it, defaulting to "not valid" when
+One fresh reviewer per blocker or major finding (none for minors) tries to refute it, defaulting to "not valid" when
 unsure, and returns: valid, worth fixing, severity, visible to users, needs hardware or
 a human to settle, the smallest fix and the files it touches.
 

@@ -18,6 +18,7 @@ Reports only: Casper decides every fix.
      differently (quote the grep or ls).
    Each finding: `file:line`, the other side, the claim, the smallest fix.
 3. **Merge** findings that one fix settles.
-4. **Verify**: two fresh reviewers per finding try to refute it. Confirmed needs both.
+4. **Verify**: one fresh reviewer per blocker or major finding tries to refute it; minors
+   get none. The judge reads each verdict body, not only the verdict.
 5. **Report** confirmed, unconfirmed and refuted findings, each with its fix, then the
    fixes Casper should pick in a **⚠️ For you** block.
