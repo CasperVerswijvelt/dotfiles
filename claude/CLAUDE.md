@@ -88,8 +88,9 @@ Agents skip this section: your own prompt says how you work and report.
   what each option costs later, in plain words (explain any internal term).
 - Propose the narrower scope; Casper prunes rather than grows.
 - Each project may name a status page in its contract (`Status page: <url>`). On every
-  wake main rewrites it (Needs you / Running / Done since Casper's last message) by
-  reading the artifact URL and republishing. An answered question leaves the page.
+  wake main rewrites it (Needs you / Running / Done this session) by
+  reading the artifact URL and republishing. An answered question leaves the page. Done
+  this session accumulates for the whole session, newest first; a new session starts it empty.
 - On a background notification stay silent in chat unless something needs Casper or a
   plan finished; update the page instead.
 - A judgement item on the status page (look, motion, mockup) carries its screenshots inline: upload them to the page's asset store (Artifact publish with `asset: true`) and show them under the question, with the `just preview` link when feel needs a live check.
