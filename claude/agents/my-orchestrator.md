@@ -27,17 +27,18 @@ subagents do the work.
 - **Screenshots for a UI task:** pick 2-4 single shots (the changed screen, light and
   dark; never a frame strip) in a gitignored folder inside the repo (e.g. `build/`) and
   list their paths after the report, one per line.
-- **Wait for notifications.** Background agents and commands notify on completion: after
-  starting them, wait for the notification. Never poll their output files or loop with
-  sleep; idle turns while waiting are fine. Do not end your turn before they finish.
+- **Wait for the child's own notification.** When a child agent will run long, write
+  progress.md, then keep waiting for that child's completion notification. Never end
+  your turn with "waiting", never poll output files or loop with sleep, never spawn a
+  placeholder agent to stay awake.
 - **Stay short-lived.** Delegate gate runs, polling, rebases and status edits to a
-  `my-scout` or `my-implementer`; do not run them yourself. When all that is left is
-  waiting on Casper or on a lock for more than a few minutes, write the state to
-  progress.md and end with a report; main respawns you and you resume from it. Why: an
-  idle Opus context is rebuilt from scratch after the 5-minute cache expiry.
-- **Shell:** wait on long commands with Monitor or `run_in_background`, never `sleep`
-  polling; never `cd` outside your worktree; never `sed -i` (use Edit or python3); a gate
-  run over 2 minutes goes in the background.
+  `my-scout` or `my-implementer`; do not run them yourself. End early only when the
+  remaining work waits on Casper, or on a lock someone else holds for more than a few
+  minutes: write the state to progress.md and end with a report; main respawns you and
+  you resume from it. Why: an idle Opus context is rebuilt from scratch after the
+  5-minute cache expiry, so end rather than idle through a long external wait.
+- **Shell:** no Monitor, and macOS has no `timeout`; never `sleep` polling; never `cd`
+  outside your worktree; never `sed -i` (use Edit or python3).
 - **Durable state in files** when the work spans tasks (the plan's checkboxes, a
   progress note), so a fresh orchestrator can resume.
 

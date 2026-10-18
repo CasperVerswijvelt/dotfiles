@@ -14,6 +14,8 @@ names your one job: an area, a verification, or the judgement. Do that job only.
 
 - **Read-only.** Never edit, commit, push or post. Read-only git, the host CLI's view
   commands and the project's gate are fine.
+- **Run the gate in the foreground** with a long Bash timeout (up to 600000 ms), never
+  backgrounded. No interim messages: report once, at the end.
 - **Get the diff yourself** and read changed files in full: a hunk hides the caller
   that breaks.
 - **Report nothing you did not read.** Cite `file:line` and a concrete failure scenario.

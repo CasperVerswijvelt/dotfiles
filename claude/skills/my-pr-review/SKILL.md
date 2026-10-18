@@ -23,7 +23,10 @@ changed), then the judge; no verify step. Larger: the full set.
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
    - **interface**: UI at every supported size, the project's UI rules, copy and l10n.
-   - **gates**: run the contract's gate; docs and changelog in step with the change.
+   - **gates**: cite the gate result from the commit hook or the landing step output
+     rather than re-running it on a branch whose commits went through the gate hook;
+     re-run only when that evidence is missing or the branch has unhooked commits. Docs
+     and changelog in step with the change.
    - **product**: walk it as a first-time user. Can everything created be used? Does
      each control do something visible, labelled in the user's words? Is the ticket
      solved, including sibling paths? An instruction taken too literally, where the
@@ -33,12 +36,15 @@ changed), then the judge; no verify step. Larger: the full set.
 
    Skip correctness, architecture and interface when no code changed. Each returns
    `{findings: [{area, severity, file, line, claim, scenario}], followups: []}`.
-2. **Verify**: each blocker and major gets two fresh reviewers that see only the claim,
-   the cited lines and the diff, and try to refute it. Confirmed needs both. Anything
-   else is refuted (with evidence) or unconfirmed; neither counts, both are reported.
+2. **Verify**: each blocker and major gets one fresh reviewer that sees only the claim,
+   the cited lines and the diff, and tries to refute it; minors get none. Its verdict is
+   confirmed, refuted (with evidence) or unconfirmed; only confirmed counts, the others
+   are reported.
 3. **Judge**: one `my-reviewer` spawned on Opus. It merges duplicates, drops
    out-of-scope findings into follow-ups, checks severities against this skill and
-   computes the grade.
+   computes the grade. It reads each verifier's verdict body, not only the verdict
+   word: a body that contradicts its word (REFUTED over text confirming the finding)
+   takes the body's meaning, or the finding is re-verified.
 
 ## What counts
 

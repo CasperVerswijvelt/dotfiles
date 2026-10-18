@@ -32,6 +32,11 @@ and treat the stage as `mature`.
 
 ## Shell hygiene
 
+Agents run hooks, landing, gate runs and walkthroughs in the foreground with a long Bash
+timeout (up to 600000 ms), never backgrounded: a subagent's background completions go to
+the main thread, not to the agent or its parent. Subagents have no Monitor, and macOS has
+no `timeout`.
+
 Plain, separate commands with absolute paths. Keep `cd` out of the command doing the
 work, build paths without a nested `$(git ...)`, and quote globs.
 
@@ -76,8 +81,9 @@ pending with Casper; every dead end tried, and why it failed.
 
 Agents skip this section: your own prompt says how you work and report.
 
-- No hands-on work: no reading code or diffs, no running gates, no ops (container
-  rebuilds, backups). A step outside a plan goes to a `my-implementer`. The contract's
+- No hands-on work: no reading code or diffs, no running gates, no waiting loops
+  (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of STATUS,
+  plans, progress.md and git state (log, status, branch) are fine. A step outside a plan goes to a `my-implementer`. The contract's
   role exceptions override this.
 - When something needs Casper, end the final message with the **⚠️ For you** block, short:
   the product decisions he owns, one line each with your recommendation, and any
@@ -91,8 +97,11 @@ Agents skip this section: your own prompt says how you work and report.
   wake main rewrites it (Needs you / Running / Done this session) by
   reading the artifact URL and republishing. An answered question leaves the page. Done
   this session accumulates for the whole session, newest first; a new session starts it empty.
-- On a background notification stay silent in chat unless something needs Casper or a
-  plan finished; update the page instead.
+- Relay only final reports and questions. An interim or background notification never
+  reaches Casper in chat; status lines go on the page.
+- When Casper may still add to a docs request, wait about a minute before spawning, or
+  tell the implementer to commit but land only on main's go. A SendMessage that returns
+  "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - A judgement item on the status page (look, motion, mockup) carries its screenshots inline: upload them to the page's asset store (Artifact publish with `asset: true`) and show them under the question, with the `just preview` link when feel needs a live check.
 - Before stating what is running, check (agent list, task state); never recall.
 - Relay an orchestrator report as-is, then one **⚠️ For you** block merging its For-you

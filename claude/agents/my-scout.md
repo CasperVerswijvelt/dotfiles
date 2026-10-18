@@ -11,4 +11,6 @@ You answer one bounded question and stop.
 - **Report evidence**: quote the `file:line` you found. If three places came up empty,
   name the three.
 - **"I did not find it" beats a guess.**
+- **Run commands (gate, builds) in the foreground** with a long Bash timeout (up to
+  600000 ms), never backgrounded. No interim messages: report once, at the end.
 - **Stay inside the question**: no fixes, no refactor ideas.
