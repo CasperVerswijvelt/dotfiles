@@ -10,7 +10,7 @@ and treat the stage as `mature`.
 
 | Role | Model | Job |
 |---|---|---|
-| Main thread | Opus | Product decisions with Casper; starts `my-orchestrator` agents; relays their reports verbatim. |
+| Main thread | Opus | Product decisions with Casper; starts `my-orchestrator` agents; relays their reports. |
 | `my-orchestrator` | Opus | One plan or PR, delegated end to end. |
 | `my-implementer` | Sonnet | One task from a precise prompt. |
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
@@ -44,16 +44,20 @@ shortest sentence that keeps the reason.
 ## Rules and decisions
 
 - Prefer a rule a test enforces over a paragraph of prose.
-- Gates run as git hooks so they cannot be skipped: pre-commit runs the fast gate,
-  pre-push the full gate. The contract's `Gate hooks` line says which.
+- Gates run as git hooks so they cannot be skipped. The contract's `Gate hooks` line says
+  which gate runs where.
+- The `my-*` skills and the project's Workflow contract override superpowers skills: in a
+  project with a contract, do not load superpowers brainstorming, writing-plans,
+  subagent-driven-development or using-git-worktrees.
 - Settled product and process decisions: one line each in the project's decisions log
   (`my-decision-log`).
 
 ## Git
 
 - Commit only when asked. Starting a plan or PR counts as asking for its commits.
-- One commit per task where possible: goldens, plan tick, progress and status notes go
-  in the task's last code commit, never in separate bookkeeping commits.
+- One commit per task where possible: the plan tick and progress notes go in the task's
+  last code commit, never in separate bookkeeping commits. The contract says what else
+  (goldens, status) waits for plan close.
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the `my-orchestrator` merge (that includes pushing the base). Otherwise Casper
   merges.
@@ -75,7 +79,7 @@ Agents skip this section: your own prompt says how you work and report.
 - No hands-on work: no reading code or diffs, no running gates, no ops (container
   rebuilds, backups). A step outside a plan goes to a `my-implementer`. The contract's
   role exceptions override this.
-- When something needs Casper, end the final message with a short **⚠️ For you** block:
+- When something needs Casper, end the final message with the **⚠️ For you** block, short:
   the product decisions he owns, one line each with your recommendation, and any
   physical action only he can take, listed apart. Nothing needed: leave the block out.
 - A technical choice is yours: make it and mention it. A question that exists only
@@ -83,6 +87,13 @@ Agents skip this section: your own prompt says how you work and report.
 - Batch questions, each saying what exists now, what the answer changes for him and
   what each option costs later, in plain words (explain any internal term).
 - Propose the narrower scope; Casper prunes rather than grows.
-- Status is a short table.
+- Each project may name a status page in its contract (`Status page: <url>`). On every
+  wake main rewrites it (Needs you / Running / Done since Casper's last message) by
+  reading the artifact URL and republishing. An answered question leaves the page.
+- On a background notification stay silent in chat unless something needs Casper or a
+  plan finished; update the page instead.
+- Before stating what is running, check (agent list, task state); never recall.
+- Relay an orchestrator report as-is, then one **⚠️ For you** block merging its For-you
+  line, no repeats. A status table only when 2+ plans run.
 - Show him exactly the screenshots an orchestrator reports, opening each image so it
   renders for him. Never a contact sheet, a folder or a `/tmp` path.

@@ -8,10 +8,11 @@ description: Record a settled product or process decision in the project's decis
 The log is the file the contract names, else `docs/decisions.md` (create it with a
 `# Decisions` heading).
 
-- **Append one line**: `- YYYY-MM-DD: <decision>. Why: <reason>.` In the same commit as
+- **Append one line**: `- YYYY-MM-DD · <decision> · <why>`. In the same commit as
   the change it governs, when there is one.
 - **A default taken for an open question** is logged the same way, ending `(default,
   awaiting Casper)`; replace the line when he answers.
 - **Before reopening** a recorded decision, ask Casper. Grep the log first.
-- **Archive** once it passes about 100 lines: move the oldest entries to
-  `docs/decisions-archive.md` and leave a pointer line.
+- **Archive** once it passes about 100 lines: move superseded and settled-and-encoded
+  entries to `docs/decisions-archive.md` until the active list is about 60 lines, and leave
+  a pointer line. Never drop a line.

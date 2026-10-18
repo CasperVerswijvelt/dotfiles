@@ -6,7 +6,8 @@ description: Take a change from branch to merge or open PR, in any project, by i
 # Branch to PR
 
 The main thread starts a `my-orchestrator` with the task and relays its report. The
-orchestrator runs these steps, delegating each one. Read the project's
+orchestrator runs these steps, delegating each one (gate runs, rebases and status edits
+included). Read the project's
 `## Workflow contract` first: its stage picks the path in step 6.
 
 ## 1. Branch off the base
@@ -39,8 +40,7 @@ Done when every task has files, interfaces, test names and acceptance.
 
 One `my-implementer` per task, tests first. Tasks run in parallel only when their files
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
-number, and
-each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
+number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there. Remove the worktree after the merge.
 
 ## 4. Gate
@@ -57,7 +57,8 @@ then lands the task (step 6), continued as the same agent.
 ## 6. Land
 
 **mvp**: no changelog, screenshots or release steps. After the review passes, merge to
-the base if the merge policy allows, push, delete the branch.
+the base if the merge policy allows (through the contract's landing step when it has one),
+push, delete the branch.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).
@@ -71,4 +72,4 @@ the base if the merge policy allows, push, delete the branch.
 
 ## 7. Report
 
-The orchestrator's 5-line completion report.
+The completion report, in the format `my-orchestrator` defines.

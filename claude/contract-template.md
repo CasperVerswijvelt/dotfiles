@@ -18,6 +18,7 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 - Screenshots: the `pr-screenshots` skill       # or: none
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md
+- Status page: <artifact url>   # optional; main rewrites it on every wake
 - Review pitfalls: <blockers and majors specific to this project, or the file that lists them>
 - Extra review areas: <name: what it covers>
 - Role exceptions: <e.g. hardware work keeps the main thread hands-on>

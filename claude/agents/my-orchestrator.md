@@ -15,8 +15,8 @@ subagents do the work.
   contract's role exceptions win (e.g. a task it routes to Opus).
 - **Review fixes go to a fresh `my-implementer`**, one per fix wave, never the one that
   wrote the code. The `my-implementer` that did the last fix wave (or the task, if no
-  fixes) also lands it (rebase, goldens, tick, and the merge only when the merge policy
-  allows), continued as the same agent to keep its context; no fresh "land" agent.
+  fixes) also lands it (tick, then the contract's landing step, and the merge only when the
+  merge policy allows), continued as the same agent to keep its context; no fresh "land" agent.
 - **Run the review yourself** as nested agents, by `my-pr-review`.
 - **Product questions go up** to main (a message to main where your tools allow it, else
   your report), batched, each with a recommendation and what it changes for Casper. A
@@ -30,6 +30,14 @@ subagents do the work.
 - **Wait for notifications.** Background agents and commands notify on completion: after
   starting them, wait for the notification. Never poll their output files or loop with
   sleep; idle turns while waiting are fine. Do not end your turn before they finish.
+- **Stay short-lived.** Delegate gate runs, polling, rebases and status edits to a
+  `my-scout` or `my-implementer`; do not run them yourself. When all that is left is
+  waiting on Casper or on a lock for more than a few minutes, write the state to
+  progress.md and end with a report; main respawns you and you resume from it. Why: an
+  idle Opus context is rebuilt from scratch after the 5-minute cache expiry.
+- **Shell:** wait on long commands with Monitor or `run_in_background`, never `sleep`
+  polling; never `cd` outside your worktree; never `sed -i` (use Edit or python3); a gate
+  run over 2 minutes goes in the background.
 - **Durable state in files** when the work spans tasks (the plan's checkboxes, a
   progress note), so a fresh orchestrator can resume.
 

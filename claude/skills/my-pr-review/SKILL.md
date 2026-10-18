@@ -59,13 +59,14 @@ change never claimed, or a refactor taste is a follow-up, never a finding.
 
 ## Grade
 
-| Letter | | Suffix | |
-|---|---|---|---|
-| A | 0 blockers, 0 majors | (none) | 0-2 minors |
-| B | 0 blockers, 1-2 majors | - | 3-5 minors |
-| C | 0 blockers, 3-5 majors | | |
-| D | 1 blocker, or 6+ majors | | |
-| F | 2+ blockers, or a red gate | | |
+| Grade | Condition |
+|---|---|
+| A | 0 blockers, 0 majors, 0-2 minors |
+| A- | 0 blockers, 0 majors, 3-5 minors |
+| B | 0 blockers, 1-2 majors |
+| C | 0 blockers, 3-5 majors |
+| D | 1 blocker, or 6+ majors |
+| F | 2+ blockers, or a red gate |
 
 A gate failure that also fails on the base is pre-existing and does not count. A major
 closes by a fix or by Casper's explicit waiver, which becomes a filed issue.

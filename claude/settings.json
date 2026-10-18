@@ -35,9 +35,7 @@
   },
   "enabledPlugins": {
     "chrome-devtools-mcp@chrome-devtools-plugins": true,
-    "ponytail@ponytail": true,
     "superpowers@claude-plugins-official": true,
-    "i-have-adhd@i-have-adhd": true,
     "mattpocock-skills@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
