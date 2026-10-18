@@ -42,7 +42,7 @@ startup pull stops fast-forwarding.
   `my-implementer` (Sonnet) does one scoped task, `my-reviewer` (Sonnet, judge on
   Opus) reviews read-only, `my-scout` (Haiku) does fact lookups. The main thread decides and delegates.
 - **Skills** (`claude/skills/`): `my-pr-flow` (branch to PR), `my-pr-review` (review and
-  grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`.
+  grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`, `my-retro` (session retrospective, `claude/tools/retro/`).
 - **Workflow contract**: each project can add a `## Workflow contract` section to its own
   `CLAUDE.md`: stage, gate, base branch, merge policy and so on. The template is
   `claude/contract-template.md`. Without one, the project is treated as mature.
