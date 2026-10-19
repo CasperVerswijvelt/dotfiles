@@ -16,6 +16,7 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 - Max parallel implementers: 3  # optional; default 3, the gate is CPU-bound
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Screenshots: the `pr-screenshots` skill       # or: none
+- Pair tool: <command> into <gitignored folder>   # UI changes; omit if none
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md
 - Status page: <artifact url>   # optional; main rewrites it on every wake

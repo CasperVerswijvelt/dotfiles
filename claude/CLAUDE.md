@@ -62,7 +62,7 @@ shortest sentence that keeps the reason.
 - Commit only when asked. Starting a plan or PR counts as asking for its commits.
 - One commit per task where possible: the plan tick and progress notes go in the task's
   last code commit, never in separate bookkeeping commits. The contract says what else
-  (goldens, status) waits for plan close.
+  waits for plan close (such as status).
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the `my-orchestrator` merge (that includes pushing the base). Otherwise Casper
   merges.
@@ -110,4 +110,5 @@ Agents skip this section: your own prompt says how you work and report.
   asset store (Artifact publish with `asset: true`) and show each change as one row:
   change title, then Before | After side by side (stacked on a phone), with the `just preview`
   link when feel needs a live check. Never a contact
-  sheet, a folder or a `/tmp` path, and not in chat.
+  sheet, a folder or a `/tmp` path, and not in chat. A judgement item without a pair (a
+  mockup) gets its images inline the same way, with the `just preview` link when feel needs a live check.
