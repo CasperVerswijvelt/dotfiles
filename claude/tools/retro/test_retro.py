@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, unittest
+import json, os, tempfile, unittest
 import retro
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +40,37 @@ class T(unittest.TestCase):
 
     def test_render(self):
         self.assertIn("TOTAL", retro.render(self.r))
+
+
+def _gap_after_asst(next_row):
+    """analyse() a tiny subagent transcript: prompt, assistant text, 1h gap, next_row, assistant."""
+    def asst(ts, i):
+        return {"type": "assistant", "timestamp": ts, "message": {"id": i, "model": "claude-sonnet-5-5", "content": [{"type": "text", "text": "x"}], "usage": {}}}
+    rows = [{"type": "user", "timestamp": "2026-10-18T10:00:00.000Z", "message": {"content": "go"}, "isSidechain": True},
+            asst("2026-10-18T10:00:05.000Z", "m1")]
+    if next_row:
+        rows.append(next_row)
+    rows.append(asst("2026-10-18T11:00:05.000Z", "m2"))
+    with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as f:
+        f.write("\n".join(json.dumps(r) for r in rows))
+    try:
+        return retro.analyse(f.name, "aX", "my-implementer", 300)
+    finally:
+        os.unlink(f.name)
+
+
+class Resume(unittest.TestCase):
+    def test_coordinator_resume_gap_is_wait(self):
+        resume = {"type": "user", "timestamp": "2026-10-18T11:00:00.000Z", "origin": {"kind": "coordinator"}, "isMeta": True, "isSidechain": True,
+                  "message": {"content": "The coordinator sent a message while you were working:\ngo on"}}
+        a = _gap_after_asst(resume)
+        self.assertEqual(a["gaps"][0]["category"], "wait_resume")
+        self.assertLess(a["time"]["generation"], 20)
+
+    def test_plain_generation_gap_stays_generation(self):
+        a = _gap_after_asst(None)
+        self.assertEqual(a["gaps"][0]["category"], "generation")
+        self.assertGreater(a["time"]["generation"], 3000)
 
 
 if __name__ == "__main__":

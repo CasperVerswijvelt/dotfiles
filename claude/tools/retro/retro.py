@@ -200,7 +200,9 @@ def analyse(path, aid, role, idle):
                 kind = "prompt"
             else:
                 kind = "human"
-        if kind == "task-notification":
+        if kind == "coordinator":  # SendMessage delivery that resumes an idle agent
+            order.append({"kind": "resume", "ts": ts})
+        elif kind == "task-notification":
             notif_keys.add(hash(txt))
             order.append({"kind": "notif", "ts": ts, "text": txt})
         elif kind == "human" and not re.match(r"\s*<(local-command|command-)", txt) and txt.strip():
@@ -287,6 +289,9 @@ def analyse(path, aid, role, idle):
                     if gate_last_failed:
                         a["gate"]["retries"] += 1
                     gate_last_failed = failed
+        elif o["kind"] == "resume":
+            cat = "wait_resume"  # the agent sat idle until the coordinator resumed it
+            label = "idle until resumed by the coordinator"
         else:  # human / notif / prompt
             if o["kind"] == "prompt":
                 cat = "start"
