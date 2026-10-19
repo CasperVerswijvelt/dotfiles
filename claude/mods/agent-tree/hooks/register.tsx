@@ -18,11 +18,43 @@ const span = (ms: number) => {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`
 }
 
-// Model tier: o(pus), s(onnet), h(aiku) or g(ray). The agent type backs up a missing model (roles per the dotfiles).
-const tier = (n: AgentTreeNode) => {
-  const of = (m: string) => (/opus|orchestrator/i.test(m) ? 'o' : /sonnet|implementer|reviewer/i.test(m) ? 's' : /haiku|scout/i.test(m) ? 'h' : 'g')
+const PHASES = ['plan', 'implement', 'gate', 'review', 'land', 'report']
+// `<phase>: <what>` gives the phase; anything else gives undefined.
+export const parsePhase = (description: string): string | undefined => {
+  const m = /^\s*([a-z]+)\s*:/i.exec(description)
+  const p = m?.[1]?.toLowerCase()
+  return p !== undefined && PHASES.includes(p) ? p : undefined
+}
+
+// The `model:` value of a file's frontmatter, lowercased and unquoted.
+export const parseAgentModel = (text: string): string | undefined => {
+  const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(text)
+  const v = fm && /^model:[ \t]*(.*?)[ \t]*$/m.exec(fm[1]!)?.[1]?.replace(/^(["'])(.*)\1$/, '$2').trim()
+  return v ? v.toLowerCase() : undefined
+}
+const parseAgentName = (text: string): string | undefined => {
+  const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(text)
+  const v = fm && /^name:[ \t]*(.*?)[ \t]*$/m.exec(fm[1]!)?.[1]?.replace(/^(["'])(.*)\1$/, '$2').trim()
+  return v || undefined
+}
+
+// Agent type -> model text, from agent files: the frontmatter `name:`, else the basename.
+export const buildTierMap = (files: { name: string; text: string }[]): Record<string, string> => {
+  const map: Record<string, string> = {}
+  for (const f of files) {
+    const model = parseAgentModel(f.text)
+    if (model !== undefined) map[parseAgentName(f.text) ?? f.name.replace(/\.md$/, '')] = model
+  }
+  return map
+}
+
+// Model tier: o(pus), s(onnet), h(aiku) or g(ray). The agent type backs up a missing model: the agent files first, then the built-in roles.
+const of = (m: string) => (/opus|orchestrator/i.test(m) ? 'o' : /sonnet|implementer|reviewer/i.test(m) ? 's' : /haiku|scout/i.test(m) ? 'h' : 'g')
+const tierIn = (map: Record<string, string>, n: AgentTreeNode) => {
   const byModel = of(n.model ?? '')
-  return byModel === 'g' ? of(n.type) : byModel
+  if (byModel !== 'g') return byModel
+  const byFile = of(map[n.type] ?? '')
+  return byFile === 'g' ? of(n.type) : byFile
 }
 
 // Tool name plus a short hint: file name, command or pattern.
@@ -42,6 +74,8 @@ export const register: Register = on => {
   let timer: { cancel: () => void } | undefined
   let minuteTimer: { cancel: () => void } | undefined
   let opened = false
+  let agentModels: Record<string, string> = {}
+  const tier = (n: AgentTreeNode) => tierIn(agentModels, n)
 
   on('session.start', async ($, e, next) => {
     // Each registration on its own: one refusal must not drop the rest of this hook.
@@ -49,6 +83,25 @@ export const register: Register = on => {
       await $.command.register({ name: COMMAND, description: 'Show the live agent tree in a pane' })
     } catch (err) {
       $.ui.log(`agent-tree: command registration failed: ${String(err)}`, { to: 'debug' })
+    }
+    // Roles from ~/.claude/agents/*.md; any failure keeps the built-in roles.
+    try {
+      const home = await $.env.get('HOME')
+      if (home) {
+        const dir = `${home}/.claude/agents`
+        const files: { name: string; text: string }[] = []
+        for (const f of await $.fs.list(dir)) {
+          if (!f.name.endsWith('.md')) continue
+          try {
+            files.push({ name: f.name, text: await $.fs.read(`${dir}/${f.name}`) })
+          } catch {
+            // One unreadable file does not drop the others.
+          }
+        }
+        agentModels = buildTierMap(files)
+      }
+    } catch (err) {
+      $.ui.log(`agent-tree: reading agent files failed: ${String(err)}`, { to: 'debug' })
     }
     return next(e)
   })
@@ -155,6 +208,15 @@ export const register: Register = on => {
       })
     }
     walk(ROOT, 1, 0, '')
+    // An orchestrator's phase: its most recent running child with a valid prefix.
+    const phase = (n: AgentTreeNode) =>
+      n.type === 'my-orchestrator'
+        ? kids(n.id)
+            .filter(c => c.status === 'running')
+            .reverse()
+            .map(c => parsePhase(c.description))
+            .find(p => p !== undefined)
+        : undefined
     const time = (n: AgentTreeNode) => span((n.endedAt ?? now) - n.startedAt)
     const color = (n: AgentTreeNode) => ({ o: 'magenta', s: 'cyan', h: 'yellow', g: undefined })[tier(n)]
     // Whole minutes only, so the SVG source (and its frame) stays the same between ticks.
@@ -184,8 +246,10 @@ export const register: Register = on => {
         const pxl = X(depth) + 16
         const dx = pxl + pw + 8
         const tool = run && n.currentTool ? clip(n.currentTool, 18) : ''
-        const room = W - 52 - dx - (tool ? tool.length * 6.3 + 8 : 0)
-        return `<g${run ? '' : ' opacity="0.55"'}>${elbow}<g>${mark}<g class="${k}"><rect x="${pxl}" y="${cy - 10}" width="${pw}" height="20" rx="10" stroke-width="0.5"/><text x="${pxl + pw / 2}" y="${cy + 4}" text-anchor="middle" class="t" font-size="12.5">${esc(n.type)}</text></g><text x="${dx}" y="${cy + 5}" class="d">${esc(clip(n.description, Math.max(6, Math.floor(room / 7.2))))}</text>${tool ? `<text x="${W - 52}" y="${cy + 4}" text-anchor="end" class="s">${esc(tool)}</text>` : ''}<text x="${W - 8}" y="${cy + 4}" text-anchor="end" class="s">${mins(n)}</text></g></g>`
+        const ph = phase(n)
+        const phw = ph ? ph.length * 6 + 14 : 0
+        const room = W - 52 - dx - phw - (tool ? tool.length * 6.3 + 8 : 0)
+        return `<g${run ? '' : ' opacity="0.55"'}>${elbow}<g>${mark}<g class="${k}"><rect x="${pxl}" y="${cy - 10}" width="${pw}" height="20" rx="10" stroke-width="0.5"/><text x="${pxl + pw / 2}" y="${cy + 4}" text-anchor="middle" class="t" font-size="12.5">${esc(n.type)}</text></g><text x="${dx}" y="${cy + 5}" class="d">${esc(clip(n.description, Math.max(6, Math.floor(room / 7.2))))}</text>${ph ? `<text x="${W - 52 - (tool ? tool.length * 6.3 + 8 : 0)}" y="${cy + 4}" text-anchor="end" class="s" font-style="italic">${ph}</text>` : ''}${tool ? `<text x="${W - 52}" y="${cy + 4}" text-anchor="end" class="s">${esc(tool)}</text>` : ''}<text x="${W - 8}" y="${cy + 4}" text-anchor="end" class="s">${mins(n)}</text></g></g>`
       })
       const total = (rows.length + 2) * H
       const source =
@@ -222,7 +286,7 @@ export const register: Register = on => {
           return (
             <Text key={n.id} dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
               {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
-              <Text color={color(n)}>{n.type}</Text> {clip(n.description, 40)}{n.model ? ` [${n.model}]` : ''} {time(n)}{tool}
+              <Text color={color(n)}>{n.type}</Text>{phase(n) ? <Text dimColor> {phase(n)}</Text> : null} {clip(n.description, 40)}{n.model ? ` [${n.model}]` : ''} {time(n)}{tool}
             </Text>
           )
         })}

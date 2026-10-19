@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { register } from './hooks/register'
+import { buildTierMap, parseAgentModel, parsePhase, register } from './hooks/register'
 
 const spawn = (description: string, parentAgentId?: string) =>
   ({ prompt: 'p', description, subagentType: 'my-implementer', parentAgentId }) as never
@@ -207,4 +207,59 @@ test('command name', async ($, on) => {
   on('session.start', () => ({ cwd: '/tmp' }) as never)
   await $.session.start({ cwd: '/tmp' } as never)
   expect(names).toEqual(['agent-tree'])
+})
+
+test('agent frontmatter parsing', () => {
+  expect(parseAgentModel('---\nname: a\nmodel: opus\n---\nbody')).toBe('opus')
+  expect(parseAgentModel('---\nmodel: sonnet\n---\n')).toBe('sonnet')
+  expect(parseAgentModel('---\nmodel: haiku\n---\n')).toBe('haiku')
+  expect(parseAgentModel('---\nmodel: "Opus"\n---\n')).toBe('opus')
+  expect(parseAgentModel("---\nmodel: 'haiku'\n---\n")).toBe('haiku')
+  expect(parseAgentModel('no frontmatter\nmodel: opus')).toBeUndefined()
+  expect(parseAgentModel('---\nname: a\n---\nmodel: opus')).toBeUndefined()
+  const map = buildTierMap([
+    { name: 'my-scout.md', text: '---\nmodel: haiku\n---\n' },
+    { name: 'file.md', text: '---\nname: renamed\nmodel: opus\n---\n' },
+    { name: 'none.md', text: 'plain' },
+  ])
+  expect(map).toEqual({ 'my-scout': 'haiku', renamed: 'opus' })
+})
+
+test('tier map from agents folder', async ($, on) => {
+  await setup($, on)
+  on('env.get', () => ({ value: '/home/x' }) as never)
+  on('fs.list', (_: unknown, e: any) => ({ value: e.path === '/home/x/.claude/agents' ? [{ name: 'custom-agent.md', kind: 'other', size: 0, mtimeMs: 0, isLink: true }] : [] }) as never)
+  on('fs.read', () => ({ value: '---\nmodel: haiku\n---\n' }) as never)
+  on('session.start', () => ({ cwd: '/tmp' }) as never)
+  await $.session.start({ cwd: '/tmp' } as never)
+  models.look = ''
+  await $.agent.spawn({ prompt: 'p', description: 'look', subagentType: 'custom-agent' } as never)
+  delete models.look
+  expect((await svg($)).props.source).toMatch(/<g class="h"><rect/)
+})
+
+test('phase parsing', () => {
+  expect(parsePhase('review: x')).toBe('review')
+  expect(parsePhase('Review:x')).toBe('review')
+  expect(parsePhase('  GATE : full')).toBe('gate')
+  expect(parsePhase('implement: task 2')).toBe('implement')
+  expect(parsePhase('fix the bug')).toBeUndefined()
+  expect(parsePhase('deploy: x')).toBeUndefined()
+  expect(parsePhase('review')).toBeUndefined()
+})
+
+test('orchestrator phase label', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn({ prompt: 'p', description: 'the plan', subagentType: 'my-orchestrator' } as never)
+  await $.agent.spawn(spawn('implement: a', 'a1'))
+  await $.agent.spawn(spawn('review: b', 'a1'))
+  const ui = await mount($, 'terminal')
+  expect((await row(ui, 'the plan'))?.text).toMatch(/my-orchestrator review .*the plan/)
+  await ui.unmount()
+  expect((await svg($)).props.source).toMatch(/>review<\/text>/)
+  await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  const ui2 = await mount($, 'terminal')
+  expect((await row(ui2, 'the plan'))?.text).toMatch(/my-orchestrator implement .*the plan/)
+  await ui2.unmount()
+  expect((await svg($)).props.source).toMatch(/>implement<\/text>/)
 })

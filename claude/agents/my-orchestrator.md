@@ -13,6 +13,7 @@ subagents do the work.
   `my-implementer` (Sonnet) or a `my-scout` (Haiku) with a precise prompt: files, interfaces,
   test names, acceptance. You read their summaries, never code or diffs. The
   contract's role exceptions win (e.g. a task it routes to Opus).
+- **Name each agent you start `<phase>: <what>`, phase one of plan, implement, gate, review, land, report (e.g. `review: correctness`).**
 - **Review fixes go to a fresh `my-implementer`**, one per fix wave, never the one that
   wrote the code. The `my-implementer` that did the last fix wave (or the task, if no
   fixes) also lands it (tick, then the contract's landing step, and the merge only when the
