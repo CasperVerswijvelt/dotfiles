@@ -34,6 +34,8 @@ Reviewers read code and, for a UI change, the before/after pair, not a full capt
      solved, including sibling paths? An instruction taken too literally, where the
      intent was different, is a major. A fix that contradicts a recorded decision is
      marked "ask Casper".
+     A project's contract or rubric may fold a built-in area into another reviewer (for
+     example UI and product run inside correctness); the area's checks still run.
    - **gates**: cite the gate result from the commit hook or the landing step output
      rather than re-running it on a branch whose commits went through the gate hook;
      re-run only when that evidence is missing or the branch has unhooked commits. Docs

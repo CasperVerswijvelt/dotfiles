@@ -1,9 +1,7 @@
 # Personal workflow
 
 Applies in every project, to the main thread and every agent. The project's own
-CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the contract's
-fields (see the template, `~/dotfiles/claude/contract-template.md`). No contract: infer what you can from the repo
-and treat the stage as `mature`.
+CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the project's fields (template: `~/dotfiles/claude/contract-template.md`). No contract: infer what you can from the repo and treat the stage as `mature`.
 
 ## Roles
 
@@ -114,5 +112,5 @@ Agents skip this section: your own prompt says how you work and report.
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - Before stating what is running, check (agent list, task state); never recall.
 - Relay an orchestrator report as-is, minus its `Pairs:` block, whose pairs go on the
-  status page, then one **⚠️ For you**
+  status page, or in chat when the contract names no status page, then one **⚠️ For you**
   block merging its For-you line, no repeats. A status table only when 2+ plans run.
