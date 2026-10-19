@@ -1,1 +1,4 @@
 __pycache__/
+
+# Engine-generated mod typings
+claude/mods/*/.claude-plugin/types/

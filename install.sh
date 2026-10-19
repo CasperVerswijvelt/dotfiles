@@ -38,6 +38,9 @@ for f in "$SRC"/agents/*.md; do
   link "$f" "$DEST/agents/$(basename "$f")"
 done
 
+# Mods load through CLAUDE_CODE_PLUGIN_DIRS in settings.json, which points into this link.
+link "$SRC/mods" "$DEST/mods"
+
 # The Claude config references the repo as ~/dotfiles.
 [ "$SRC" = "$HOME/dotfiles/claude" ] || link "$(dirname "$SRC")" "$HOME/dotfiles"
 

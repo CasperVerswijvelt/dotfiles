@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Validate and test the agent-tree mod when a commit touches it.
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+mod="$root/claude/mods/agent-tree"
+
+git diff --cached --name-only | grep -q '^claude/mods/agent-tree/' || exit 0
+
+claude plugin validate --strict "$mod"
+claude plugin test "$mod"

@@ -1,0 +1,1 @@
+{ "name": "agent-tree", "version": "0.1.0", "author": { "name": "Casper Verswijvelt" }, "description": "Live tree of running agents and subagents", "types": "./types/index.d.ts" }

@@ -25,6 +25,7 @@ git clone <this repo> ~/dotfiles
 The installer:
 
 - links `CLAUDE.md`, `settings.json`, each skill and each agent into `~/.claude`
+- links `claude/mods` as `~/.claude/mods`; `settings.json` loads `agent-tree` from there (`CLAUDE_CODE_PLUGIN_DIRS`, `~` is expanded, `$HOME` is not)
 - links the repo to `~/dotfiles` if it lives elsewhere, since the config refers to that path
 - links `CLAUDE.md` as `~/.config/opencode/AGENTS.md`, plus `opencode.json` and `plugins/`
 - sets `core.hooksPath` to `.githooks` and generates the OpenCode agents
