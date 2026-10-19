@@ -16,27 +16,30 @@ wrote the code. Each agent's prompt holds only the refs (`base...head`), the tic
 the approved approach: never the author's rationale or a hint where to look. Commit first.
 
 **Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
-change): ONE `my-reviewer` covers every area below (product and interface included when UI
-changed), then the judge; no verify step. Larger: the full set.
+change): ONE `my-reviewer` covers every area below (UI and product included when UI
+changed), then the judge; no verify step. Larger: the full set. Plan-close review:
+correctness and architecture only, and no judge when there are no majors.
+Reviewers read code and, for a UI change, the before/after pair, not a walk folder.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
-   - **interface**: UI at every supported size, the project's UI rules, copy and l10n.
-   - **gates**: cite the gate result from the commit hook or the landing step output
-     rather than re-running it on a branch whose commits went through the gate hook;
-     re-run only when that evidence is missing or the branch has unhooked commits. Docs
-     and changelog in step with the change.
-   - **product**: walk it as a first-time user. Can everything created be used? Does
+   - **UI and product** (one area, also where the contract names ui and product as
+     extra areas): UI at every supported size, the project's UI rules, copy and l10n.
+     Walk it as a first-time user. Can everything created be used? Does
      each control do something visible, labelled in the user's words? Is the ticket
      solved, including sibling paths? An instruction taken too literally, where the
      intent was different, is a major. A fix that contradicts a recorded decision is
      marked "ask Casper".
+   - **gates**: cite the gate result from the commit hook or the landing step output
+     rather than re-running it on a branch whose commits went through the gate hook;
+     re-run only when that evidence is missing or the branch has unhooked commits. Docs
+     and changelog in step with the change.
    - every extra area the contract adds.
 
-   Skip correctness, architecture and interface when no code changed. Each returns
+   Skip correctness, architecture and UI when no code changed. Each returns
    `{findings: [{area, severity, file, line, claim, scenario}], followups: []}`.
-2. **Verify**: each blocker and major gets one fresh reviewer that sees only the claim,
+2. **Verify**: each blocker and major gets its own fresh reviewer that sees only the claim,
    the cited lines and the diff, and tries to refute it; minors get none. Its verdict is
    confirmed, refuted (with evidence) or unconfirmed; only confirmed counts, the others
    are reported.

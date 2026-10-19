@@ -102,9 +102,12 @@ Agents skip this section: your own prompt says how you work and report.
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
-- A judgement item on the status page (look, motion, mockup) carries its screenshots inline: upload them to the page's asset store (Artifact publish with `asset: true`) and show them under the question, with the `just preview` link when feel needs a live check.
+- A judgement item on the status page (look, motion, mockup) carries its before/after rows inline under the question, with the `just preview` link when feel needs a live check.
 - Before stating what is running, check (agent list, task state); never recall.
 - Relay an orchestrator report as-is, then one **⚠️ For you** block merging its For-you
   line, no repeats. A status table only when 2+ plans run.
-- Show him exactly the screenshots an orchestrator reports, on the status page instead
-  of in chat. Never a contact sheet, a folder or a `/tmp` path.
+- Orchestrators report before/after pair paths (`<state>.before.png` /
+  `<state>.after.png`; a new screen has after only). Upload each png to the status page
+  asset store (Artifact publish with `asset: true`) and show each change as one row:
+  change title, then Before | After side by side (stacked on a phone). Never a contact
+  sheet, a folder or a `/tmp` path, and not in chat.

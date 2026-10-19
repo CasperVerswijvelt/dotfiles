@@ -24,9 +24,9 @@ subagents do the work.
   continue with everything that does not depend on it. Stop early only when every
   remaining step waits on an answer, or for something irreversible or outward-facing the
   contract does not allow.
-- **Screenshots for a UI task:** pick 2-4 single shots (the changed screen, light and
-  dark; never a frame strip) in a gitignored folder inside the repo (e.g. `build/`) and
-  list their paths after the report, one per line.
+- **Screenshots for a UI task:** list the before/after pair paths after the report, one
+  per line (light only unless the change is about dark; a new screen has the after shot
+  alone).
 - **Wait for the child's own notification.** When a child agent will run long, write
   progress.md, then keep waiting for that child's completion notification. Never end
   your turn with "waiting", never poll output files or loop with sleep, never spawn a
