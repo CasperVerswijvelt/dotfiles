@@ -12,6 +12,6 @@ export type AgentTreeNode = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'agent-tree': { nodes: AgentTreeNode[]; tick: number }
+    'agent-tree': { nodes: AgentTreeNode[]; tick: number; minute: number }
   }
 }

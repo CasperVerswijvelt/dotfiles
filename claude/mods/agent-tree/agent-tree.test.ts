@@ -60,7 +60,7 @@ const svg = async ($: any) => {
 const rowsOf = (s: string) => s.match(/<g class="[osh]"><rect x="\d+" y="\d+" width="\d+" height="20"/g)?.length ?? 0
 const row = async (ui: any, d: string) => ui.find({ type: 'Text', text: new RegExp(d) })
 
-test('desktop svg: one row per agent, animation only on running, done rows dimmed with tier colour', async ($, on) => {
+test('desktop svg: one row per agent, done rows dimmed with tier colour', async ($, on) => {
   await setup($, on)
   Object.assign(models, { boss: 'opus', fast: 'haiku' })
   await $.agent.spawn(spawn('boss'))
@@ -70,8 +70,6 @@ test('desktop svg: one row per agent, animation only on running, done rows dimme
   await $.turn.complete({ agentId: 'a4', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   const source = (await svg($)).props.source
   expect(rowsOf(source)).toBe(4)
-  expect(source.match(/attributeName="stroke-dashoffset"/g)).toHaveLength(3)
-  expect(source.match(/values="1;0\.25;1"/g)).toHaveLength(3)
   expect(source).toMatch(/<g opacity="0\.55">[\s\S]*<g class="s"><rect x="\d+" y="\d+" width="\d+" height="20"/)
   expect(source).toContain('>Haiku<')
   expect(source).not.toContain('[sonnet]')
@@ -162,4 +160,51 @@ test('a throwing tool call clears currentTool and rethrows', async ($, on) => {
   const ui = await mount($, 'terminal')
   expect((await row(ui, 'worker'))?.text).not.toMatch(/Bash/)
   await ui.unmount()
+})
+
+test('desktop svg has no animation', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  await $.agent.spawn(spawn('child', 'a1'))
+  await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
+  const node = await svg($)
+  expect(node.props.source).not.toMatch(/<animate|<set|animateTransform/)
+  expect(node.props.isInteractive).toBeFalsy()
+})
+
+test('status glyphs', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('running one'))
+  await $.agent.spawn(spawn('done one'))
+  await $.agent.spawn(spawn('failed one'))
+  await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
+  const source = (await svg($)).props.source
+  expect(source).toMatch(/class="gl s"[^>]*>◐</)
+  expect(source).toMatch(/fill="#888780"[^>]*>✓</)
+  expect(source).toMatch(/fill="#E24B4A"[^>]*>✗</)
+})
+
+test('elapsed minutes', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  await clock.advance(59_000)
+  const a = (await svg($)).props.source
+  expect(a).toContain('&lt;1m</text>')
+  await clock.advance(1000)
+  expect((await svg($)).props.source).toContain('>1m</text>')
+  await clock.advance(139_000)
+  const b = (await svg($)).props.source
+  expect(b).toContain('>3m</text>')
+  await clock.advance(20_000)
+  expect((await svg($)).props.source).toBe(b)
+})
+
+test('command name', async ($, on) => {
+  await setup($, on)
+  const names: string[] = []
+  on('command.register', (_: unknown, e: any) => { names.push(e.name); return { value: { command: e.name } } as never })
+  on('session.start', () => ({ cwd: '/tmp' }) as never)
+  await $.session.start({ cwd: '/tmp' } as never)
+  expect(names).toEqual(['agent-tree'])
 })

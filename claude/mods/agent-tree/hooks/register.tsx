@@ -7,7 +7,10 @@ const PANE = 'agent-tree'
 const ROOT = 'main'
 const GONE_MS = 120_000
 const nodes = atom({ plugin: 'agent-tree', key: 'nodes' } as const, [] as AgentTreeNode[])
+// Terminal redraw, once a second. The desktop Svg reads `minute` instead: it redraws at most once a minute.
 const tick = atom({ plugin: 'agent-tree', key: 'tick' } as const, 0)
+const minute = atom({ plugin: 'agent-tree', key: 'minute' } as const, 0)
+const COMMAND = 'agent-tree'
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}~` : s)
 const span = (ms: number) => {
@@ -37,14 +40,20 @@ const patch = (id: string, change: Partial<AgentTreeNode>) => (list: AgentTreeNo
 
 export const register: Register = on => {
   let timer: { cancel: () => void } | undefined
+  let minuteTimer: { cancel: () => void } | undefined
   let opened = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'agents', description: 'Show the live agent tree in a pane' })
+    // Each registration on its own: one refusal must not drop the rest of this hook.
+    try {
+      await $.command.register({ name: COMMAND, description: 'Show the live agent tree in a pane' })
+    } catch (err) {
+      $.ui.log(`agent-tree: command registration failed: ${String(err)}`, { to: 'debug' })
+    }
     return next(e)
   })
 
-  on('command.run', { command: 'agents' }, async $ => {
+  on('command.run', { command: COMMAND }, async $ => {
     await $.ui.open({ id: PANE, title: 'Agents' })
     return { text: 'Agents pane opened.' }
   })
@@ -65,12 +74,20 @@ export const register: Register = on => {
       }
       await update($, nodes, list => [...list, node])
       // A once-a-second redraw, only while something runs.
+      const stop = async () => {
+        if ((await read($, nodes)).some(n => n.status === 'running')) return
+        timer?.cancel()
+        timer = undefined
+        minuteTimer?.cancel()
+        minuteTimer = undefined
+      }
       timer ??= $.clock.every(1000, async () => {
         await update($, tick, n => n + 1)
-        if (!(await read($, nodes)).some(n => n.status === 'running')) {
-          timer?.cancel()
-          timer = undefined
-        }
+        await stop()
+      })
+      minuteTimer ??= $.clock.every(60_000, async () => {
+        await update($, minute, n => n + 1)
+        await stop()
       })
       if (!opened) {
         opened = true
@@ -118,9 +135,11 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
-    await read($, tick)
     const list = await read($, nodes)
     const now = await $.clock.now()
+    // Subscribe to the one redraw clock this surface needs.
+    if (e.surface === 'terminal') await read($, tick)
+    else await read($, minute)
     const kids = (id: string) => list.filter(n => n.parentId === id)
     // Finished a while ago, with every descendant gone too.
     const isGone = (n: AgentTreeNode): boolean =>
@@ -157,14 +176,10 @@ export const register: Register = on => {
         const cx = X(depth) + 6
         const cy = Y(at)
         const px = X(depth - 1) + 6
-        const elbow = `<path d="M${px} ${Y(parent) + 8}V${cy}H${cx - 6}" fill="none" class="c" stroke-dasharray="3 3"${run ? '' : ' opacity="0.5"'}>${
-          run ? '<animate attributeName="stroke-dashoffset" from="6" to="0" dur="1s" repeatCount="indefinite"/>' : ''
-        }</path>`
-        const mark = run
-          ? `<circle cx="${cx}" cy="${cy}" r="4" fill="#639922"><animate attributeName="opacity" values="1;0.25;1" dur="1.2s" repeatCount="indefinite"/></circle>`
-          : n.status === 'done'
-            ? `<path d="M${cx - 4} ${cy}l3 3l5 -6" fill="none" stroke="#888780" stroke-width="1.8"/>`
-            : `<path d="M${cx - 4} ${cy - 4}l8 8m0 -8l-8 8" fill="none" stroke="#E24B4A" stroke-width="1.8"/>`
+        const elbow = `<path d="M${px} ${Y(parent) + 8}V${cy}H${cx - 6}" fill="none" class="c" stroke-dasharray="3 3"${run ? '' : ' opacity="0.5"'}/>`
+        // A glyph per status, so colour is never the only signal. All static.
+        const glyph = (ch: string, extra: string) => `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" ${extra}>${ch}</text>`
+        const mark = run ? glyph('◐', `class="gl ${k}"`) : n.status === 'done' ? glyph('✓', 'fill="#888780"') : glyph('✗', 'fill="#E24B4A"')
         const pw = Math.round(n.type.length * 6.6 + 14)
         const pxl = X(depth) + 16
         const dx = pxl + pw + 8
@@ -177,9 +192,9 @@ export const register: Register = on => {
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${total}" width="${W}" height="${total}" font-family="-apple-system, system-ui, sans-serif" font-size="14">` +
         `<style>.o rect{fill:#CECBF6;stroke:#534AB7}.o .t{fill:#3C3489}.s rect{fill:#9FE1CB;stroke:#0F6E56}.s .t{fill:#085041}.m{fill:#534AB7}` +
         `.h rect{fill:#FAC775;stroke:#BA7517}.h .t{fill:#633806}.g rect{fill:#F1EFE8;stroke:#5F5E5A}.g .t{fill:#444441}` +
-        `.c{stroke:#B4B2A9}text.d{fill:#2C2C2A}text.s{fill:#5F5E5A;font-size:12.5px}` +
+        `.o.gl{fill:#534AB7}.s.gl{fill:#0F6E56}.h.gl{fill:#BA7517}.g.gl{fill:#5F5E5A}.c{stroke:#B4B2A9}text.d{fill:#2C2C2A}text.s{fill:#5F5E5A;font-size:12.5px}` +
         `@media (prefers-color-scheme:dark){.o rect{fill:#3C3489;stroke:#AFA9EC}.o .t{fill:#CECBF6}.s rect{fill:#085041;stroke:#5DCAA5}.s .t{fill:#9FE1CB}` +
-        `.h rect{fill:#633806;stroke:#EF9F27}.h .t{fill:#FAC775}.m{fill:#AFA9EC}.g rect{fill:#444441;stroke:#B4B2A9}.g .t{fill:#D3D1C7}.c{stroke:#5F5E5A}text.d{fill:#D3D1C7}text.s{fill:#B4B2A9}}</style>` +
+        `.o.gl{fill:#AFA9EC}.s.gl{fill:#5DCAA5}.h.gl{fill:#EF9F27}.g.gl{fill:#B4B2A9}.h rect{fill:#633806;stroke:#EF9F27}.h .t{fill:#FAC775}.m{fill:#AFA9EC}.g rect{fill:#444441;stroke:#B4B2A9}.g .t{fill:#D3D1C7}.c{stroke:#5F5E5A}text.d{fill:#D3D1C7}text.s{fill:#B4B2A9}}</style>` +
         `<text x="${X(0)}" y="${Y(0) + 5}" font-weight="600" class="m">Main</text>` +
         (rows.length ? parts.join('') : `<text x="${X(1)}" y="${Y(1) + 5}" class="s">No agents yet</text>`) +
         ([['o', 'Opus'], ['s', 'Sonnet'], ['h', 'Haiku']] as const)
