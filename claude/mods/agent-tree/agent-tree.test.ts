@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { buildTierMap, parseAgentModel, parsePhase, register } from './hooks/register'
+import { buildTierMap, hasForYou, parseAgentModel, parseJudgeHeader, parsePhase, register } from './hooks/register'
 
 const spawn = (description: string, parentAgentId?: string) =>
   ({ prompt: 'p', description, subagentType: 'my-implementer', parentAgentId }) as never
@@ -262,4 +262,58 @@ test('orchestrator phase label', async ($, on) => {
   expect((await row(ui2, 'the plan'))?.text).toMatch(/my-orchestrator implement .*the plan/)
   await ui2.unmount()
   expect((await svg($)).props.source).toMatch(/>implement<\/text>/)
+})
+
+const spawnAs = (type: string, description: string, parentAgentId?: string) =>
+  ({ prompt: 'p', description, subagentType: type, parentAgentId }) as never
+const finish = ($: any, agentId: string, answer: string) =>
+  $.turn.complete({ agentId, answer, durationMs: 1, isAborted: false, turnId: 't' } as never)
+
+test('judge header parsing', () => {
+  expect(parseJudgeHeader('feat/x [A-] round 1\nbody')).toEqual({ grade: 'A-', round: 1 })
+  expect(parseJudgeHeader('PR 12 [F] round 1')).toEqual({ grade: 'F', round: 1 })
+  expect(parseJudgeHeader('feat/y [B] round 2')).toEqual({ grade: 'B', round: 2 })
+  expect(parseJudgeHeader('feat/x [E] round 1')).toBeUndefined()
+  expect(parseJudgeHeader('no header here')).toBeUndefined()
+  expect(parseJudgeHeader('Done.\n\n`feat/x [C] round 2`\nmore')).toEqual({ grade: 'C', round: 2 })
+  expect(parseJudgeHeader('**feat/x [D] round 1**')).toEqual({ grade: 'D', round: 1 })
+})
+
+test('review chip on orchestrator', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: correctness', 'a1'))
+  await finish($, 'a2', 'feat/x [B] round 1\nok')
+  const ui = await mount($, 'terminal')
+  expect((await row(ui, 'the plan'))?.text).toContain('B \u00B7 r1')
+  await ui.unmount()
+  expect((await svg($)).props.source).toContain('>B \u00B7 r1</text>')
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: tests', 'a1'))
+  await finish($, 'a3', 'feat/x [F] round 2')
+  const source = (await svg($)).props.source
+  expect(source).toContain('>F \u00B7 r2</text>')
+  expect(source).not.toContain('>B \u00B7 r1</text>')
+  expect(source).toMatch(/<rect[^>]*fill="#E24B4A"[^>]*\/><text[^>]*>F \u00B7 r2</)
+})
+
+test('for you detection', () => {
+  expect(hasForYou('report\n\u26A0\uFE0F For you: decide X')).toBe(true)
+  expect(hasForYou('report\nFor you: decide X')).toBe(true)
+  expect(hasForYou('**\u26A0\uFE0F For you:** decide X')).toBe(true)
+  expect(hasForYou('`For you`: decide X')).toBe(true)
+  expect(hasForYou('Done. This is for you: a thing. Also For you: x')).toBe(false)
+  expect(hasForYou('nothing needed for you here')).toBe(false)
+  expect(hasForYou('')).toBe(false)
+})
+
+test('needs you flag', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await finish($, 'a1', 'Done\n\u26A0\uFE0F For you: pick one')
+  const ui = await mount($, 'terminal')
+  expect((await row(ui, 'the plan'))?.text).toContain('needs you')
+  await ui.unmount()
+  expect((await svg($)).props.source).toContain('>needs you</text>')
+  await finish($, 'a1', 'Done, nothing open')
+  expect((await svg($)).props.source).not.toContain('needs you')
 })

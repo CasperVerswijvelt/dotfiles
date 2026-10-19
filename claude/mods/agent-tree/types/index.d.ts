@@ -8,6 +8,8 @@ export type AgentTreeNode = {
   endedAt?: number
   status: 'running' | 'done' | 'failed'
   currentTool?: string
+  review?: { grade: string; round: number }
+  needsYou?: boolean
 }
 
 declare module 'claude-code' {

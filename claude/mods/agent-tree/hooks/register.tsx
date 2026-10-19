@@ -26,6 +26,20 @@ export const parsePhase = (description: string): string | undefined => {
   return p !== undefined && PHASES.includes(p) ? p : undefined
 }
 
+// The judge header of a review report: `<branch> [<grade>] round <n>`, on any line, in any markdown.
+export const parseJudgeHeader = (text: string): { grade: string; round: number } | undefined => {
+  const m = /^[ \t>*_`#-]*[^\s`*_\[][^\n]*?\[(A-|A|B|C|D|F)\][`*_]*[ \t]+round[ \t]+(\d+)/m.exec(text)
+  return m ? { grade: m[1]!, round: Number(m[2]) } : undefined
+}
+
+// An orchestrator report with a `For you` line: at the start of a line, emoji, bold and backticks optional.
+export const hasForYou = (text: string): boolean => /^[ \t>*_`-]*(?:\u26A0\uFE0F?[ \t]*)?[*_`]*For you[*_`]*[ \t]*[:\uFF1A]/m.test(text)
+
+const chipFill = (grade: string) =>
+  grade === 'F' ? { fill: '#E24B4A', stroke: '#A32D2D', text: '#FFFFFF' }
+  : grade.startsWith('A') ? { fill: '#C0DD97', stroke: '#3B6D11', text: '#27500A' }
+  : { fill: '#D3D1C7', stroke: '#5F5E5A', text: '#2C2C2A' }
+
 // The `model:` value of a file's frontmatter, lowercased and unquoted.
 export const parseAgentModel = (text: string): string | undefined => {
   const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(text)
@@ -175,10 +189,19 @@ export const register: Register = on => {
   })
 
   on('turn.complete', async ($, e, next) => {
+    // Read first, always: the engine refuses a conditional read.
+    const list = await read($, nodes)
     if (e.agentId !== undefined) {
       try {
         const endedAt = await $.clock.now()
-        await update($, nodes, patch(e.agentId, { status: e.isAborted ? 'failed' : 'done', endedAt, currentTool: undefined }))
+        const me = list.find(n => n.id === e.agentId)
+        const header = me?.type === 'my-reviewer' && !e.isAborted ? parseJudgeHeader(e.answer) : undefined
+        const boss = list.find(n => n.id === me?.parentId)
+        const change: Partial<AgentTreeNode> = { status: e.isAborted ? 'failed' : 'done', endedAt, currentTool: undefined }
+        if (me?.type === 'my-orchestrator' && !e.isAborted) change.needsYou = hasForYou(e.answer)
+        await update($, nodes, list2 =>
+          patch(e.agentId!, change)(list2).map(n => (header && boss?.type === 'my-orchestrator' && n.id === boss.id ? { ...n, review: header } : n)),
+        )
       } catch (err) {
         $.ui.log(`agent-tree: turn bookkeeping failed: ${String(err)}`, { to: 'debug' })
       }
@@ -217,6 +240,7 @@ export const register: Register = on => {
             .map(c => parsePhase(c.description))
             .find(p => p !== undefined)
         : undefined
+    const chipText = (n: AgentTreeNode) => (n.review ? `${n.review.grade} \u00B7 r${n.review.round}` : '')
     const time = (n: AgentTreeNode) => span((n.endedAt ?? now) - n.startedAt)
     const color = (n: AgentTreeNode) => ({ o: 'magenta', s: 'cyan', h: 'yellow', g: undefined })[tier(n)]
     // Whole minutes only, so the SVG source (and its frame) stays the same between ticks.
@@ -244,12 +268,19 @@ export const register: Register = on => {
         const mark = run ? glyph('◐', `class="gl ${k}"`) : n.status === 'done' ? glyph('✓', 'fill="#888780"') : glyph('✗', 'fill="#E24B4A"')
         const pw = Math.round(n.type.length * 6.6 + 14)
         const pxl = X(depth) + 16
-        const dx = pxl + pw + 8
+        const chip = chipText(n)
+        const cw = Math.round(chip.length * 7 + 12)
+        const fw = 66
+        const cc = n.review ? chipFill(n.review.grade) : undefined
+        const chipSvg = cc ? `<rect x="${pxl + pw + 6}" y="${cy - 9}" width="${cw}" height="18" rx="9" fill="${cc.fill}" stroke="${cc.stroke}" stroke-width="0.5"/><text x="${pxl + pw + 6 + cw / 2}" y="${cy + 4}" text-anchor="middle" font-size="12" font-weight="600" fill="${cc.text}">${chip}</text>` : ''
+        const fx = pxl + pw + 6 + (cc ? cw + 4 : 0)
+        const flagSvg = n.needsYou ? `<rect x="${fx}" y="${cy - 9}" width="${fw}" height="18" rx="9" fill="#EF9F27" stroke="#854F0B" stroke-width="0.5"/><text x="${fx + fw / 2}" y="${cy + 4}" text-anchor="middle" font-size="12" font-weight="600" fill="#412402">needs you</text>` : ''
+        const dx = pxl + pw + 8 + (cc ? cw + 4 : 0) + (n.needsYou ? fw + 4 : 0)
         const tool = run && n.currentTool ? clip(n.currentTool, 18) : ''
         const ph = phase(n)
         const phw = ph ? ph.length * 6 + 14 : 0
         const room = W - 52 - dx - phw - (tool ? tool.length * 6.3 + 8 : 0)
-        return `<g${run ? '' : ' opacity="0.55"'}>${elbow}<g>${mark}<g class="${k}"><rect x="${pxl}" y="${cy - 10}" width="${pw}" height="20" rx="10" stroke-width="0.5"/><text x="${pxl + pw / 2}" y="${cy + 4}" text-anchor="middle" class="t" font-size="12.5">${esc(n.type)}</text></g><text x="${dx}" y="${cy + 5}" class="d">${esc(clip(n.description, Math.max(6, Math.floor(room / 7.2))))}</text>${ph ? `<text x="${W - 52 - (tool ? tool.length * 6.3 + 8 : 0)}" y="${cy + 4}" text-anchor="end" class="s" font-style="italic">${ph}</text>` : ''}${tool ? `<text x="${W - 52}" y="${cy + 4}" text-anchor="end" class="s">${esc(tool)}</text>` : ''}<text x="${W - 8}" y="${cy + 4}" text-anchor="end" class="s">${mins(n)}</text></g></g>`
+        return `<g${run ? '' : ' opacity="0.55"'}>${elbow}<g>${mark}<g class="${k}"><rect x="${pxl}" y="${cy - 10}" width="${pw}" height="20" rx="10" stroke-width="0.5"/><text x="${pxl + pw / 2}" y="${cy + 4}" text-anchor="middle" class="t" font-size="12.5">${esc(n.type)}</text></g><text x="${dx}" y="${cy + 5}" class="d">${esc(clip(n.description, Math.max(6, Math.floor(room / 7.2))))}</text>${ph ? `<text x="${W - 52 - (tool ? tool.length * 6.3 + 8 : 0)}" y="${cy + 4}" text-anchor="end" class="s" font-style="italic">${ph}</text>` : ''}${tool ? `<text x="${W - 52}" y="${cy + 4}" text-anchor="end" class="s">${esc(tool)}</text>` : ''}<text x="${W - 8}" y="${cy + 4}" text-anchor="end" class="s">${mins(n)}</text></g></g>${chipSvg}${flagSvg}`
       })
       const total = (rows.length + 2) * H
       const source =
@@ -286,7 +317,7 @@ export const register: Register = on => {
           return (
             <Text key={n.id} dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
               {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
-              <Text color={color(n)}>{n.type}</Text>{phase(n) ? <Text dimColor> {phase(n)}</Text> : null} {clip(n.description, 40)}{n.model ? ` [${n.model}]` : ''} {time(n)}{tool}
+              <Text color={color(n)}>{n.type}</Text>{phase(n) ? <Text dimColor> {phase(n)}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}> [{chipText(n)}]</Text> : null}{n.needsYou ? <Text color="yellow"> [needs you]</Text> : null} {clip(n.description, 40)}{n.model ? ` [${n.model}]` : ''} {time(n)}{tool}
             </Text>
           )
         })}
