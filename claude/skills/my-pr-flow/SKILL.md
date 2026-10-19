@@ -42,6 +42,7 @@ One `my-implementer` per task, tests first. Tasks run in parallel only when thei
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
 number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there. Remove the worktree after the merge.
+A UI change gets before/after pairs of the changed states, captured by the implementer with the project's pair tool into a gitignored folder in the repo (the project names both).
 
 ## 4. Gate
 
@@ -56,7 +57,7 @@ then lands the task (step 6), continued as the same agent.
 
 ## 6. Land
 
-**mvp**: no changelog, screenshots or release steps. After the review passes, merge to
+**mvp**: no changelog, PR screenshots or release steps. After the review passes, merge to
 the base if the merge policy allows (through the contract's landing step when it has one),
 push, delete the branch.
 

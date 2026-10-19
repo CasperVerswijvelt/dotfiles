@@ -24,11 +24,11 @@ top 3 findings.
    - interim notifications relayed to Casper
    - queued SendMessage splitting one piece of work
    - duplicate gate runs: hook plus land plus reviewer re-runs, full checks on docs-only changes
-   - walkthrough re-shoots
+   - UI capture re-shoots (walks, pairs)
 4. **Value at this stage.** Measuring waste is not enough: ask whether each activity is
    worth doing now. One `my-reviewer` groups `agents` in the JSON into activity classes by
    `role` and `description` (implementation, each review area and verifier, fix waves,
-   walkthroughs, catalog entries, goldens, frame-strip motion tests, live checks, gates,
+   UI capture (walks, pairs), catalog entries, goldens, frame-strip motion tests, live checks, gates,
    landing), summing `wall`, `cost_usd` and `time`. For each class it reads what it caught
    in the plan's `progress.md`, review findings, fix waves, walk notes and live check
    results, and classifies each catch as confirmed real bug, minor, or nothing. Verdict per

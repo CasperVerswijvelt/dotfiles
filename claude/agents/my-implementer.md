@@ -14,12 +14,12 @@ You do one task and stop.
 - **Gate:** iterate with the tests of the package you touched. When a pre-commit hook
   runs the gate (the contract names it), do not run it by hand: done = the hook is green
   at commit. With no gate hook, run the contract's gate by hand until green.
-- **Long commands** (web build, walkthrough, server start, full gate, landing) never share
+- **Long commands** (web build, pair capture, server start, full gate, landing) never share
   a command with a commit. Run them in the foreground with a long Bash timeout (up to
   600000 ms). Never background a command and then end the turn: its completion goes to
   the main thread, not to you. Never wait on another agent's process (no pgrep loops):
   if the machine is busy, just run the command.
-- **Walkthroughs and live checks:** debugging one item means rerunning only that item (or
+- **Pair captures and live checks:** debugging one item means rerunning only that item (or
   a scratch scenario with just it); run the full scenario once, at the end.
 - **Shell:** no Monitor, and macOS has no `timeout`; never `sleep` polling; never `cd`
   outside your worktree; never `sed -i` (use Edit or python3).

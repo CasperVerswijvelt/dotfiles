@@ -6,7 +6,7 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 ```markdown
 ## Workflow contract
 
-- Stage: mature                 # mvp: review then merge, no changelog or screenshots
+- Stage: mature                 # mvp: review then merge, no changelog or PR screenshots
 - Tracker: GitHub issues; read with `gh issue view <n> --comments`
 - Host CLI: gh                  # gh | glab
 - Gate: `just check`             # add the full gate if there is one: (full: `just check-all`)

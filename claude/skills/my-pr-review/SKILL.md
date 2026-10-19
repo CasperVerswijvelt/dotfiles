@@ -13,12 +13,13 @@ areas) comes from the project's `## Workflow contract` and the files it points t
 
 The orchestrator runs it as nested `my-reviewer` agents, never inline in a context that
 wrote the code. Each agent's prompt holds only the refs (`base...head`), the ticket and
-the approved approach: never the author's rationale or a hint where to look. Commit first.
+the approved approach and, for a UI change, the pair paths: never the author's rationale or a hint where to look. Commit first.
 
 **Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
 change): ONE `my-reviewer` covers every area below (UI and product included when UI
-changed), then the judge; no verify step. Larger: the full set. Plan-close review:
-correctness and architecture only, and no judge when there are no majors.
+changed), then the judge; no verify step. Larger: the full set. Plan-close review (wins over the small-diff rule):
+correctness and architecture only, and no judge when there are no blockers or majors;
+the grade then follows from the minor count.
 Reviewers read code and, for a UI change, the before/after pair, not a walk folder.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
@@ -26,7 +27,7 @@ Reviewers read code and, for a UI change, the before/after pair, not a walk fold
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
    - **UI and product** (one area, also where the contract names ui and product as
      extra areas): UI at every supported size, the project's UI rules, copy and l10n.
-     Walk it as a first-time user. Can everything created be used? Does
+     Use it as a first-time user would. Can everything created be used? Does
      each control do something visible, labelled in the user's words? Is the ticket
      solved, including sibling paths? An instruction taken too literally, where the
      intent was different, is a major. A fix that contradicts a recorded decision is

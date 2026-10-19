@@ -24,8 +24,8 @@ subagents do the work.
   continue with everything that does not depend on it. Stop early only when every
   remaining step waits on an answer, or for something irreversible or outward-facing the
   contract does not allow.
-- **Screenshots for a UI task:** list the before/after pair paths after the report, one
-  per line (light only unless the change is about dark; a new screen has the after shot
+- **Screenshots for a UI task:** list the before/after pair paths (gitignored folder inside the
+  repo) after the report, one per line, at any stage (light only unless the change is about dark; a new screen has the after shot
   alone).
 - **Wait for the child's own notification.** When a child agent will run long, write
   progress.md, then keep waiting for that child's completion notification. Never end
