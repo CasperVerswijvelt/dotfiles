@@ -7,9 +7,9 @@ symlinked into place.
 
 | Path | What |
 |---|---|
-| `claude/` | Claude Code config: `CLAUDE.md`, `settings.json`, `agents/`, `skills/`, `contract-template.md`, `scripts/`. |
+| `claude/` | Claude Code config: `CLAUDE.md`, `settings.json`, `agents/`, `skills/`, `mods/`, `contract-template.md`, `scripts/`. |
 | `opencode/` | OpenCode config (`opencode.json`) and plugins. |
-| `.githooks/` | `post-commit` and `post-merge` hooks that regenerate the OpenCode agents. |
+| `.githooks/` | `post-commit` and `post-merge` hooks that regenerate the OpenCode agents, and a `pre-commit` hook that validates and tests the `agent-tree` mod. |
 | `install.sh` | Symlinks everything into `~/.claude` and `~/.config/opencode`. |
 
 ## Install

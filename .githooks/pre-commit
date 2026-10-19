@@ -7,5 +7,7 @@ mod="$root/claude/mods/agent-tree"
 
 git diff --cached --name-only | grep -q '^claude/mods/agent-tree/' || exit 0
 
+command -v claude >/dev/null || { echo "pre-commit: claude CLI not on PATH, needed to check claude/mods/agent-tree" >&2; exit 1; }
+
 claude plugin validate --strict "$mod"
 claude plugin test "$mod"

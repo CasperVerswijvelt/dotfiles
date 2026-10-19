@@ -275,7 +275,9 @@ test('judge header parsing', () => {
   expect(parseJudgeHeader('feat/y [B] round 2')).toEqual({ grade: 'B', round: 2 })
   expect(parseJudgeHeader('feat/x [E] round 1')).toBeUndefined()
   expect(parseJudgeHeader('no header here')).toBeUndefined()
-  expect(parseJudgeHeader('Done.\n\n`feat/x [C] round 2`\nmore')).toEqual({ grade: 'C', round: 2 })
+  expect(parseJudgeHeader('\n\n`feat/x [C] round 2`\nmore')).toEqual({ grade: 'C', round: 2 })
+  expect(parseJudgeHeader('```\nfeat/x [C] round 2\n```')).toEqual({ grade: 'C', round: 2 })
+  expect(parseJudgeHeader('Done.\n\nx [B] round 1')).toBeUndefined()
   expect(parseJudgeHeader('**feat/x [D] round 1**')).toEqual({ grade: 'D', round: 1 })
 })
 
@@ -294,6 +296,18 @@ test('review chip on orchestrator', async ($, on) => {
   expect(source).toContain('>F \u00B7 r2</text>')
   expect(source).not.toContain('>B \u00B7 r1</text>')
   expect(source).toMatch(/<rect[^>]*fill="#E24B4A"[^>]*\/><text[^>]*>F \u00B7 r2</)
+})
+
+test('quoted header leaves chip', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: correctness', 'a1'))
+  await finish($, 'a2', 'feat/x [B] round 1\nok')
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: tests', 'a1'))
+  await finish($, 'a3', 'Found one issue.\n\nThe judge wrote:\nfeat/x [F] round 2')
+  const source = (await svg($)).props.source
+  expect(source).toContain('>B \u00B7 r1</text>')
+  expect(source).not.toContain('>F \u00B7 r2</text>')
 })
 
 test('for you detection', () => {

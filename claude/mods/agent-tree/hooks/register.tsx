@@ -26,9 +26,11 @@ export const parsePhase = (description: string): string | undefined => {
   return p !== undefined && PHASES.includes(p) ? p : undefined
 }
 
-// The judge header of a review report: `<branch> [<grade>] round <n>`, on any line, in any markdown.
+// The judge header of a review report: `<branch> [<grade>] round <n>`, on the first non-empty line, in any markdown.
+// Later lines are ignored, so a report that quotes a header does not count. Code fence lines are skipped.
 export const parseJudgeHeader = (text: string): { grade: string; round: number } | undefined => {
-  const m = /^[ \t>*_`#-]*[^\s`*_\[][^\n]*?\[(A-|A|B|C|D|F)\][`*_]*[ \t]+round[ \t]+(\d+)/m.exec(text)
+  const first = text.split('\n').find((l) => l.trim() !== '' && !/^\s*`{3,}/.test(l))
+  const m = first === undefined ? null : /^[ \t>*_`#-]*[^\s`*_\[][^\n]*?\[(A-|A|B|C|D|F)\][`*_]*[ \t]+round[ \t]+(\d+)/.exec(first)
   return m ? { grade: m[1]!, round: Number(m[2]) } : undefined
 }
 

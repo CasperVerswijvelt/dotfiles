@@ -10,7 +10,7 @@ orchestrator runs these steps, delegating each one (gate runs, rebases and statu
 included). Read the project's
 `## Workflow contract` first: its stage picks the path in step 6.
 
-Name each agent you start `<phase>: <what>`, phase one of plan, implement, gate, review, land, report (e.g. `review: correctness`).
+Set each agent's description to `<phase>: <what>`, phase one of plan, implement, gate, review, land, report (e.g. `review: correctness`).
 
 ## 1. Branch off the base
 
