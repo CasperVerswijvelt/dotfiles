@@ -8,15 +8,18 @@ apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
 
 - Stage: mature                 # mvp: review then merge, no changelog or PR screenshots
 - Tracker: GitHub issues; read with `gh issue view <n> --comments`
+- Progress note: <path>         # optional; where the orchestrator keeps task state, rulings and open questions
 - Host CLI: gh                  # gh | glab
-- Gate: `just check`             # add the full gate if there is one: (full: `just check-all`)
-- Gate hooks: pre-commit runs `just check`, pre-push the full gate; installed by `just setup`   # or: none
+- Gate: `<command>`             # add the full gate if there is one: (full: `<command>`)
+- Gate hooks: pre-commit runs `<gate>`, pre-push the full gate; installed by `<command>`   # or: none
 - Base branch: main
 - Merge policy: Casper merges   # or: my-orchestrator merges after the review passes
+- Landing: <command, or none>   # the step that merges to the base (rebase, gate, push)
 - Max parallel implementers: 3  # optional; default 3, the gate is CPU-bound
+- Parallelism: <max plans at once, conditions>   # optional; plans, not implementers
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
-- Screenshots: the `pr-screenshots` skill       # or: none
-- Pair tool: <command> into <gitignored folder>   # UI changes; omit if none
+- Preview: <command, or none>   # runs the branch for Casper's live check
+- Pair tool: <skill or command and output folder, or none>   # before/after captures of changed UI states
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md
 - Status page: <artifact url>   # optional; main rewrites it on every wake

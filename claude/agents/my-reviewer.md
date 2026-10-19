@@ -13,10 +13,8 @@ severities, plus the project's `## Workflow contract` for its pitfalls. Your pro
 names your one job: an area, a verification, or the judgement. Do that job only.
 
 - **Read-only.** Never edit, commit, push or post. Read-only git and the host CLI's view
-  commands are fine. Run the project's gate only when no hook or landing evidence exists
-  for the branch (see `my-pr-review`, gates area).
-- **Run the gate in the foreground** with a long Bash timeout (up to 600000 ms), never
-  backgrounded. No interim messages: report once, at the end.
+  commands are fine. Run the gate per `my-pr-review` (gates area).
+- **No interim messages:** report once, at the end.
 - **Get the diff yourself** and read changed files in full: a hunk hides the caller
   that breaks.
 - **Report nothing you did not read.** Cite `file:line` and a concrete failure scenario.

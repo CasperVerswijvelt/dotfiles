@@ -1,9 +1,8 @@
 # Personal workflow
 
 Applies in every project, to the main thread and every agent. The project's own
-CLAUDE.md wins where they differ. Its `## Workflow contract` section sets stage, gate,
-base branch, merge policy, review additions and role exceptions (template:
-`~/dotfiles/claude/contract-template.md`). No contract: infer what you can from the repo
+CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the contract's
+fields (see the template, `~/dotfiles/claude/contract-template.md`). No contract: infer what you can from the repo
 and treat the stage as `mature`.
 
 ## Roles
@@ -16,7 +15,7 @@ and treat the stage as `mature`.
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
 | `my-scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
 
-- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus.
+- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus or the contract's role exceptions do.
 - A subagent saw none of your conversation: its prompt carries everything it needs.
 
 ## Verifying
@@ -25,20 +24,25 @@ and treat the stage as `mature`.
   click-through checklists.
 - Ask him only for what a human must observe (which speaker played, does it look right).
 - Require him present for a step whose failure would leave no trace afterwards.
-- Motion and feel are his call, judged live: he taps through a running preview build on
-  his phone (via main) before the plan is written and again before merge, and his verdict
-  is the gate. Frame strips are for agents only (they read them to check timing); tests
-  still pin the timing.
+- Motion and feel are Casper's call, judged live on the contract's `Preview`: before the
+  plan is written and again before merge. His verdict is the gate. Tests still pin timing.
+- Show UI changes as before/after pairs (the contract's `Pair tool`), on the status page
+  when the contract names one. A judgement item without a pair (a mockup) gets its images
+  on the page the same way.
 
 ## Shell hygiene
 
-Agents run hooks, landing, gate runs and pair captures in the foreground with a long Bash
-timeout (up to 600000 ms), never backgrounded: a subagent's background completions go to
-the main thread, not to the agent or its parent. Subagents have no Monitor, and macOS has
-no `timeout`.
+Agents run hooks, landing, gate runs, builds, server starts and pair captures in the
+foreground with a long Bash timeout (up to 600000 ms), never backgrounded: a subagent's
+background completions go to the main thread, not to the agent or its parent. Never
+background a command and then end the turn. Such a long command never shares a command
+with a commit. Never wait on another agent's process (no pgrep loops): if the machine is
+busy, just run the command. Subagents have no Monitor, and macOS has no `timeout`. Never
+poll with `sleep`. Never `sed -i`: use Edit or python3.
 
 Plain, separate commands with absolute paths. Keep `cd` out of the command doing the
-work, build paths without a nested `$(git ...)`, and quote globs.
+work, and never `cd` outside your worktree. Build paths without a nested `$(git ...)`,
+and quote globs.
 
 ## Writing style
 
@@ -59,10 +63,11 @@ shortest sentence that keeps the reason.
 
 ## Git
 
-- Commit only when asked. Starting a plan or PR counts as asking for its commits.
-- One commit per task where possible: the plan tick and progress notes go in the task's
-  last code commit, never in separate bookkeeping commits. The contract says what else
-  waits for plan close (such as status).
+- Commit only when asked. Starting a plan or PR counts as asking for its commits. An
+  orchestrator's prompt to an implementer states whether it commits.
+- One commit per task where possible: the plan tick and the contract's progress note go in
+  the task's last code commit, never in separate bookkeeping commits. The contract says
+  what else waits for plan close (such as the tracker).
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the `my-orchestrator` merge (that includes pushing the base). Otherwise Casper
   merges.
@@ -82,16 +87,21 @@ pending with Casper; every dead end tried, and why it failed.
 Agents skip this section: your own prompt says how you work and report.
 
 - No hands-on work: no reading code or diffs, no running gates, no waiting loops
-  (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of STATUS,
-  plans, progress.md and git state (log, status, branch) are fine. A step outside a plan goes to a `my-implementer`. The contract's
-  role exceptions override this.
+  (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
+  contract's tracker, plans, progress note and git state (log, status, branch) are fine.
+  A step outside a plan goes to a `my-implementer`. The contract's role exceptions
+  override this.
+- An orchestrator prompt points at the contract and the plan. It does not restate gates,
+  close steps or merge policy.
 - When something needs Casper, end the final message with the **⚠️ For you** block, short:
   the product decisions he owns, one line each with your recommendation, and any
   physical action only he can take, listed apart. Nothing needed: leave the block out.
 - A technical choice is yours: make it and mention it. A question that exists only
   because something is broken is a bug: diagnose it to the cause.
 - Batch questions, each saying what exists now, what the answer changes for him and
-  what each option costs later, in plain words (explain any internal term).
+  what each option costs later. Describe the current state in Casper's words with a
+  concrete example, no internal nouns. Check each recommendation against his recorded
+  rules and decisions before giving it.
 - Propose the narrower scope; Casper prunes rather than grows.
 - Each project may name a status page in its contract (`Status page: <url>`). On every
   wake main rewrites it (Needs you / Running / Done this session) by
@@ -103,12 +113,6 @@ Agents skip this section: your own prompt says how you work and report.
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - Before stating what is running, check (agent list, task state); never recall.
-- Relay an orchestrator report as-is, minus the pair path lines, which go on the status page, then one **⚠️ For you** block merging its For-you
-  line, no repeats. A status table only when 2+ plans run.
-- Orchestrators report before/after pair paths (`<state>.before.png` /
-  `<state>.after.png`; a new screen has after only). Upload each png to the status page
-  asset store (Artifact publish with `asset: true`) and show each change as one row:
-  change title, then Before | After side by side (stacked on a phone), with the `just preview`
-  link when feel needs a live check. Never a contact
-  sheet, a folder or a `/tmp` path, and not in chat. A judgement item without a pair (a
-  mockup) gets its images inline the same way, with the `just preview` link when feel needs a live check.
+- Relay an orchestrator report as-is, minus its `Pairs:` block, whose pairs go on the
+  status page, then one **⚠️ For you**
+  block merging its For-you line, no repeats. A status table only when 2+ plans run.

@@ -16,7 +16,7 @@ top 3 findings.
    `.jsonl` paths). `--last N` takes the newest transcripts by mtime, which includes the
    session running the retro: use `--last N+1` and drop the current session, whose id is
    in the scratchpad path (`.../<project-slug>/<session-id>/scratchpad`). `--help` lists the rest.
-2. **Plan vs landed.** One `my-scout` reads the plan, `progress.md` and `git log` for the
+2. **Plan vs landed.** One `my-scout` reads the plan, the progress note and `git log` for the
    window and reports what landed against what was planned.
 3. **Incidents.** One `my-reviewer` checks the transcripts and the JSON for each pattern,
    with timestamps and minutes lost:
@@ -24,13 +24,13 @@ top 3 findings.
    - interim notifications relayed to Casper
    - queued SendMessage splitting one piece of work
    - duplicate gate runs: hook plus land plus reviewer re-runs, full checks on docs-only changes
-   - UI capture re-shoots (walks, pairs)
+   - UI capture re-shoots
 4. **Value at this stage.** Measuring waste is not enough: ask whether each activity is
    worth doing now. One `my-reviewer` groups `agents` in the JSON into activity classes by
    `role` and `description` (implementation, each review area and verifier, fix waves,
-   UI capture (walks, pairs), catalog entries, goldens, frame-strip motion tests, live checks, gates,
-   landing), summing `wall`, `cost_usd` and `time`. For each class it reads what it caught
-   in the plan's `progress.md`, review findings, fix waves, walk notes and live check
+   gates, landing, and the project's verification activities as named in its CLAUDE.md or
+   contract, e.g. UI capture, goldens, live checks), summing `wall`, `cost_usd` and `time`. For each class it reads what it caught
+   in the plan's progress note, review findings, fix waves, capture notes and live check
    results, and classifies each catch as confirmed real bug, minor, or nothing. Verdict per
    class: keep, slim, cut or replace. The yardstick is the project's stated priorities: the
    contract `Stage:` line in its CLAUDE.md and the criteria in its decisions log. Output a

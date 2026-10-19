@@ -15,14 +15,14 @@ The orchestrator runs it as nested `my-reviewer` agents, never inline in a conte
 wrote the code. Each agent's prompt holds only the refs (`base...head`), the ticket and
 the approved approach and, for a UI change, the pair paths: never the author's rationale or a hint where to look. Commit first.
 
-Set each agent's description to `<phase>: <what>`, phase one of plan, implement, gate, review, land, report (e.g. `review: correctness`).
+Agent descriptions follow the rule in `my-orchestrator`.
 
 **Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
 change): ONE `my-reviewer` covers every area below (UI and product included when UI
 changed), then the judge; no verify step. Larger: the full set. Plan-close review (wins over the small-diff rule):
 correctness and architecture only, and no judge when there are no blockers or majors;
 the grade then follows from the minor count.
-Reviewers read code and, for a UI change, the before/after pair, not a walk folder.
+Reviewers read code and, for a UI change, the before/after pair, not a full capture folder or the author's notes.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
