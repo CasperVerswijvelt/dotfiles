@@ -25,12 +25,23 @@ top 3 findings.
    - queued SendMessage splitting one piece of work
    - duplicate gate runs: hook plus land plus reviewer re-runs, full checks on docs-only changes
    - walkthrough re-shoots
-4. **Rank** findings by measured cost (minutes, dollars). Each gets one concrete fix and
+4. **Value at this stage.** Measuring waste is not enough: ask whether each activity is
+   worth doing now. One `my-reviewer` groups `agents` in the JSON into activity classes by
+   `role` and `description` (implementation, each review area and verifier, fix waves,
+   walkthroughs, catalog entries, goldens, frame-strip motion tests, live checks, gates,
+   landing), summing `wall`, `cost_usd` and `time`. For each class it reads what it caught
+   in the plan's `progress.md`, review findings, fix waves, walk notes and live check
+   results, and classifies each catch as confirmed real bug, minor, or nothing. Verdict per
+   class: keep, slim, cut or replace. The yardstick is the project's stated priorities: the
+   contract `Stage:` line in its CLAUDE.md and the criteria in its decisions log. Output a
+   table (activity / time / cost / caught / verdict), then concrete proposals, each with
+   the time and cost saved per plan.
+5. **Rank** findings by measured cost (minutes, dollars). Each gets one concrete fix and
    the file it changes.
-5. **Publish** an HTML page with the Artifact tool (load `artifact-design` first):
-   summary, time and tokens by role, progress vs plan, ranked findings, main-thread turns
+6. **Publish** an HTML page with the Artifact tool (load `artifact-design` first):
+   summary, time and tokens by role, the value table, progress vs plan, ranked findings, main-thread turns
    that needed Casper.
-6. **Log** one row in `~/dotfiles/claude/tools/retro/retro-log.md`: date, project,
+7. **Log** one row in `~/dotfiles/claude/tools/retro/retro-log.md`: date, project,
    sessions, wall, cost, gate minutes, agents. From the JSON: wall = sum of `wall` over
    agents with `role` "main"; cost = `totals.cost` (if an agent's `cost_usd` is null for an
    unpriced model, log the priced subtotal with a `+` suffix); gate minutes =
