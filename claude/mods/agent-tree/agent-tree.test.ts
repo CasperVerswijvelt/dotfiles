@@ -143,8 +143,59 @@ test('running agent shows its action on its own line under the description', asy
   expect(tool.props.wrap).toBe('truncate-end')
   expect(shown(tool)).toBe('Bash npm test')
   expect(shown(desc)).not.toContain('npm test')
-  const col = all(root).find(e => kids(e).includes(desc))!
-  expect(kids(col).indexOf(tool)).toBe(kids(col).indexOf(desc) + 1)
+  // The action is its own line under line 1, not inside the description column.
+  const rest = all(root).find(e => kids(e).includes(tool))!
+  expect(rest.props.flexDirection).toBe('column')
+  expect(kids(rest).indexOf(tool)).toBe(1)
+  expect(all(kids(rest)[0]!)).toContain(desc)
+})
+
+test('a running row with no current tool keeps its action line', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('busy'))
+  await $.agent.spawn(spawn('idle'))
+  await $.agent.spawn(spawn('finished'))
+  await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  let root!: El
+  onTool = async () => { root = await desk($) }
+  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a1', tool_use_id: 't' } as never)
+  const lines = (key: string) => kids(parts(all(root).find(e => e.props.key === key)!).rest).slice(1)
+  const busy = lines('a1')
+  expect(busy.map(shown)).toEqual(['Bash ls'])
+  const idle = lines('a2')
+  // Blank, but the same one line of the same size, so the row does not jump when a tool starts.
+  expect(idle.map(shown)).toEqual([' '])
+  expect(idle[0]!.props).toEqual(busy[0]!.props)
+  expect(lines('a3')).toEqual([])
+})
+
+test('the action line starts under the agent name chip', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('top'))
+  await $.agent.spawn(spawn('child', 'a1'))
+  let root!: El
+  onTool = async () => { root = await desk($) }
+  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a2', tool_use_id: 't' } as never)
+  const { rest } = parts(all(root).find(e => e.props.key === 'a2')!)
+  const [line1, action] = kids(rest)
+  expect(shown(action)).toBe('Bash ls')
+  // A direct child of the content column, like line 1: same left edge, no indent box or padding.
+  expect(rest.props.flexDirection).toBe('column')
+  expect(rest.props.paddingLeft).toBeUndefined()
+  expect(line1!.props.paddingLeft).toBeUndefined()
+  expect(action!.props.paddingLeft).toBeUndefined()
+  expect(action!.props.marginLeft).toBeUndefined()
+  expect(shown(action)).not.toMatch(/^\s/)
+  // Line 1 starts with the name chip.
+  expect(shown(texts(line1!)[0]!)).toMatch(/my-implementer/)
+  expect(kids(kids(line1!)[0]!)[0]).toBeDefined()
+  // The connector still spans the action line: it is a sibling of the whole content, with a growing lower bar.
+  const row = all(root).find(e => e.props.key === 'a2')!
+  const { connector, mark } = parts(row)
+  expect(connector.props.height).toBeUndefined()
+  expect(kids(kids(connector).at(-1)!)[1]!.props.flexGrow).toBe(1)
+  expect(row.props.alignItems).toBeUndefined()
+  expect(mark.props.flexDirection).toBe('column')
 })
 
 test('terminal shows the action on its own line', async ($, on) => {
@@ -401,7 +452,7 @@ test('narrow row keeps room for the description', async ($, on) => {
   await finish($, 'a4', 'Done\n⚠️ For you: pick')
   const root = await desk($)
   const rowBox = all(root).find(e => e.props.key === 'a1')!
-  const [chips, body, phaseBox, dur] = kids(kids(kids(rowBox)[1]!)[1]!)
+  const [chips, body, phaseBox, dur] = kids(kids(kids(kids(rowBox)[1]!)[1]!)[0]!)
   expect(chips!.props.flexWrap).toBe('wrap')
   expect(chips!.props.flexShrink).not.toBe(0)
   const head = kids(chips!)[0]!

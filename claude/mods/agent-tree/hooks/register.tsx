@@ -321,27 +321,31 @@ export const register: Register = on => {
                 {parent && <Box width={BAR} flexGrow={1} backgroundColor={LINE} />}
               </Box>
               {/* The row's spacing is padding in here, so the connector column has no gaps. */}
-              <Box flexDirection="row" flexGrow={1} flexShrink={1} minWidth={0} gap={1} paddingY={1}>
-                {/* Shrinks last: the description gives way first, down to its minimum. */}
-                <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
-                  <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
-                    {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+              <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} paddingY={1}>
+                {/* Line 1: chips, description, phase, time. */}
+                <Box flexDirection="row" minWidth={0} gap={1}>
+                  {/* Shrinks last: the description gives way first, down to its minimum. */}
+                  <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
+                    <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
+                      {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+                    </Box>
+                    {cc && chip(cc.fill, cc.text, chipText(n))}
+                    {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
                   </Box>
-                  {cc && chip(cc.fill, cc.text, chipText(n))}
-                  {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
-                </Box>
-                <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
-                  <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
-                  {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
-                </Box>
-                {ph && (
-                  <Box flexShrink={1} minWidth={0}>
-                    <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+                  <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
+                    <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
                   </Box>
-                )}
-                <Box flexShrink={0}>
-                  <Text tabular dimColor size="caption">{mins(n)}</Text>
+                  {ph && (
+                    <Box flexShrink={1} minWidth={0}>
+                      <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+                    </Box>
+                  )}
+                  <Box flexShrink={0}>
+                    <Text tabular dimColor size="caption">{mins(n)}</Text>
+                  </Box>
                 </Box>
+                {/* Line 2, under the first chip. A running row always has it, blank when idle, so the row keeps its height. */}
+                {run && <Text wrap="truncate-end" dimColor size="caption">{tool ?? ' '}</Text>}
               </Box>
             </Box>
           </Box>
