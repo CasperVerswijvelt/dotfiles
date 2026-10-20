@@ -2,7 +2,7 @@
 """Claude Code session retrospective: tokens, cost, time per aspect, counts, human turns.
 
 usage: retro.py [--project-dir DIR] [--tasks-dir DIR ...] [--json OUT] [--last N]
-                [--idle-min M] [--exclude-desc REGEX] [SESSION_ID_OR_JSONL ...]
+                [--idle-min M] [--exclude-desc REGEX] [--repo DIR] [--tasks N] [SESSION_ID_OR_JSONL ...]
 Stdlib only. Discovers the agent tree (main -> orchestrator -> implementer/reviewer/scout).
 """
 import argparse, collections, glob, json, os, re, sys
@@ -212,6 +212,7 @@ def analyse(path, aid, role, idle):
     order = [o for o in order if o["kind"] != "meta"]
     order.sort(key=lambda o: o["ts"])
     a["notifications"] = len(notif_keys)
+    a["wakes"] = sum(o["kind"] in ("prompt", "resume", "notif") for o in order)  # starts + resumes + notifications
 
     # tokens and cost
     notes = []
@@ -450,6 +451,47 @@ def summarise(agents, notes, idle):
             "agents": agents}
 
 
+TASK_RX = re.compile(r"^(\S+) Task (\d+)\b(.*)", re.I)
+
+
+def landed_tasks(repo, t0, t1):
+    """Distinct (plan, task) keys of task commits on main in [t0, t1], plus review-fix commit count.
+    Convention: subject "<plan> Task <n>: ..." (a subject with "review fix" is a fix commit, not a task)."""
+    import subprocess
+    for ref in ("main", "HEAD"):
+        p = subprocess.run(["git", "-C", repo, "log", ref, "--format=%s", "--since=@%d" % t0, "--until=@%d" % t1],
+                           capture_output=True, text=True)
+        if p.returncode == 0:
+            break
+    else:
+        return None, 0
+    tasks, fixes = set(), 0
+    for line in p.stdout.splitlines():
+        m = TASK_RX.match(line)
+        if not m:
+            continue
+        if re.search(r"review fix", m.group(3), re.I):
+            fixes += 1
+        else:
+            tasks.add((m.group(1), m.group(2)))
+    return len(tasks), fixes
+
+
+def per_task(r, repo, tasks=None):
+    """Per landed task: cost, orchestrator wakes, gate minutes, review rounds (proxy: 1 + fix commits per task)."""
+    ag, t = r["agents"], r["totals"]
+    starts = [a["start"] for a in ag if a["start"]]; ends = [a["end"] for a in ag if a["end"]]
+    fixes = 0
+    if tasks is None and starts:
+        tasks, fixes = landed_tasks(repo, min(starts), max(ends))
+    if not tasks:
+        return {"tasks": tasks or 0, "note": "no landed task commits found; pass --tasks N"}
+    gate_s = t["time"]["gate"] + t["time"]["land"] + t["time"]["goldens"]
+    wakes = sum(a["wakes"] for a in ag if a["role"] == "my-orchestrator")
+    return {"tasks": tasks, "cost_usd": round(t["cost"] / tasks, 2), "orchestrator_wakes": round(wakes / tasks, 1),
+            "gate_minutes": round(gate_s / 60 / tasks, 1), "review_rounds": round(1 + fixes / tasks, 2)}
+
+
 def render(r):
     ag, t, L = r["agents"], r["totals"], []
     L.append("== per role (agents | in | cache_read | cache_write | out | cost USD)")
@@ -484,6 +526,12 @@ def render(r):
     L.append("== top idle gaps")
     for g in r["top_gaps"][:5]:
         L.append("%s %-18s %-10s %s" % (fmt_t(g["secs"]), g["agent"][:18], g["category"], g["pending"][:80]))
+    pt = r.get("per_task")
+    if pt and pt.get("cost_usd") is not None:
+        L.append("== per landed task (%d tasks): cost $%.2f | orchestrator wakes %.1f | gate min %.1f | review rounds %.2f" % (
+            pt["tasks"], pt["cost_usd"], pt["orchestrator_wakes"], pt["gate_minutes"], pt["review_rounds"]))
+    elif pt:
+        L.append("== per landed task: " + pt["note"])
     L += ["note: " + n for n in r["notes"]]
     return "\n".join(L)
 
@@ -496,6 +544,8 @@ def main(argv=None):
     ap.add_argument("--json")
     ap.add_argument("--last", type=int)
     ap.add_argument("--idle-min", type=float, default=5)
+    ap.add_argument("--repo", default=os.getcwd(), help="git repo for landed task commits (default: cwd)")
+    ap.add_argument("--tasks", type=int, help="landed task count, overrides the git lookup")
     ap.add_argument("--exclude-desc", default="retrospective|retro\\b")
     a = ap.parse_args(argv)
     ids = []
@@ -511,6 +561,7 @@ def main(argv=None):
     idle = a.idle_min * 60
     agents, notes = build(ids, a.project_dir, a.tasks_dir, idle, a.exclude_desc)
     r = summarise(agents, notes, idle)
+    r["per_task"] = per_task(r, a.repo, a.tasks)
     txt = render(r)
     if a.json:
         def enc(o):

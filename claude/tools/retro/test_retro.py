@@ -38,6 +38,23 @@ class T(unittest.TestCase):
         self.assertEqual(self.r["main_thread"]["notification_turns_relayed"], 1)
         self.assertEqual(m["spawned"]["my-implementer"], 1)
 
+    def test_per_task(self):
+        pt = retro.per_task(self.r, "/nonexistent", tasks=2)
+        self.assertEqual(pt["tasks"], 2)
+        self.assertAlmostEqual(pt["cost_usd"], round(self.r["totals"]["cost"] / 2, 2))
+        self.assertEqual(pt["gate_minutes"], round(180 / 60 / 2, 1))
+        self.assertEqual(pt["review_rounds"], 1.0)
+        self.assertIn("per landed task", retro.render(dict(self.r, per_task=pt)))
+
+    def test_landed_tasks_from_git(self):
+        import subprocess
+        d = tempfile.mkdtemp()
+        g = lambda *a: subprocess.run(["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
+        g("init", "-b", "main")
+        for m in ("M1 Task 1: a", "M1 Task 1 review fixes: b", "M1 Task 2: c", "docs"):
+            g("commit", "--allow-empty", "-m", m)
+        self.assertEqual(retro.landed_tasks(d, 0, 4102444800), (2, 1))
+
     def test_render(self):
         self.assertIn("TOTAL", retro.render(self.r))
 
