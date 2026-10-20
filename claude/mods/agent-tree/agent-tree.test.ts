@@ -112,7 +112,8 @@ test('desktop pane fills the sidebar width', async ($, on) => {
   const narrow = await desk($, { bodyColumns: 30 })
   const wide = await desk($, { bodyColumns: 80 })
   expect(narrow.props.width).toBe('100%')
-  expect(all(narrow).filter(e => typeof e.props.width === 'number')).toEqual([])
+  // Only the tree lines have a fixed size: cells in ch, bars in fractions of a ch.
+  expect(all(narrow).filter(e => typeof e.props.width === 'number' && e.props.width !== 2 && e.props.width !== 0.14)).toEqual([])
   expect(JSON.stringify(narrow)).toBe(JSON.stringify(wide))
 })
 
@@ -239,9 +240,9 @@ test('status glyphs', async ($, on) => {
   await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
   const root = await desk($)
-  expect(textOf(root, /^ ◐$/)?.props.color).toBe('#1D9E75')
-  expect(textOf(root, /^ ✓$/)?.props.color).toBe('#888780')
-  expect(textOf(root, /^ ✗$/)?.props.color).toBe('#E24B4A')
+  expect(textOf(root, /^●$/)?.props.color).toBe('#1D9E75')
+  expect(textOf(root, /^✓$/)?.props.color).toBe('#888780')
+  expect(textOf(root, /^✗$/)?.props.color).toBe('#E24B4A')
 })
 
 test('elapsed minutes', async ($, on) => {
@@ -400,7 +401,7 @@ test('narrow row keeps room for the description', async ($, on) => {
   await finish($, 'a4', 'Done\n⚠️ For you: pick')
   const root = await desk($)
   const rowBox = all(root).find(e => e.props.key === 'a1')!
-  const [, chips, body, phaseBox, dur] = kids(rowBox)
+  const [, chips, body, phaseBox, dur] = kids(kids(rowBox)[1]!).slice(0)
   expect(chips!.props.flexWrap).toBe('wrap')
   expect(chips!.props.flexShrink).not.toBe(0)
   const head = kids(chips!)[0]!
@@ -504,56 +505,70 @@ test('done rows keep the grade and needs-you chips readable', async ($, on) => {
   expect(textOf(root, /the plan/)?.props.dimColor).toBe(true)
 })
 
-test('nested agents draw tree connectors on desktop', async ($, on) => {
+// Code points Anthropic Mono (the app's mono face) contains, checked with fontTools: space, box-drawing, marks.
+const FACE = new Set([0x20, 0x2500, 0x2502, 0x2514, 0x25cf, 0x2713, 0x2717])
+const BAR = 0.14
+const ARM = 0.05
+const CELL = 2
+const bars = (e: El) => all(e).filter(x => x.type === 'Box' && x.props.width === BAR && x.props.backgroundColor)
+const arms = (e: El) => all(e).filter(x => x.type === 'Box' && x.props.height === ARM && x.props.backgroundColor)
+
+test('child trunk aligns with the parent connector', async ($, on) => {
   await setup($, on)
-  await $.agent.spawn(spawn('outer'))
-  await $.agent.spawn(spawn('inner one', 'a1'))
-  await $.agent.spawn(spawn('inner two', 'a1'))
+  await $.agent.spawn(spawn('top'))
+  await $.agent.spawn(spawn('mid one', 'a1'))
+  await $.agent.spawn(spawn('mid two', 'a1'))
   await $.agent.spawn(spawn('deep', 'a2'))
+  await $.agent.spawn(spawn('other top'))
   const seen: El[] = []
   onTool = async () => { seen.push(await desk($)) }
   await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a4', tool_use_id: 't' } as never)
   const root = seen[0]!
-  const prefix = (key: string) => {
-    const r = all(root).find(e => e.props.key === key)!
-    return texts(kids(r)[0]!).map(shown).filter(t => !/^ [◐✓✗]$/.test(t))
+  const rowOf = (key: string) => all(root).find(e => e.props.key === key)!
+  // The rows sit in one Box with no gap: the connector column is never interrupted.
+  const list = all(root).find(e => kids(e).includes(rowOf('a1')))!
+  expect(list.props.gap).toBeUndefined()
+  // Per row: cells of one fixed width per depth, then which cells carry a trunk bar, an arm, a lower bar.
+  const shape = (key: string) => {
+    const row = rowOf(key)
+    expect(row.props.alignItems).toBeUndefined()
+    const [connector, content] = kids(row)
+    expect(connector!.props.gap).toBeUndefined()
+    expect(connector!.props.height).toBeUndefined()
+    // Vertical spacing lives inside the content, never between connector rows.
+    expect(content!.props.paddingY).toBe(1)
+    expect(row.props.padding).toBeUndefined()
+    return kids(connector!).map(cell => {
+      expect(cell.props.width).toBe(CELL)
+      return { bars: bars(cell).length, arm: arms(cell).length }
+    })
   }
-  for (const key of ['a1', 'a2', 'a3', 'a4']) {
-    const t = texts(kids(all(root).find(e => e.props.key === key)!)[0]!)[0]!
-    expect(t.props.mono).toBe(true)
-  }
-  expect(prefix('a1')).toEqual(['└─'])
-  expect(prefix('a2')).toEqual(['  ├─'])
-  expect(prefix('a3')).toEqual(['  └─'])
-  // The deep node's action line continues the open ancestor column.
-  expect(prefix('a4')).toEqual(['  │ └─', '  │   '])
+  const trunk = { bars: 1, arm: 0 }
+  const tee = { bars: 2, arm: 1 }
+  const elbow = { bars: 1, arm: 1 }
+  expect(shape('a1')).toEqual([tee])
+  expect(shape('a2')).toEqual([trunk, tee])
+  expect(shape('a3')).toEqual([trunk, elbow])
+  // The deep row, with the action line, keeps both open ancestors' trunks.
+  expect(shape('a4')).toEqual([trunk, trunk, elbow])
+  expect(shape('a5')).toEqual([elbow])
 })
 
-test('desktop tree prefix is monospace', async ($, on) => {
+test('no prefix or mark character outside the mono face coverage', async ($, on) => {
   await setup($, on)
-  await $.agent.spawn(spawn('outer'))
-  await $.agent.spawn(spawn('middle', 'a1'))
-  await $.agent.spawn(spawn('leaf', 'a2'))
-  const seen: El[] = []
-  onTool = async () => { seen.push(await desk($)) }
-  await $.tool.call({ tool: 'Bash', command: 'npm test', agentId: 'a3', tool_use_id: 't' } as never)
-  const root = seen[0]!
-  for (const key of ['a1', 'a2', 'a3']) {
-    const [prefix, ...rest] = kids(all(root).find(e => e.props.key === key)!)
-    const [conn, mark] = texts(prefix!).map(shown)
-    expect(conn).toMatch(/[├└]─$/)
-    expect(mark).toMatch(/^ [◐✓✗]$/)
-    for (const t of texts(prefix!)) expect(t.props.mono).toBe(true)
-    // Everything else on the row stays in the normal face: chips, description, action, time.
-    for (const t of rest.flatMap(texts)) expect(t.props.mono).toBeFalsy()
-  }
-  // The action line's continuation prefix is mono, and the action text is not.
-  const leaf = kids(all(root).find(e => e.props.key === 'a3')!)
-  const cont = texts(leaf[0]!).filter(t => /^[ │]+$/.test(shown(t)))
-  expect(cont).toHaveLength(1)
-  expect(cont[0]!.props.mono).toBe(true)
-  expect(textOf(root, /npm test/)?.props.mono).toBeFalsy()
-  expect(textOf(root, /^leaf$/)?.props.mono).toBeFalsy()
+  await $.agent.spawn(spawn('top'))
+  await $.agent.spawn(spawn('child', 'a1'))
+  await $.agent.spawn(spawn('failed', 'a1'))
+  await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
+  const root = await desk($)
+  const monos = texts(root).filter(t => t.props.mono === true)
+  expect(monos.map(shown).sort()).toEqual(['●', '✓', '✗'])
+  for (const t of monos) for (const ch of shown(t)) expect(FACE.has(ch.codePointAt(0)!)).toBe(true)
+  // Glyphs the face lacks fall back to another font and shift: never drawn.
+  expect(shown(root)).not.toMatch(/[├◐]/)
+  // The marks keep their status colours.
+  expect(monos.map(t => t.props.color)).toEqual(['#1D9E75', '#888780', '#E24B4A'])
 })
 
 const resume = (agentId: string, description = '', parentAgentId?: string) =>
@@ -573,7 +588,7 @@ test('a resumed agent keeps one row', async ($, on) => {
   const root = await desk($)
   expect(keyed(root)).toEqual(['a1'])
   // Back to running, description kept, elapsed counts from the resume.
-  expect(textOf(root, /^ ◐$/)).toBeDefined()
+  expect(textOf(root, /^●$/)).toBeDefined()
   expect(textOf(root, /^Layout fixes$/)).toBeDefined()
   expect(textOf(root, /^<1m$/)).toBeDefined()
   await $.agent.spawn(resume('a1', 'New task'))

@@ -93,6 +93,11 @@ const DONE = TIER.g.mark
 const FAILED = chipFill('F').fill
 const NEEDS = { fill: TIER.h.mark, ink: '#412402' }
 const MAIN = TIER.o.mark
+// Desktop tree lines: Box bars. `width` counts ch and `height` lh, both fractional: 0.14ch and 0.05lh are about 1px.
+const LINE = TIER.g.mark
+const BAR = 0.14
+const ARM = 0.05
+const CELL = 2
 
 const patch = (id: string, change: Partial<AgentTreeNode>) => (list: AgentTreeNode[]) =>
   list.map(n => (n.id === id ? { ...n, ...change } : n))
@@ -243,18 +248,18 @@ export const register: Register = on => {
     // Finished a while ago, with every descendant gone too.
     const isGone = (n: AgentTreeNode): boolean =>
       n.status !== 'running' && now - (n.endedAt ?? now) > GONE_MS && kids(n.id).every(isGone)
-    // `trail` is the tree glyphs of the ancestors.
-    const rows: { n: AgentTreeNode; depth: number; last: boolean; trail: string }[] = []
-    const walk = (id: string, depth: number, trail: string) => {
+    // `trail` is the tree glyphs of the ancestors (terminal); `open` says which ancestors have more children below (desktop).
+    const rows: { n: AgentTreeNode; depth: number; last: boolean; trail: string; open: boolean[] }[] = []
+    const walk = (id: string, depth: number, trail: string, open: boolean[]) => {
       // Only a whole finished top-level tree fades: a visible agent keeps every child, so a resume shows its history.
       const ks = kids(id).filter(n => id !== ROOT || !isGone(n))
       ks.forEach((n, i) => {
         const last = i === ks.length - 1
-        rows.push({ n, depth, last, trail })
-        walk(n.id, depth + 1, trail + (last ? '  ' : '│ '))
+        rows.push({ n, depth, last, trail, open })
+        walk(n.id, depth + 1, trail + (last ? '  ' : '│ '), [...open, !last])
       })
     }
-    walk(ROOT, 1, '')
+    walk(ROOT, 1, '', [])
     // An orchestrator's phase: its most recent running child with a valid prefix.
     const phase = (n: AgentTreeNode) =>
       n.type === 'my-orchestrator'
@@ -283,7 +288,10 @@ export const register: Register = on => {
         ) : (
           <Text key={opts.key} wrap={opts.cut ? 'truncate-end' : undefined} backgroundColor={fill} color={ink} size="caption" weight="semibold">{` ${text} `}</Text>
         )
-      const rowEls = rows.map(({ n, trail, last }) => {
+      // The tree lines are thin Boxes, not glyphs: the mono face has no tee and the fallback glyph sits differently.
+      // A cell is CELL wide per depth; the connector stretches the full row height, so the trunk runs through action lines.
+      const bar = <Box width={BAR} backgroundColor={LINE} flexShrink={0} />
+      const rowEls = rows.map(({ n, last, open }) => {
         const run = n.status === 'running'
         const t = TIER[tier(n)]
         const dim = !run
@@ -291,34 +299,41 @@ export const register: Register = on => {
         const tool = run && n.currentTool ? n.currentTool : undefined
         const cc = n.review ? chipFill(n.review.grade) : undefined
         return (
-          <Box key={n.id} flexDirection="row" width="100%" gap={1}>
-            <Box flexDirection="column" flexShrink={0}>
-              {/* Connector and status mark are adjacent mono Texts, so the prefix has a fixed width per depth. */}
-              <Box flexDirection="row">
-                <Text mono dimColor>{`${trail}${last ? '└─' : '├─'}`}</Text>
-                {run ? <Text mono color={t.mark}>{' ◐'}</Text> : n.status === 'done' ? <Text mono color={DONE} dimColor>{' ✓'}</Text> : <Text mono color={FAILED} dimColor>{' ✗'}</Text>}
+          <Box key={n.id} flexDirection="row" width="100%">
+            <Box flexDirection="row" flexShrink={0}>
+              {open.map((o, i) => <Box key={String(i)} width={CELL} flexShrink={0} flexDirection="row">{o && bar}</Box>)}
+              <Box width={CELL} flexShrink={0} flexDirection="column">
+                {/* First line: the bar down to its middle, and the arm across. */}
+                <Box height={1} flexShrink={0} flexDirection="row">
+                  {bar}
+                  <Box flexGrow={1} flexDirection="column" justifyContent="flex-end"><Box height={ARM} backgroundColor={LINE} /></Box>
+                </Box>
+                <Box flexGrow={1} flexDirection="row">{!last && bar}</Box>
               </Box>
-              {tool && <Text mono dimColor>{`${trail}${last ? '  ' : '│ '}`}</Text>}
             </Box>
-            {/* Shrinks last: the description gives way first, down to its minimum. */}
-            <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
-              <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
-                {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+            {/* The row's spacing is padding in here, so the connector column has no gaps. */}
+            <Box flexDirection="row" flexGrow={1} gap={1} paddingY={1}>
+              {run ? <Text mono color={t.mark}>●</Text> : n.status === 'done' ? <Text mono color={DONE} dimColor>✓</Text> : <Text mono color={FAILED} dimColor>✗</Text>}
+              {/* Shrinks last: the description gives way first, down to its minimum. */}
+              <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
+                <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
+                  {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+                </Box>
+                {cc && chip(cc.fill, cc.text, chipText(n))}
+                {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
               </Box>
-              {cc && chip(cc.fill, cc.text, chipText(n))}
-              {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
-            </Box>
-            <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
-              <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
-              {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
-            </Box>
-            {ph && (
-              <Box flexShrink={1} minWidth={0}>
-                <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+              <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
+                <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
+                {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
               </Box>
-            )}
-            <Box flexShrink={0}>
-              <Text tabular dimColor size="caption">{mins(n)}</Text>
+              {ph && (
+                <Box flexShrink={1} minWidth={0}>
+                  <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+                </Box>
+              )}
+              <Box flexShrink={0}>
+                <Text tabular dimColor size="caption">{mins(n)}</Text>
+              </Box>
             </Box>
           </Box>
         )
@@ -329,7 +344,7 @@ export const register: Register = on => {
           {rows.length === 0 ? (
             <Box paddingLeft={2}><Text dimColor>No agents yet</Text></Box>
           ) : (
-            <Box flexDirection="column" width="100%" gap={1}>{rowEls}</Box>
+            <Box flexDirection="column" width="100%">{rowEls}</Box>
           )}
           <Box flexDirection="row" flexWrap="wrap" gap={2}>
             {([['o', 'Opus'], ['s', 'Sonnet'], ['h', 'Haiku']] as const).map(([k, name]) => chip(TIER[k].fill, TIER[k].ink, name, { key: k }))}
