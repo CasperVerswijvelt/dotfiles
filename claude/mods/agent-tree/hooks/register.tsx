@@ -143,16 +143,26 @@ export const register: Register = on => {
     if (r.deny !== undefined || r.agentId === undefined) return r
     // Bookkeeping is best-effort: a failure here must not fail the real spawn.
     try {
+      const now = await $.clock.now()
       const node: AgentTreeNode = {
         id: r.agentId,
         parentId: e.parentAgentId ?? ROOT,
         type: e.subagentType,
         description: e.description,
         model: r.model,
-        startedAt: await $.clock.now(),
+        startedAt: now,
         status: 'running',
       }
-      await update($, nodes, list => [...list, node])
+      // A resume answers the agent's own id: update its row in place, never add a second.
+      await update($, nodes, list =>
+        list.some(n => n.id === node.id)
+          ? list.map(n =>
+              n.id === node.id
+                ? { ...n, description: e.description || n.description, model: r.model ?? n.model, startedAt: now, endedAt: undefined, status: 'running' as const, needsYou: undefined }
+                : n,
+            )
+          : [...list, node],
+      )
       // A once-a-second redraw, only while something runs.
       const stop = async () => {
         if ((await read($, nodes)).some(n => n.status === 'running')) return
@@ -236,7 +246,8 @@ export const register: Register = on => {
     // `trail` is the tree glyphs of the ancestors.
     const rows: { n: AgentTreeNode; depth: number; last: boolean; trail: string }[] = []
     const walk = (id: string, depth: number, trail: string) => {
-      const ks = kids(id).filter(n => !isGone(n))
+      // Only a whole finished top-level tree fades: a visible agent keeps every child, so a resume shows its history.
+      const ks = kids(id).filter(n => id !== ROOT || !isGone(n))
       ks.forEach((n, i) => {
         const last = i === ks.length - 1
         rows.push({ n, depth, last, trail })

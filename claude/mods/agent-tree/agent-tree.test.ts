@@ -10,7 +10,7 @@ async function setup(_$: unknown, on: any) {
   failState = false
   const clock = mock.clock(on)
   let n = 0
-  on('agent.spawn', (_: unknown, e: any) => ({ model: models[e.description] ?? 'sonnet', agentId: `a${++n}` }))
+  on('agent.spawn', (_: unknown, e: any) => ({ model: models[e.description] ?? 'sonnet', agentId: e.resume?.agentId ?? `a${++n}` }))
   on('turn.complete', (_: unknown, e: any) => ({ text: e.answer }) as never)
   on('state.set', (_: unknown, e: any, next: any) => { if (failState) throw new Error('boom'); return next(e) })
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'test' } }) as never)
@@ -554,4 +554,48 @@ test('desktop tree prefix is monospace', async ($, on) => {
   expect(cont[0]!.props.mono).toBe(true)
   expect(textOf(root, /npm test/)?.props.mono).toBeFalsy()
   expect(textOf(root, /^leaf$/)?.props.mono).toBeFalsy()
+})
+
+const resume = (agentId: string, description = '', parentAgentId?: string) =>
+  ({ prompt: 'again', description, subagentType: 'my-orchestrator', parentAgentId, resume: { agentId } }) as never
+const keyed = (root: El) => all(root).filter(e => e.type === 'Box' && /^a\d+$/.test(e.props.key ?? '')).map(e => e.props.key)
+
+test('a resumed agent keeps one row', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn({ ...spawn('Layout fixes'), subagentType: 'my-orchestrator' } as never)
+  await $.turn.complete({ agentId: 'a1', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await clock.advance(51 * 60_000)
+  for (let i = 0; i < 3; i++) {
+    await $.agent.spawn(resume('a1'))
+    await $.turn.complete({ agentId: 'a1', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  }
+  await $.agent.spawn(resume('a1'))
+  const root = await desk($)
+  expect(keyed(root)).toEqual(['a1'])
+  // Back to running, description kept, elapsed counts from the resume.
+  expect(textOf(root, /^ ◐$/)).toBeDefined()
+  expect(textOf(root, /^Layout fixes$/)).toBeDefined()
+  expect(textOf(root, /^<1m$/)).toBeDefined()
+  await $.agent.spawn(resume('a1', 'New task'))
+  expect(textOf(await desk($), /^New task$/)).toBeDefined()
+})
+
+test('an agent resumed between children lists every child once', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn({ ...spawn('boss'), subagentType: 'my-orchestrator' } as never)
+  await $.agent.spawn(spawn('impl one', 'a1'))
+  await $.agent.spawn({ ...spawn('bg review', 'a1'), background: true } as never)
+  for (const id of ['a2', 'a3', 'a1']) await $.turn.complete({ agentId: id, answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await clock.advance(30 * 60_000)
+  await $.agent.spawn(resume('a1'))
+  await $.agent.spawn(spawn('review two', 'a1'))
+  await $.agent.spawn({ ...spawn('bg impl', 'a1'), background: true } as never)
+  await $.turn.complete({ agentId: 'a4', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await $.agent.spawn(resume('a1'))
+  await $.agent.spawn(spawn('review three', 'a1'))
+  const root = await desk($)
+  expect(keyed(root)).toEqual(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
+  for (const d of ['impl one', 'bg review', 'review two', 'bg impl', 'review three']) {
+    expect(texts(root).filter(t => shown(t) === d)).toHaveLength(1)
+  }
 })
