@@ -144,7 +144,7 @@ test('running agent shows its action on its own line under the description', asy
   expect(shown(tool)).toBe('Bash npm test')
   expect(shown(desc)).not.toContain('npm test')
   // The action sits in the slot under line 1, not inside the description column.
-  const slot = all(root).find(e => kids(e).includes(tool))!
+  const slot = all(root).find(e => all(e).includes(tool) && e.props.height === 0.5)!
   const rest = all(root).find(e => kids(e).includes(slot))!
   expect(rest.props.flexDirection).toBe('column')
   expect(kids(rest).indexOf(slot)).toBe(1)
@@ -163,8 +163,10 @@ test('a row has the same height with and without an action', async ($, on) => {
   const rest = (key: string) => parts(all(root).find(e => e.props.key === key)!).rest
   const slotOf = (key: string) => kids(rest(key))[1]!
   const busy = slotOf('a1')
-  expect(busy.props.height).toBe(1)
+  // Exactly the old bottom padding (half a line): the action overflows it, so the row total is the same in every state.
+  expect(busy.props.height).toBe(0.5)
   expect(busy.props.flexShrink).toBe(0)
+  expect(busy.props.overflow).toBe('visible')
   expect(shown(busy)).toBe('Bash ls')
   // Idle and done rows get the same fixed slot, empty.
   for (const k of ['a2', 'a3']) {
@@ -198,11 +200,15 @@ test('the action sits in the row spacing under the name chip', async ($, on) => 
   expect(rest.props.paddingY).toBeUndefined()
   expect(rest.props.paddingBottom).toBeUndefined()
   expect(rest.props.paddingLeft).toBeUndefined()
-  expect(slot!.props.height).toBe(1)
-  const action = kids(slot!)[0]!
+  expect(slot!.props.height).toBe(0.5)
+  expect(slot!.props.overflow).toBe('visible')
+  // The action's wrapper cannot shrink, so the overflow paints instead of clipping.
+  const wrap = kids(slot!)[0]!
+  expect(wrap.props.flexShrink).toBe(0)
+  const action = kids(wrap)[0]!
   expect(shown(action)).toBe('Bash ls')
   // At the content's left edge, like line 1: no indent box, padding or margin.
-  for (const e of [line1!, slot!, action]) {
+  for (const e of [line1!, slot!, wrap, action]) {
     expect(e.props.paddingLeft).toBeUndefined()
     expect(e.props.marginLeft).toBeUndefined()
   }

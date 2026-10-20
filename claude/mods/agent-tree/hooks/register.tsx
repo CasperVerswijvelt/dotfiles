@@ -344,10 +344,11 @@ export const register: Register = on => {
                     <Text tabular dimColor size="caption">{mins(n)}</Text>
                   </Box>
                 </Box>
-                {/* The spacing under line 1 is a fixed slot, empty or holding the action, so a row never changes height.
-                    One full line: a caption line (16px) does not fit the half-line padding unit it replaces. */}
-                <Box height={1} flexShrink={0} flexDirection="column" minWidth={0}>
-                  {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
+                {/* The spacing under line 1 is a fixed slot, as tall as the bottom padding it replaces, so a row never changes height.
+                    The action overflows it downward into the next row's empty top padding: 9.75px + 16px caption fits in the 19.5px between two line 1s. */}
+                <Box height={0.5} flexShrink={0} overflow="visible" flexDirection="column" minWidth={0}>
+                  {/* Not shrinkable: a truncating Text alone would shrink to the slot and clip. */}
+                  {tool && <Box flexShrink={0}><Text wrap="truncate-end" dimColor size="caption">{tool}</Text></Box>}
                 </Box>
               </Box>
             </Box>
