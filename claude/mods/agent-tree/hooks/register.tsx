@@ -7,15 +7,22 @@ const PANE = 'agent-tree'
 const ROOT = 'main'
 const GONE_MS = 120_000
 const nodes = atom({ plugin: 'agent-tree', key: 'nodes' } as const, [] as AgentTreeNode[])
-// Terminal redraw, once a second. The desktop pane reads `minute` instead: it redraws at most once a minute.
+// Redraw clock, once a second while an agent runs: the durations show seconds.
 const tick = atom({ plugin: 'agent-tree', key: 'tick' } as const, 0)
-const minute = atom({ plugin: 'agent-tree', key: 'minute' } as const, 0)
 const COMMAND = 'agent-tree'
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}~` : s)
 const span = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`
+}
+
+// Desktop duration: 12s, 4m, 1h 5m.
+export const fmtDuration = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`
 }
 
 const PHASES = ['plan', 'implement', 'gate', 'review', 'land', 'report']
@@ -104,7 +111,6 @@ const patch = (id: string, change: Partial<AgentTreeNode>) => (list: AgentTreeNo
 
 export const register: Register = on => {
   let timer: { cancel: () => void } | undefined
-  let minuteTimer: { cancel: () => void } | undefined
   let opened = false
   let agentModels: Record<string, string> = {}
   const tier = (n: AgentTreeNode) => tierIn(agentModels, n)
@@ -173,15 +179,9 @@ export const register: Register = on => {
         if ((await read($, nodes)).some(n => n.status === 'running')) return
         timer?.cancel()
         timer = undefined
-        minuteTimer?.cancel()
-        minuteTimer = undefined
       }
       timer ??= $.clock.every(1000, async () => {
         await update($, tick, n => n + 1)
-        await stop()
-      })
-      minuteTimer ??= $.clock.every(60_000, async () => {
-        await update($, minute, n => n + 1)
         await stop()
       })
       if (!opened) {
@@ -241,9 +241,7 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
     const list = await read($, nodes)
     const now = await $.clock.now()
-    // Subscribe to the one redraw clock this surface needs.
-    if (e.surface === 'terminal') await read($, tick)
-    else await read($, minute)
+    await read($, tick)
     const kids = (id: string) => list.filter(n => n.parentId === id)
     // Finished a while ago, with every descendant gone too.
     const isGone = (n: AgentTreeNode): boolean =>
@@ -272,11 +270,7 @@ export const register: Register = on => {
     const chipText = (n: AgentTreeNode) => (n.review ? `${n.review.grade} \u00B7 r${n.review.round}` : '')
     const time = (n: AgentTreeNode) => span((n.endedAt ?? now) - n.startedAt)
     const color = (n: AgentTreeNode) => ({ o: 'magenta', s: 'cyan', h: 'yellow', g: undefined })[tier(n)]
-    // Whole minutes only, so the tree stays the same between ticks.
-    const mins = (n: AgentTreeNode) => {
-      const m = Math.floor(((n.endedAt ?? now) - n.startedAt) / 60_000)
-      return m < 1 ? '<1m' : `${m}m`
-    }
+    const elapsed = (n: AgentTreeNode) => fmtDuration((n.endedAt ?? now) - n.startedAt)
 
     if (e.surface !== 'terminal') {
       // Native Box and Text: no pixel width anywhere, so the pane fills the sidebar and relays out when it is resized.
@@ -340,8 +334,9 @@ export const register: Register = on => {
                       <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
                     </Box>
                   )}
-                  <Box flexShrink={0}>
-                    <Text tabular dimColor size="caption">{mins(n)}</Text>
+                  {/* Wide enough for 1h 59m, right aligned: a changing value moves nothing. */}
+                  <Box flexShrink={0} minWidth={5} justifyContent="flex-end">
+                    <Text tabular dimColor size="caption">{elapsed(n)}</Text>
                   </Box>
                 </Box>
                 {/* The spacing under line 1 is a fixed slot, as tall as the bottom padding it replaces, so a row never changes height.

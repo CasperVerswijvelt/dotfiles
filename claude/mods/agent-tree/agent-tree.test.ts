@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { buildTierMap, hasForYou, parseAgentModel, parseJudgeHeader, parsePhase, register } from './hooks/register'
+import { buildTierMap, fmtDuration, hasForYou, parseAgentModel, parseJudgeHeader, parsePhase, register } from './hooks/register'
 
 const spawn = (description: string, parentAgentId?: string) =>
   ({ prompt: 'p', description, subagentType: 'my-implementer', parentAgentId }) as never
@@ -8,11 +8,12 @@ const spawn = (description: string, parentAgentId?: string) =>
 async function setup(_$: unknown, on: any) {
   onTool = undefined
   failState = false
+  ticks = 0
   const clock = mock.clock(on)
   let n = 0
   on('agent.spawn', (_: unknown, e: any) => ({ model: models[e.description] ?? 'sonnet', agentId: e.resume?.agentId ?? `a${++n}` }))
   on('turn.complete', (_: unknown, e: any) => ({ text: e.answer }) as never)
-  on('state.set', (_: unknown, e: any, next: any) => { if (failState) throw new Error('boom'); return next(e) })
+  on('state.set', (_: unknown, e: any, next: any) => { if (failState) throw new Error('boom'); if (JSON.stringify(e).includes('"tick"')) ticks++; return next(e) })
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'test' } }) as never)
   on('tool.call', async () => {
     await onTool?.()
@@ -22,6 +23,7 @@ async function setup(_$: unknown, on: any) {
 }
 const models: Record<string, string> = {}
 let failState = false
+let ticks = 0
 let onTool: (() => Promise<void>) | undefined
 
 test('nested spawns render as a tree on both surfaces, with tool and done state', async ($, on) => {
@@ -275,12 +277,59 @@ test('tool.call shows the current tool while it runs', async ($, on) => {
 test('a clock tick that changes no displayed value leaves the tree unchanged', async ($, on) => {
   const clock = await setup($, on)
   await $.agent.spawn(spawn('worker'))
+  await clock.advance(1000)
   const before = JSON.stringify(await desk($))
+  await $.turn.complete({ agentId: 'a1', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  const done = JSON.stringify(await desk($))
+  expect(done).not.toBe(before)
   await clock.advance(1000)
-  await clock.advance(1000)
-  expect(JSON.stringify(await desk($))).toBe(before)
   await clock.advance(60_000)
-  expect(JSON.stringify(await desk($))).not.toBe(before)
+  expect(JSON.stringify(await desk($))).toBe(done)
+})
+
+test('the clock ticks every second only while an agent runs', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  await clock.advance(5000)
+  expect(ticks).toBe(5)
+  await $.turn.complete({ agentId: 'a1', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  await clock.advance(1000)
+  const stopped = ticks
+  await clock.advance(10_000)
+  expect(ticks).toBe(stopped)
+  await $.agent.spawn(resume('a1'))
+  await clock.advance(2000)
+  expect(ticks).toBe(stopped + 2)
+})
+
+test('a running agent\'s seconds advance on the tick', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  expect(textOf(await desk($), /^0s$/)).toBeDefined()
+  await clock.advance(1000)
+  expect(textOf(await desk($), /^1s$/)).toBeDefined()
+  await clock.advance(11_000)
+  expect(textOf(await desk($), /^12s$/)).toBeDefined()
+})
+
+test('duration format boundaries', () => {
+  const at = (m: number, s = 0) => fmtDuration((m * 60 + s) * 1000)
+  expect(fmtDuration(0)).toBe('0s')
+  expect(at(0, 59)).toBe('59s')
+  expect(at(1)).toBe('1m')
+  expect(at(59, 59)).toBe('59m')
+  expect(at(60)).toBe('1h 0m')
+  expect(at(65)).toBe('1h 5m')
+  expect(at(119, 59)).toBe('1h 59m')
+})
+
+test('the time column keeps a minimum width so a changing value moves nothing', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  const t = textOf(await desk($), /^0s$/)
+  expect(t?.props.tabular).toBe(true)
+  const wrap = all(await desk($)).find(e => e.type === 'Box' && e.props.minWidth === 5 && JSON.stringify(e).includes('"0s"'))
+  expect(wrap).toBeDefined()
 })
 
 test('turn.complete still returns next result when the mod bookkeeping throws', async ($, on) => {
@@ -323,18 +372,19 @@ test('status glyphs', async ($, on) => {
   expect(textOf(root, /^✗$/)?.props.color).toBe('#E24B4A')
 })
 
-test('elapsed minutes', async ($, on) => {
+test('elapsed time', async ($, on) => {
   const clock = await setup($, on)
   await $.agent.spawn(spawn('worker'))
   await clock.advance(59_000)
-  expect(textOf(await desk($), /^<1m$/)).toBeDefined()
+  expect(textOf(await desk($), /^59s$/)).toBeDefined()
   await clock.advance(1000)
   expect(textOf(await desk($), /^1m$/)).toBeDefined()
   await clock.advance(139_000)
-  const b = JSON.stringify(await desk($))
-  expect(b).toContain('"3m"')
+  expect(JSON.stringify(await desk($))).toContain('"3m"')
   await clock.advance(20_000)
-  expect(JSON.stringify(await desk($))).toBe(b)
+  expect(JSON.stringify(await desk($))).toContain('"3m"')
+  await clock.advance(57 * 60_000)
+  expect(JSON.stringify(await desk($))).toContain('"1h 0m"')
 })
 
 test('command name', async ($, on) => {
@@ -489,7 +539,7 @@ test('narrow row keeps room for the description', async ($, on) => {
   expect(textOf(phaseBox!, /^implement$/)!.props.wrap).toBe('truncate-end')
   expect(phaseBox!.props.flexShrink).not.toBe(0)
   // Only the duration stays fixed.
-  expect(shown(dur!)).toMatch(/^<?\d+m$/)
+  expect(shown(dur!)).toMatch(/^\d+s$/)
   expect(dur!.props.flexShrink).toBe(0)
   expect(rowBox.props.width).toBe('100%')
   expect(shown(chips!)).toContain('B · r1')
@@ -708,7 +758,7 @@ test('no prefix or mark character outside the mono face coverage', async ($, on)
   expect(monos.map(shown).sort()).toEqual(['●', '✓', '✗'])
   for (const t of monos) for (const ch of shown(t)) expect(FACE.has(ch.codePointAt(0)!)).toBe(true)
   // Everything else stays in the normal face: chips, descriptions, action text, time.
-  for (const re of [/my-implementer/, /^top$/, /^child$/, /^failed$/, /npm test/, /^<1m$/]) {
+  for (const re of [/my-implementer/, /^top$/, /^child$/, /^failed$/, /npm test/, /^\d+s$/]) {
     const t = textOf(root, re)
     expect(t).toBeDefined()
     expect(t!.props.mono).toBeFalsy()
@@ -739,7 +789,7 @@ test('a resumed agent keeps one row', async ($, on) => {
   // Back to running, description kept, elapsed counts from the resume.
   expect(textOf(root, /^●$/)).toBeDefined()
   expect(textOf(root, /^Layout fixes$/)).toBeDefined()
-  expect(textOf(root, /^<1m$/)).toBeDefined()
+  expect(textOf(root, /^0s$/)).toBeDefined()
   await $.agent.spawn(resume('a1', 'New task'))
   expect(textOf(await desk($), /^New task$/)).toBeDefined()
 })
