@@ -7,6 +7,18 @@ const spawn = (description: string, parentAgentId?: string) =>
 
 async function setup(_$: unknown, on: any) {
   onTool = undefined
+  armed = false
+  let inRead = false
+  on('state.get', async (_: unknown, e: any, next: any) => {
+    const r = await next(e)
+    if (armed && !inRead && JSON.stringify(e).includes('"nodes"')) {
+      armed = false
+      inRead = true
+      await spawnLate?.()
+      inRead = false
+    }
+    return r
+  })
   failState = false
   ticks = 0
   const clock = mock.clock(on)
@@ -24,6 +36,8 @@ async function setup(_$: unknown, on: any) {
 const models: Record<string, string> = {}
 let failState = false
 let ticks = 0
+let armed = false
+let spawnLate: (() => Promise<unknown>) | undefined
 let onTool: (() => Promise<void>) | undefined
 
 test('nested spawns render as a tree on both surfaces, with tool and done state', async ($, on) => {
@@ -302,6 +316,19 @@ test('the clock ticks every second only while an agent runs', async ($, on) => {
   expect(ticks).toBe(stopped + 2)
 })
 
+test('a spawn while the tick is stopping keeps the tick alive', async ($, on) => {
+  const clock = await setup($, on)
+  await $.agent.spawn(spawn('first'))
+  await $.turn.complete({ agentId: 'a1', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
+  // The next tick's stop reads "none running"; a spawn lands before that read resumes.
+  spawnLate = () => $.agent.spawn(spawn('second'))
+  armed = true
+  await clock.advance(1000)
+  const before = ticks
+  await clock.advance(3000)
+  expect(ticks).toBe(before + 3)
+})
+
 test('a running agent\'s seconds advance on the tick', async ($, on) => {
   const clock = await setup($, on)
   await $.agent.spawn(spawn('worker'))
@@ -321,6 +348,8 @@ test('duration format boundaries', () => {
   expect(at(60)).toBe('1h 0m')
   expect(at(65)).toBe('1h 5m')
   expect(at(119, 59)).toBe('1h 59m')
+  expect(at(10 * 60 + 5)).toBe('10h 5m')
+  expect(fmtDuration(-5000)).toBe('0s')
 })
 
 test('the time column keeps a minimum width so a changing value moves nothing', async ($, on) => {
@@ -328,7 +357,7 @@ test('the time column keeps a minimum width so a changing value moves nothing', 
   await $.agent.spawn(spawn('worker'))
   const t = textOf(await desk($), /^0s$/)
   expect(t?.props.tabular).toBe(true)
-  const wrap = all(await desk($)).find(e => e.type === 'Box' && e.props.minWidth === 5 && JSON.stringify(e).includes('"0s"'))
+  const wrap = all(await desk($)).find(e => e.type === 'Box' && e.props.minWidth === 7 && JSON.stringify(e).includes('"0s"'))
   expect(wrap).toBeDefined()
 })
 

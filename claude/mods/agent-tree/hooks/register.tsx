@@ -175,15 +175,21 @@ export const register: Register = on => {
           : [...list, node],
       )
       // A once-a-second redraw, only while something runs.
+      const running = async () => (await read($, nodes)).some(n => n.status === 'running')
+      const start = () => {
+        timer ??= $.clock.every(1000, async () => {
+          await update($, tick, n => n + 1)
+          await stop()
+        })
+      }
       const stop = async () => {
-        if ((await read($, nodes)).some(n => n.status === 'running')) return
+        if (await running()) return
+        // Cancel first, then re-check: a spawn that landed during the read above skipped starting a tick.
         timer?.cancel()
         timer = undefined
+        if (await running()) start()
       }
-      timer ??= $.clock.every(1000, async () => {
-        await update($, tick, n => n + 1)
-        await stop()
-      })
+      start()
       if (!opened) {
         opened = true
         void $.ui.open({ id: PANE, title: 'Agents' })
@@ -335,7 +341,7 @@ export const register: Register = on => {
                     </Box>
                   )}
                   {/* Wide enough for 1h 59m, right aligned: a changing value moves nothing. */}
-                  <Box flexShrink={0} minWidth={5} justifyContent="flex-end">
+                  <Box flexShrink={0} minWidth={7} justifyContent="flex-end">
                     <Text tabular dimColor size="caption">{elapsed(n)}</Text>
                   </Box>
                 </Box>
