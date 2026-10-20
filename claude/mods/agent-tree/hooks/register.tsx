@@ -38,9 +38,9 @@ export const parseJudgeHeader = (text: string): { grade: string; round: number }
 export const hasForYou = (text: string): boolean => /^[ \t>*_`-]*(?:\u26A0\uFE0F?[ \t]*)?[*_`]*For you[*_`]*[ \t]*[:\uFF1A]/m.test(text)
 
 const chipFill = (grade: string) =>
-  grade === 'F' ? { fill: '#E24B4A', stroke: '#A32D2D', text: '#FFFFFF' }
-  : grade.startsWith('A') ? { fill: '#C0DD97', stroke: '#3B6D11', text: '#27500A' }
-  : { fill: '#D3D1C7', stroke: '#5F5E5A', text: '#2C2C2A' }
+  grade === 'F' ? { fill: '#E24B4A', text: '#FFFFFF' }
+  : grade.startsWith('A') ? { fill: '#C0DD97', text: '#27500A' }
+  : { fill: '#D3D1C7', text: '#2C2C2A' }
 
 // The `model:` value of a file's frontmatter, lowercased and unquoted.
 export const parseAgentModel = (text: string): string | undefined => {
@@ -77,7 +77,8 @@ const tierIn = (map: Record<string, string>, n: AgentTreeNode) => {
 const label = (e: { tool: unknown }) => {
   const i = e as unknown as Record<string, unknown>
   const hint = i.file_path ?? i.command ?? i.pattern ?? i.description
-  return typeof hint === 'string' ? `${String(e.tool)} ${clip(hint.split('/').pop() ?? '', 80)}` : String(e.tool)
+  // One line: every whitespace run, newlines of a heredoc included, becomes one space.
+  return typeof hint === 'string' ? `${String(e.tool)} ${clip((hint.split('/').pop() ?? '').replace(/\s+/g, ' ').trim(), 80)}` : String(e.tool)
 }
 
 // Tier colours of the desktop pane: a light chip fill with dark ink reads on both themes; marks are mid tones.
@@ -87,6 +88,11 @@ const TIER = {
   h: { fill: '#FAC775', ink: '#633806', mark: '#EF9F27' },
   g: { fill: '#F1EFE8', ink: '#444441', mark: '#888780' },
 }
+// Status and accent colours of the desktop pane, named once.
+const DONE = TIER.g.mark
+const FAILED = chipFill('F').fill
+const NEEDS = { fill: TIER.h.mark, ink: '#412402' }
+const MAIN = TIER.o.mark
 
 const patch = (id: string, change: Partial<AgentTreeNode>) => (list: AgentTreeNode[]) =>
   list.map(n => (n.id === id ? { ...n, ...change } : n))
@@ -258,10 +264,14 @@ export const register: Register = on => {
 
     if (e.surface !== 'terminal') {
       // Native Box and Text: no pixel width anywhere, so the pane fills the sidebar and relays out when it is resized.
-      const chip = (fill: string, ink: string, text: string, key?: string) => (
-        <Text key={key} backgroundColor={fill} color={ink} size="caption" weight="semibold">{` ${text} `}</Text>
-      )
-      const rowEls = rows.map(({ n, depth }) => {
+      // A chip is a filled label; on a receded row it drops the fill and shows its label in `tone`, dimmed.
+      const chip = (fill: string, ink: string, text: string, opts: { key?: string; dim?: boolean; tone?: string; cut?: boolean } = {}) =>
+        opts.dim ? (
+          <Text key={opts.key} wrap={opts.cut ? 'truncate-end' : undefined} color={opts.tone ?? ink} dimColor size="caption" weight="semibold">{` ${text} `}</Text>
+        ) : (
+          <Text key={opts.key} wrap={opts.cut ? 'truncate-end' : undefined} backgroundColor={fill} color={ink} size="caption" weight="semibold">{` ${text} `}</Text>
+        )
+      const rowEls = rows.map(({ n, trail, last }) => {
         const run = n.status === 'running'
         const t = TIER[tier(n)]
         const dim = !run
@@ -269,19 +279,30 @@ export const register: Register = on => {
         const tool = run && n.currentTool ? n.currentTool : undefined
         const cc = n.review ? chipFill(n.review.grade) : undefined
         return (
-          <Box key={n.id} flexDirection="row" width="100%" gap={1} paddingLeft={(depth - 1) * 2}>
-            <Box flexDirection="row" flexShrink={0} gap={1} alignItems="flex-start">
-              {run ? <Text color={t.mark}>◐</Text> : n.status === 'done' ? <Text color="#888780">✓</Text> : <Text color="#E24B4A">✗</Text>}
-              {chip(t.fill, t.ink, n.type)}
-              {cc && chip(cc.fill, cc.text, chipText(n))}
-              {n.needsYou && chip('#EF9F27', '#412402', 'needs you')}
+          <Box key={n.id} flexDirection="row" width="100%" gap={1}>
+            <Box flexDirection="column" flexShrink={0}>
+              <Text mono dimColor>{`${trail}${last ? '└─' : '├─'}`}</Text>
+              {tool && <Text mono dimColor>{`${trail}${last ? '  ' : '│ '}`}</Text>}
             </Box>
-            <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
+            {/* Shrinks last: the description gives way first, down to its minimum. */}
+            <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
+              <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
+                {run ? <Text color={t.mark}>◐</Text> : n.status === 'done' ? <Text color={DONE} dimColor>✓</Text> : <Text color={FAILED} dimColor>✗</Text>}
+                {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+              </Box>
+              {cc && chip(cc.fill, cc.text, chipText(n), { dim, tone: cc.fill })}
+              {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you', { dim, tone: NEEDS.fill })}
+            </Box>
+            <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
               <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
               {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
             </Box>
-            <Box flexDirection="row" flexShrink={0} gap={1}>
-              {ph && <Text italic dimColor size="caption">{ph}</Text>}
+            {ph && (
+              <Box flexShrink={1} minWidth={0}>
+                <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+              </Box>
+            )}
+            <Box flexShrink={0}>
               <Text tabular dimColor size="caption">{mins(n)}</Text>
             </Box>
           </Box>
@@ -289,14 +310,14 @@ export const register: Register = on => {
       })
       return (
         <Box flexDirection="column" width="100%" gap={1} padding={1}>
-          <Text weight="semibold" color="#7F77DD">Main</Text>
+          <Text weight="semibold" color={MAIN}>Main</Text>
           {rows.length === 0 ? (
             <Box paddingLeft={2}><Text dimColor>No agents yet</Text></Box>
           ) : (
             <Box flexDirection="column" width="100%" gap={1}>{rowEls}</Box>
           )}
-          <Box flexDirection="row" gap={2}>
-            {([['o', 'Opus'], ['s', 'Sonnet'], ['h', 'Haiku']] as const).map(([k, name]) => chip(TIER[k].fill, TIER[k].ink, name, k))}
+          <Box flexDirection="row" flexWrap="wrap" gap={2}>
+            {([['o', 'Opus'], ['s', 'Sonnet'], ['h', 'Haiku']] as const).map(([k, name]) => chip(TIER[k].fill, TIER[k].ink, name, { key: k }))}
           </Box>
         </Box>
       )
@@ -317,12 +338,13 @@ export const register: Register = on => {
           const model = n.model ? ` [${n.model}]` : ''
           // Everything on the row but the description, to size it against.
           const fixed = ` ${trail}${last ? '└─' : '├─'} ${mark} ${n.type}${ph ? ` ${ph}` : ''}${rev}${flag} ${model} ${time(n)}`.length
-          const limit = cols === undefined ? 40 : Math.max(10, cols - fixed)
+          // Never wider than the body: the description gets what the fixed part leaves, and the row truncates as a last resort.
+          const limit = cols === undefined ? 40 : Math.max(0, cols - fixed)
           return (
             <Box key={n.id} flexDirection="column">
-              <Text dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
+              <Text wrap="truncate-end" dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
                 {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
-                <Text color={color(n)}>{n.type}</Text>{ph ? <Text dimColor> {ph}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}>{rev}</Text> : null}{n.needsYou ? <Text color="yellow">{flag}</Text> : null} {clip(n.description, limit)}{model} {time(n)}
+                <Text color={color(n)}>{n.type}</Text>{ph ? <Text dimColor> {ph}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}>{rev}</Text> : null}{n.needsYou ? <Text color="yellow">{flag}</Text> : null} {limit > 0 ? clip(n.description, limit) : ''}{model} {time(n)}
               </Text>
               {run && n.currentTool ? (
                 <Text wrap="truncate-end" dimColor>{`  ${trail}${last ? '  ' : '│ '}   ${n.currentTool}`}</Text>

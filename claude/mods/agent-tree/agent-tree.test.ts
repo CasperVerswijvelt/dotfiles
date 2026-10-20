@@ -79,8 +79,11 @@ test('desktop pane: one row per agent, done rows dimmed with tier colour', async
   await $.turn.complete({ agentId: 'a4', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   const root = await desk($)
   expect(all(root).filter(e => e.type === 'Box' && /^a\d+$/.test(e.props.key ?? ''))).toHaveLength(4)
-  const fills = texts(root).filter(e => shown(e).includes('my-implementer')).map(e => e.props.backgroundColor)
-  expect(fills).toEqual([FILL.o, FILL.s, FILL.h, FILL.s])
+  const chips = texts(root).filter(e => shown(e).includes('my-implementer'))
+  expect(chips.map(e => e.props.backgroundColor)).toEqual([FILL.o, FILL.s, FILL.h, undefined])
+  // The done row drops the fill and keeps the tier colour, dimmed.
+  expect(chips[3]!.props.color).toBe('#1D9E75')
+  expect(chips[3]!.props.dimColor).toBe(true)
   expect(textOf(root, /^finished$/)?.props.dimColor).toBe(true)
   expect(textOf(root, /^worker$/)?.props.dimColor).toBeFalsy()
   expect(say(root)).toContain('Haiku')
@@ -385,4 +388,126 @@ test('needs you flag', async ($, on) => {
   expect(say(await desk($))).toContain('needs you')
   await finish($, 'a1', 'Done, nothing open')
   expect(shown(await desk($))).not.toContain('needs you')
+})
+
+test('narrow row keeps room for the description', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: correctness', 'a1'))
+  await finish($, 'a2', 'feat/x [B] round 1')
+  await $.agent.spawn(spawnAs('my-implementer', 'implement: x', 'a1'))
+  await $.agent.spawn(spawnAs('my-orchestrator', 'second'))
+  await finish($, 'a4', 'Done\n⚠️ For you: pick')
+  const root = await desk($)
+  const rowBox = all(root).find(e => e.props.key === 'a1')!
+  const [, chips, body, phaseBox, dur] = kids(rowBox)
+  expect(chips!.props.flexWrap).toBe('wrap')
+  expect(chips!.props.flexShrink).not.toBe(0)
+  const head = kids(chips!)[0]!
+  expect(head.props.flexShrink).not.toBe(0)
+  expect(textOf(head, /my-orchestrator/)!.props.wrap).toBe('truncate-end')
+  expect(body!.props.minWidth).toBeGreaterThanOrEqual(12)
+  expect(textOf(phaseBox!, /^implement$/)!.props.wrap).toBe('truncate-end')
+  expect(phaseBox!.props.flexShrink).not.toBe(0)
+  // Only the duration stays fixed.
+  expect(shown(dur!)).toMatch(/^<?\d+m$/)
+  expect(dur!.props.flexShrink).toBe(0)
+  expect(rowBox.props.width).toBe('100%')
+  expect(shown(chips!)).toContain('B · r1')
+})
+
+test('legend row wraps at narrow widths', async ($, on) => {
+  await setup($, on)
+  const root = await desk($)
+  const legend = kids(root).find(r => /Opus/.test(shown(r)))!
+  expect(legend.props.flexWrap).toBe('wrap')
+})
+
+test('multi-line command shows on one action line', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  const cmd = "cat <<'EOF'\n  line one\n\n\tline two\nEOF"
+  const seen: Record<string, El> = {}
+  onTool = async () => {
+    for (const surface of ['desktop', 'terminal'] as const) {
+      const ui = await mount($, surface, { bodyColumns: 200 })
+      seen[surface] = await ui.find({ type: 'Box' })
+      await ui.unmount()
+    }
+  }
+  await $.tool.call({ tool: 'Bash', command: cmd, agentId: 'a1', tool_use_id: 't' } as never)
+  for (const root of Object.values(seen)) {
+    const tool = textOf(root, /cat <</)!
+    expect(shown(tool).trim()).not.toMatch(/\s{2}|[\n\t]/)
+    expect(shown(tool)).toContain("Bash cat <<'EOF' line one line two EOF")
+  }
+})
+
+test('terminal row never exceeds bodyColumns', async ($, on) => {
+  await setup($, on)
+  let parent: string | undefined
+  for (let i = 1; i <= 8; i++) {
+    await $.agent.spawn(spawn(`${i === 8 ? LONG : 'level'} ${i}`, parent))
+    parent = `a${i}`
+  }
+  await finish($, 'a1', '')
+  const ui = await mount($, 'terminal', { bodyColumns: 40 })
+  const root = await ui.find({ type: 'Box' })
+  await ui.unmount()
+  const rows = all(root).filter(e => /^a\d+$/.test(e.props?.key ?? '')).map(b => texts(b)[0]!)
+  expect(rows).toHaveLength(8)
+  for (const r of rows) expect(r.props.wrap).toBe('truncate-end')
+  // Where the fixed part fits, the description is clipped so the row fits too.
+  expect(shown(rows[0]!).length).toBeLessThanOrEqual(40)
+  const shallow = await mount($, 'terminal', { bodyColumns: 60 })
+  const sroot = await shallow.find({ type: 'Box' })
+  await shallow.unmount()
+  expect(shown(texts(sroot).find(e => /level 2/.test(shown(e)))!).length).toBeLessThanOrEqual(60)
+})
+
+test('done and failed rows recede as a whole on desktop', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: x', 'a1'))
+  await finish($, 'a2', 'feat/x [F] round 1')
+  await $.agent.spawn(spawn('worker', 'a1'))
+  await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
+  await finish($, 'a1', 'Done\n⚠️ For you: pick')
+  const root = await desk($)
+  for (const key of ['a1', 'a2', 'a3']) {
+    const r = all(root).find(e => e.props.key === key)!
+    const ts = texts(r)
+    expect(ts.length).toBeGreaterThan(0)
+    for (const t of ts) {
+      expect(t.props.dimColor).toBe(true)
+      expect(t.props.backgroundColor).toBeUndefined()
+    }
+  }
+  expect(textOf(root, /my-orchestrator/)?.props.color).toBe('#1D9E75')
+  expect(textOf(root, /F · r1/)?.props.color).toBeDefined()
+})
+
+test('nested agents draw tree connectors on desktop', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('outer'))
+  await $.agent.spawn(spawn('inner one', 'a1'))
+  await $.agent.spawn(spawn('inner two', 'a1'))
+  await $.agent.spawn(spawn('deep', 'a2'))
+  const seen: El[] = []
+  onTool = async () => { seen.push(await desk($)) }
+  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a4', tool_use_id: 't' } as never)
+  const root = seen[0]!
+  const prefix = (key: string) => {
+    const r = all(root).find(e => e.props.key === key)!
+    return texts(kids(r)[0]!).map(shown)
+  }
+  for (const key of ['a1', 'a2', 'a3', 'a4']) {
+    const t = texts(kids(all(root).find(e => e.props.key === key)!)[0]!)[0]!
+    expect(t.props.mono).toBe(true)
+  }
+  expect(prefix('a1')).toEqual(['└─'])
+  expect(prefix('a2')).toEqual(['  ├─'])
+  expect(prefix('a3')).toEqual(['  └─'])
+  // The deep node's action line continues the open ancestor column.
+  expect(prefix('a4')).toEqual(['  │ └─', '  │   '])
 })
