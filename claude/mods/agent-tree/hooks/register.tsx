@@ -264,7 +264,8 @@ export const register: Register = on => {
 
     if (e.surface !== 'terminal') {
       // Native Box and Text: no pixel width anywhere, so the pane fills the sidebar and relays out when it is resized.
-      // A chip is a filled label; on a receded row it drops the fill and shows its label in `tone`, dimmed.
+      // A chip is a filled label; on a receded row the type chip drops the fill and shows its label in `tone`, dimmed.
+      // The grade and needs-you chips never recede: they are what a finished row exists to show.
       const chip = (fill: string, ink: string, text: string, opts: { key?: string; dim?: boolean; tone?: string; cut?: boolean } = {}) =>
         opts.dim ? (
           <Text key={opts.key} wrap={opts.cut ? 'truncate-end' : undefined} color={opts.tone ?? ink} dimColor size="caption" weight="semibold">{` ${text} `}</Text>
@@ -290,8 +291,8 @@ export const register: Register = on => {
                 {run ? <Text color={t.mark}>◐</Text> : n.status === 'done' ? <Text color={DONE} dimColor>✓</Text> : <Text color={FAILED} dimColor>✗</Text>}
                 {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
               </Box>
-              {cc && chip(cc.fill, cc.text, chipText(n), { dim, tone: cc.fill })}
-              {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you', { dim, tone: NEEDS.fill })}
+              {cc && chip(cc.fill, cc.text, chipText(n))}
+              {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
             </Box>
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
               <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>

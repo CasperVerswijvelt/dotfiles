@@ -479,12 +479,29 @@ test('done and failed rows recede as a whole on desktop', async ($, on) => {
     const ts = texts(r)
     expect(ts.length).toBeGreaterThan(0)
     for (const t of ts) {
+      if (/F · r1|needs you/.test(shown(t))) continue
       expect(t.props.dimColor).toBe(true)
       expect(t.props.backgroundColor).toBeUndefined()
     }
   }
   expect(textOf(root, /my-orchestrator/)?.props.color).toBe('#1D9E75')
-  expect(textOf(root, /F · r1/)?.props.color).toBeDefined()
+})
+
+test('done rows keep the grade and needs-you chips readable', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawnAs('my-orchestrator', 'the plan'))
+  await $.agent.spawn(spawnAs('my-reviewer', 'review: x', 'a1'))
+  await finish($, 'a2', 'feat/x [F] round 1')
+  await finish($, 'a1', 'Done\n⚠️ For you: pick')
+  const root = await desk($)
+  const grade = textOf(root, /F · r1/)!
+  const needs = textOf(root, /needs you/)!
+  expect(grade.props).toMatchObject({ backgroundColor: '#E24B4A', color: '#FFFFFF' })
+  expect(needs.props).toMatchObject({ backgroundColor: '#EF9F27', color: '#412402' })
+  expect(grade.props.dimColor).toBeUndefined()
+  expect(needs.props.dimColor).toBeUndefined()
+  expect(textOf(root, /my-orchestrator/)?.props.dimColor).toBe(true)
+  expect(textOf(root, /the plan/)?.props.dimColor).toBe(true)
 })
 
 test('nested agents draw tree connectors on desktop', async ($, on) => {
