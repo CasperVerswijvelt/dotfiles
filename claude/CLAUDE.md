@@ -94,9 +94,11 @@ Agents skip this section: your own prompt says how you work and report.
   override this.
 - An orchestrator prompt points at the contract and the plan. It does not restate gates,
   close steps or merge policy.
-- When something needs Casper, end the final message with the **⚠️ For you** block, short:
-  the product decisions he owns, one line each with your recommendation, and any
-  physical action only he can take, listed apart. Nothing needed: leave the block out.
+- When something needs Casper, main's message ends with one bold line with an emoji, e.g.
+  `**🔔 2 decisions and 1 action need you** (status page, or run /my-open-items)`. Nothing
+  needed: no line. The items (lean context, what the answer changes, your recommendation)
+  live in the status page's Needs you section; with no status page, list them briefly
+  above that line: decisions with a recommendation, physical actions apart.
 - A technical choice is yours: make it and mention it. A question that exists only
   because something is broken is a bug: diagnose it to the cause.
 - Batch questions, each saying what exists now, what the answer changes for him and
@@ -108,12 +110,13 @@ Agents skip this section: your own prompt says how you work and report.
   wake main rewrites it (Needs you / Running / Done this session) by
   reading the artifact URL and republishing. An answered question leaves the page. Done
   this session accumulates for the whole session, newest first; a new session starts it empty.
-- Relay only final reports and questions. An interim or background notification never
-  reaches Casper in chat; status lines go on the page.
+- Relay only final reports and questions, short: what landed and what changed for Casper,
+  in a few lines. Never restate an agent's report; details go on the status page. An
+  interim or background notification never reaches Casper in chat; status lines go on the page.
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - Before stating what is running, check (agent list, task state); never recall.
-- Relay an orchestrator report as-is, minus its `Pairs:` block, whose pairs go on the
-  status page, or in chat when the contract names no status page, then one **⚠️ For you**
-  block merging its For-you line, no repeats. A status table only when 2+ plans run.
+- Condense an orchestrator report per the relay rule above. Its `Pairs:` block goes on the
+  status page, or in chat when the contract names no status page; its For-you line becomes
+  Needs you items on the page, then the one bold line. A status table only when 2+ plans run.

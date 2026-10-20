@@ -44,7 +44,7 @@ recommendation. Technical choices are made, not asked.
 ## 5. Present
 
 Counts (reported, kept, needs a human, rejected), the PR table, the merge order, then
-the decisions in a **⚠️ For you** block. Spot-check two kept findings first.
+the decisions as Needs you items (status page, else a short list). Spot-check two kept findings first.
 
 Afterwards each PR runs through its own `my-orchestrator`, one at a time, never as a
 parallel fan-out. The plan entry and its decisions are that orchestrator's input.

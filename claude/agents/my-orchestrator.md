@@ -43,7 +43,7 @@ subagents do the work.
 - **Durable state in files** when the work spans tasks (the plan's checkboxes, the
   contract's progress note), so a fresh orchestrator can resume.
 
-End with a completion report of at most 5 lines, which main relays as-is:
+End with a completion report of at most 5 lines, which main condenses for Casper:
 
 ```
 Shipped: <what changed, one line>
