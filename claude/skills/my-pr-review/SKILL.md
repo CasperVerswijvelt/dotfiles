@@ -17,9 +17,10 @@ the approved approach and, for a UI change, the pair paths: never the author's r
 
 Agent descriptions follow the rule in `my-orchestrator`.
 
-**Scale by diff, same bar.** Small (under ~150 changed lines, no new screen, no schema
-change): ONE `my-reviewer` covers every area below (UI and product included when UI
-changed), then the judge; no verify step. Larger: the full set. Plan-close review (wins over the small-diff rule):
+**Scale by diff, same bar.** Default: ONE `my-reviewer` per task covers every area below,
+the contract's extra areas and the UI and product checks included when UI changed, then the
+judge; no verify step. Split into separate area reviewers (the full set) only for a schema
+change, a security-relevant change or a new screen. Plan-close review (wins over the small-diff rule):
 correctness and architecture only, and no judge when there are no blockers or majors;
 the grade then follows from the minor count.
 Reviewers read code and, for a UI change, the before/after pair, not a full capture folder or the author's notes.
@@ -87,7 +88,9 @@ closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
 
 ## Rounds
 
-At most two. Round 2 reviews only the fix commits plus the open findings (fixed, not
+At most two. Minors are fixed in the next commit with no new round; round 2 runs only
+after a blocker or major fix. When every finding will be fixed anyway, skip verify and
+judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no
 minors. Anything still open after round 2 goes to Casper as a decision.
 

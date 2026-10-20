@@ -92,6 +92,8 @@ Agents skip this section: your own prompt says how you work and report.
   contract's tracker, plans, progress note and git state (log, status, branch) are fine.
   A step outside a plan goes to a `my-implementer`. The contract's role exceptions
   override this.
+- An agent listed as "completed" may only be idle between its children: it is finished
+  only when its final report arrives. Never claim a plan is unattended from the list alone.
 - An orchestrator prompt points at the contract and the plan. It does not restate gates,
   close steps or merge policy.
 - When something needs Casper, main's message ends with one bold line with an emoji, e.g.

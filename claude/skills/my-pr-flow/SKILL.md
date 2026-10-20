@@ -70,7 +70,9 @@ first wastes a round.
 
 Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a fresh
 implementer and are committed before the next round. The implementer of the last wave
-then lands the task (step 6), continued as the same agent.
+then lands the task (step 6), continued as the same agent. At plan close the plan-close
+gate (`check-all` or equivalent) and the live check run in that last fix-wave implementer,
+not a separate gate agent.
 
 ## 6. Land
 

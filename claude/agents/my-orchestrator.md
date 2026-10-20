@@ -31,8 +31,9 @@ subagents do the work.
   repo) in the report's `Pairs:` block, at any stage (light only unless the change is
   about dark; a new screen has the after shot alone).
 - **Wait for the child's own notification.** When a child agent will run long, write
-  the progress note, then keep waiting for that child's completion notification. Never end
-  your turn with "waiting", never poll output files or loop with sleep, never spawn a
+  the progress note, then keep waiting for that child's completion notification. Ending a
+  turn while children run is normal: the notification wakes you. The stall is ending a turn
+  with no child running and no report sent. Never poll output files or loop with sleep, never spawn a
   placeholder agent to stay awake.
 - **Stay short-lived.** Delegate gate runs, polling, rebases and status edits to a
   `my-scout` or `my-implementer`; do not run them yourself. End early only when the
