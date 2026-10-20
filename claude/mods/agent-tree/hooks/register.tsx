@@ -289,7 +289,7 @@ export const register: Register = on => {
           <Text key={opts.key} wrap={opts.cut ? 'truncate-end' : undefined} backgroundColor={fill} color={ink} size="caption" weight="semibold">{` ${text} `}</Text>
         )
       // The tree lines are thin Boxes, not glyphs: the mono face has no tee and the fallback glyph sits differently.
-      // A cell is CELL wide per depth; the connector stretches the full row height, so the trunk runs through action lines.
+      // A cell is CELL wide per depth; the connector stretches the full row height, so the trunk runs through the action slot.
       const bar = <Box width={BAR} backgroundColor={LINE} flexShrink={0} />
       const rowEls = rows.map(({ n, last, open }) => {
         const run = n.status === 'running'
@@ -320,8 +320,8 @@ export const register: Register = on => {
                 </Box>
                 {parent && <Box width={BAR} flexGrow={1} backgroundColor={LINE} />}
               </Box>
-              {/* The row's spacing is padding in here, so the connector column has no gaps. */}
-              <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} paddingY={1}>
+              {/* The row's spacing is inside here, so the connector column has no gaps: padding above line 1, the slot below it. */}
+              <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} paddingTop={1}>
                 {/* Line 1: chips, description, phase, time. */}
                 <Box flexDirection="row" minWidth={0} gap={1}>
                   {/* Shrinks last: the description gives way first, down to its minimum. */}
@@ -344,8 +344,11 @@ export const register: Register = on => {
                     <Text tabular dimColor size="caption">{mins(n)}</Text>
                   </Box>
                 </Box>
-                {/* Line 2, under the first chip. A running row always has it, blank when idle, so the row keeps its height. */}
-                {run && <Text wrap="truncate-end" dimColor size="caption">{tool ?? ' '}</Text>}
+                {/* The spacing under line 1 is a fixed slot, empty or holding the action, so a row never changes height.
+                    One full line: a caption line (16px) does not fit the half-line padding unit it replaces. */}
+                <Box height={1} flexShrink={0} flexDirection="column" minWidth={0}>
+                  {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
+                </Box>
               </Box>
             </Box>
           </Box>

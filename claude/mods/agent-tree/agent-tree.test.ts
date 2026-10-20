@@ -143,14 +143,15 @@ test('running agent shows its action on its own line under the description', asy
   expect(tool.props.wrap).toBe('truncate-end')
   expect(shown(tool)).toBe('Bash npm test')
   expect(shown(desc)).not.toContain('npm test')
-  // The action is its own line under line 1, not inside the description column.
-  const rest = all(root).find(e => kids(e).includes(tool))!
+  // The action sits in the slot under line 1, not inside the description column.
+  const slot = all(root).find(e => kids(e).includes(tool))!
+  const rest = all(root).find(e => kids(e).includes(slot))!
   expect(rest.props.flexDirection).toBe('column')
-  expect(kids(rest).indexOf(tool)).toBe(1)
+  expect(kids(rest).indexOf(slot)).toBe(1)
   expect(all(kids(rest)[0]!)).toContain(desc)
 })
 
-test('a running row with no current tool keeps its action line', async ($, on) => {
+test('a row has the same height with and without an action', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('busy'))
   await $.agent.spawn(spawn('idle'))
@@ -159,42 +160,62 @@ test('a running row with no current tool keeps its action line', async ($, on) =
   let root!: El
   onTool = async () => { root = await desk($) }
   await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a1', tool_use_id: 't' } as never)
-  const lines = (key: string) => kids(parts(all(root).find(e => e.props.key === key)!).rest).slice(1)
-  const busy = lines('a1')
-  expect(busy.map(shown)).toEqual(['Bash ls'])
-  const idle = lines('a2')
-  // Blank, but the same one line of the same size, so the row does not jump when a tool starts.
-  expect(idle.map(shown)).toEqual([' '])
-  expect(idle[0]!.props).toEqual(busy[0]!.props)
-  expect(lines('a3')).toEqual([])
+  const rest = (key: string) => parts(all(root).find(e => e.props.key === key)!).rest
+  const slotOf = (key: string) => kids(rest(key))[1]!
+  const busy = slotOf('a1')
+  expect(busy.props.height).toBe(1)
+  expect(busy.props.flexShrink).toBe(0)
+  expect(shown(busy)).toBe('Bash ls')
+  // Idle and done rows get the same fixed slot, empty.
+  for (const k of ['a2', 'a3']) {
+    expect(slotOf(k).props).toEqual(busy.props)
+    expect(shown(slotOf(k))).toBe('')
+  }
+  // Nothing else adds height: the content is exactly line 1 and the slot, with the same padding, in every state.
+  for (const k of ['a1', 'a2', 'a3']) {
+    expect(kids(rest(k))).toHaveLength(2)
+    expect(rest(k).props).toEqual(rest('a1').props)
+  }
+  // Line 1 is unchanged by the action.
+  const line1 = (k: string) => kids(rest(k))[0]!
+  expect(texts(line1('a1')).map(e => e.props.size)).toEqual(texts(line1('a2')).map(e => e.props.size))
+  expect(line1('a1').props).toEqual(line1('a2').props)
 })
 
-test('the action line starts under the agent name chip', async ($, on) => {
+test('the action sits in the row spacing under the name chip', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('top'))
   await $.agent.spawn(spawn('child', 'a1'))
   let root!: El
   onTool = async () => { root = await desk($) }
   await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a2', tool_use_id: 't' } as never)
-  const { rest } = parts(all(root).find(e => e.props.key === 'a2')!)
-  const [line1, action] = kids(rest)
-  expect(shown(action)).toBe('Bash ls')
-  // A direct child of the content column, like line 1: same left edge, no indent box or padding.
+  const row = all(root).find(e => e.props.key === 'a2')!
+  const { connector, mark, rest } = parts(row)
+  const [line1, slot] = kids(rest)
+  // The slot replaces the bottom padding: only the top padding remains, so line 1 sits where it always did.
   expect(rest.props.flexDirection).toBe('column')
+  expect(rest.props.paddingTop).toBe(1)
+  expect(rest.props.paddingY).toBeUndefined()
+  expect(rest.props.paddingBottom).toBeUndefined()
   expect(rest.props.paddingLeft).toBeUndefined()
-  expect(line1!.props.paddingLeft).toBeUndefined()
-  expect(action!.props.paddingLeft).toBeUndefined()
-  expect(action!.props.marginLeft).toBeUndefined()
+  expect(slot!.props.height).toBe(1)
+  const action = kids(slot!)[0]!
+  expect(shown(action)).toBe('Bash ls')
+  // At the content's left edge, like line 1: no indent box, padding or margin.
+  for (const e of [line1!, slot!, action]) {
+    expect(e.props.paddingLeft).toBeUndefined()
+    expect(e.props.marginLeft).toBeUndefined()
+  }
   expect(shown(action)).not.toMatch(/^\s/)
+  expect(action.props).toMatchObject({ size: 'caption', dimColor: true, wrap: 'truncate-end' })
   // Line 1 starts with the name chip.
   expect(shown(texts(line1!)[0]!)).toMatch(/my-implementer/)
   expect(kids(kids(line1!)[0]!)[0]).toBeDefined()
-  // The connector still spans the action line: it is a sibling of the whole content, with a growing lower bar.
-  const row = all(root).find(e => e.props.key === 'a2')!
-  const { connector, mark } = parts(row)
+  // The connector still spans the slot: it is a sibling of the whole content, with a growing lower bar.
   expect(connector.props.height).toBeUndefined()
   expect(kids(kids(connector).at(-1)!)[1]!.props.flexGrow).toBe(1)
   expect(row.props.alignItems).toBeUndefined()
+  // The parent bar runs down the mark column to the row's bottom.
   expect(mark.props.flexDirection).toBe('column')
 })
 
@@ -596,7 +617,7 @@ test('child trunk aligns with the parent connector', async ($, on) => {
     expect(connector.props.height).toBeUndefined()
     expect(connector.props.alignItems).toBeUndefined()
     // Vertical spacing lives inside the content, never between connector rows.
-    expect(rest.props.paddingY).toBe(1)
+    expect(rest.props.paddingTop).toBe(1)
     expect(row.props.padding).toBeUndefined()
     const cells = kids(connector)
     const own = cells[cells.length - 1]!
@@ -648,7 +669,7 @@ test('a parent\'s line reaches its first child', async ($, on) => {
   const lineOf = (key: string) => {
     const { content, mark, rest } = parts(row(key))
     expect(content.props.paddingY).toBeUndefined()
-    expect(rest.props.paddingY).toBe(1)
+    expect(rest.props.paddingTop).toBe(1)
     expect(mark.props.flexDirection).toBe('column')
     const [markBox, line] = kids(mark)
     expect(texts(markBox!)).toHaveLength(1)
