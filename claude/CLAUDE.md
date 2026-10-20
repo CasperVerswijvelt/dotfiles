@@ -58,6 +58,9 @@ shortest sentence that keeps the reason.
   subagent-driven-development or using-git-worktrees.
 - Settled product and process decisions: one line each in the project's decisions log
   (`my-decision-log`).
+- This config stays generic and works in any project. Nothing project- or employer-specific
+  goes here (trackers, hosts, team names, reviewers): it goes in that project's repo, reachable
+  from its CLAUDE.md. Each side works without the other.
 
 ## Git
 

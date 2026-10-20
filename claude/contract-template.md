@@ -1,7 +1,8 @@
 # Workflow contract template
 
 Copy this section into a project's CLAUDE.md and fill it in. Delete lines that do not
-apply; the personal CLAUDE.md treats a missing contract as stage `mature`.
+apply; the personal CLAUDE.md treats a missing contract as stage `mature`. Project specifics go in the
+project's CLAUDE.md, never in this repo.
 
 ```markdown
 ## Workflow contract
