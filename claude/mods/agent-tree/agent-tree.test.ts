@@ -156,6 +156,18 @@ test('terminal shows the action on its own line', async ($, on) => {
   expect(shown(textOf(plain, /Implement the sidebar/)!)).toContain('~')
 })
 
+test('empty pane keeps the empty text and the legend on separate rows', async ($, on) => {
+  await setup($, on)
+  const root = await desk($)
+  expect(root.props.flexDirection).toBe('column')
+  const rows = kids(root)
+  const empty = rows.findIndex(r => /No agents yet/.test(shown(r)))
+  const legend = rows.findIndex(r => /Opus/.test(shown(r)))
+  expect(empty).toBeGreaterThanOrEqual(0)
+  expect(legend).toBeGreaterThan(empty)
+  expect(say(rows[legend]! as El)).toEqual(['Opus', 'Sonnet', 'Haiku'])
+})
+
 test('tool.call still returns next result when the mod bookkeeping throws', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('worker'))
