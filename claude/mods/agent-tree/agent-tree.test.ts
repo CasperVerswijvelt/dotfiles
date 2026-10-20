@@ -401,7 +401,7 @@ test('narrow row keeps room for the description', async ($, on) => {
   await finish($, 'a4', 'Done\n⚠️ For you: pick')
   const root = await desk($)
   const rowBox = all(root).find(e => e.props.key === 'a1')!
-  const [, chips, body, phaseBox, dur] = kids(kids(rowBox)[1]!).slice(0)
+  const [chips, body, phaseBox, dur] = kids(kids(kids(rowBox)[1]!)[1]!)
   expect(chips!.props.flexWrap).toBe('wrap')
   expect(chips!.props.flexShrink).not.toBe(0)
   const head = kids(chips!)[0]!
@@ -513,6 +513,12 @@ const CELL = 2
 const bars = (e: El) => all(e).filter(x => x.type === 'Box' && x.props.width === BAR && x.props.backgroundColor)
 const arms = (e: El) => all(e).filter(x => x.type === 'Box' && x.props.height === ARM && x.props.backgroundColor)
 
+// The row's connector and content boxes.
+const parts = (row: El) => {
+  const [connector, content] = kids(row)
+  return { connector: connector!, content: content!, mark: kids(content!)[0]!, rest: kids(content!)[1]! }
+}
+
 test('child trunk aligns with the parent connector', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('top'))
@@ -520,25 +526,43 @@ test('child trunk aligns with the parent connector', async ($, on) => {
   await $.agent.spawn(spawn('mid two', 'a1'))
   await $.agent.spawn(spawn('deep', 'a2'))
   await $.agent.spawn(spawn('other top'))
-  const seen: El[] = []
-  onTool = async () => { seen.push(await desk($)) }
-  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a4', tool_use_id: 't' } as never)
-  const root = seen[0]!
-  const rowOf = (key: string) => all(root).find(e => e.props.key === key)!
+  const seen: Record<string, El> = {}
+  for (const id of ['a2', 'a4']) {
+    onTool = async () => { seen[id] = await desk($) }
+    await $.tool.call({ tool: 'Bash', command: 'ls', agentId: id, tool_use_id: 't' } as never)
+  }
+  const rowIn = (root: El, key: string) => all(root).find(e => e.props.key === key)!
   // The rows sit in one Box with no gap: the connector column is never interrupted.
-  const list = all(root).find(e => kids(e).includes(rowOf('a1')))!
+  const list = all(seen.a4!).find(e => kids(e).includes(rowIn(seen.a4!, 'a1')))!
   expect(list.props.gap).toBeUndefined()
   // Per row: cells of one fixed width per depth, then which cells carry a trunk bar, an arm, a lower bar.
-  const shape = (key: string) => {
-    const row = rowOf(key)
+  const shape = (root: El, key: string) => {
+    const row = rowIn(root, key)
     expect(row.props.alignItems).toBeUndefined()
-    const [connector, content] = kids(row)
-    expect(connector!.props.gap).toBeUndefined()
-    expect(connector!.props.height).toBeUndefined()
+    const { connector, rest } = parts(row)
+    expect(connector.props.gap).toBeUndefined()
+    // No fixed height: the connector stretches with the row, action line included.
+    expect(connector.props.height).toBeUndefined()
+    expect(connector.props.alignItems).toBeUndefined()
     // Vertical spacing lives inside the content, never between connector rows.
-    expect(content!.props.paddingY).toBe(1)
+    expect(rest.props.paddingY).toBe(1)
     expect(row.props.padding).toBeUndefined()
-    return kids(connector!).map(cell => {
+    const cells = kids(connector)
+    const own = cells[cells.length - 1]!
+    // Open ancestors: a trunk bar over the whole cell height.
+    for (const cell of cells.slice(0, -1)) expect(cell.props.flexDirection).toBe('row')
+    // The node itself: a first line the height of one line, the bar down to its middle with the arm across at the bottom of it,
+    // then a lower bar that grows with the row (through the action line) unless this is the last child.
+    const [first, lower] = kids(own)
+    expect(first!.props.height).toBe(1)
+    expect(first!.props.flexShrink).toBe(0)
+    const [top, armCol] = kids(first!)
+    expect(top!.props.width).toBe(BAR)
+    expect(armCol!.props.justifyContent).toBe('flex-end')
+    expect(kids(armCol!)[0]!.props.height).toBe(ARM)
+    expect(lower!.props.flexGrow).toBe(1)
+    expect(bars(lower!)).toHaveLength(bars(own).length === 2 ? 1 : 0)
+    return cells.map(cell => {
       expect(cell.props.width).toBe(CELL)
       return { bars: bars(cell).length, arm: arms(cell).length }
     })
@@ -546,12 +570,50 @@ test('child trunk aligns with the parent connector', async ($, on) => {
   const trunk = { bars: 1, arm: 0 }
   const tee = { bars: 2, arm: 1 }
   const elbow = { bars: 1, arm: 1 }
-  expect(shape('a1')).toEqual([tee])
-  expect(shape('a2')).toEqual([trunk, tee])
-  expect(shape('a3')).toEqual([trunk, elbow])
+  expect(shape(seen.a4!, 'a1')).toEqual([tee])
+  expect(shape(seen.a4!, 'a2')).toEqual([trunk, tee])
+  expect(shape(seen.a4!, 'a3')).toEqual([trunk, elbow])
   // The deep row, with the action line, keeps both open ancestors' trunks.
-  expect(shape('a4')).toEqual([trunk, trunk, elbow])
-  expect(shape('a5')).toEqual([elbow])
+  expect(textOf(seen.a4!, /^Bash ls$/)).toBeDefined()
+  expect(shape(seen.a4!, 'a4')).toEqual([trunk, trunk, elbow])
+  expect(shape(seen.a4!, 'a5')).toEqual([elbow])
+  // A tee row with an action line: its lower bar grows with the row.
+  expect(textOf(seen.a2!, /^Bash ls$/)).toBeDefined()
+  expect(shape(seen.a2!, 'a2')).toEqual([trunk, tee])
+})
+
+test('a parent\'s line reaches its first child', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('top'))
+  await $.agent.spawn(spawn('child', 'a1'))
+  await $.agent.spawn(spawn('grandchild', 'a2'))
+  await $.agent.spawn(spawn('second top'))
+  let root!: El
+  onTool = async () => { root = await desk($) }
+  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a1', tool_use_id: 't' } as never)
+  const row = (key: string) => all(root).find(e => e.props.key === key)!
+  const topConn = parts(row('a1')).connector
+  // The bar sits under the mark, in the column where the children's connector cells start.
+  const lineOf = (key: string) => {
+    const { content, mark, rest } = parts(row(key))
+    expect(content.props.paddingY).toBeUndefined()
+    expect(rest.props.paddingY).toBe(1)
+    expect(mark.props.flexDirection).toBe('column')
+    const [markBox, line] = kids(mark)
+    expect(texts(markBox!)).toHaveLength(1)
+    return line
+  }
+  // A parent with children: a bar that grows to the bottom of its row, action line included.
+  const topLine = lineOf('a1')!
+  expect(topLine.props).toMatchObject({ width: BAR, flexGrow: 1, backgroundColor: '#888780' })
+  expect(textOf(row('a1'), /^Bash ls$/)).toBeDefined()
+  expect(lineOf('a2')!.props).toMatchObject({ width: BAR, flexGrow: 1 })
+  // The content starts where the first child's own connector cell starts: one cell more than the parent's connector.
+  expect(kids(parts(row('a2')).connector)).toHaveLength(kids(topConn).length + 1)
+  expect(kids(parts(row('a3')).connector)).toHaveLength(kids(parts(row('a2')).connector).length + 1)
+  // A row without children draws none.
+  expect(lineOf('a3')).toBeUndefined()
+  expect(lineOf('a4')).toBeUndefined()
 })
 
 test('no prefix or mark character outside the mono face coverage', async ($, on) => {
@@ -561,13 +623,22 @@ test('no prefix or mark character outside the mono face coverage', async ($, on)
   await $.agent.spawn(spawn('failed', 'a1'))
   await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
-  const root = await desk($)
+  let root!: El
+  onTool = async () => { root = await desk($) }
+  await $.tool.call({ tool: 'Bash', command: 'npm test', agentId: 'a1', tool_use_id: 't' } as never)
   const monos = texts(root).filter(t => t.props.mono === true)
   expect(monos.map(shown).sort()).toEqual(['●', '✓', '✗'])
   for (const t of monos) for (const ch of shown(t)) expect(FACE.has(ch.codePointAt(0)!)).toBe(true)
+  // Everything else stays in the normal face: chips, descriptions, action text, time.
+  for (const re of [/my-implementer/, /^top$/, /^child$/, /^failed$/, /npm test/, /^<1m$/]) {
+    const t = textOf(root, re)
+    expect(t).toBeDefined()
+    expect(t!.props.mono).toBeFalsy()
+  }
+  for (const t of texts(root).filter(t => !monos.includes(t))) expect(t.props.mono).toBeFalsy()
   // Glyphs the face lacks fall back to another font and shift: never drawn.
   expect(shown(root)).not.toMatch(/[├◐]/)
-  // The marks keep their status colours.
+  // The marks keep their status colours (the parent is still running).
   expect(monos.map(t => t.props.color)).toEqual(['#1D9E75', '#888780', '#E24B4A'])
 })
 
@@ -613,4 +684,15 @@ test('an agent resumed between children lists every child once', async ($, on) =
   for (const d of ['impl one', 'bg review', 'review two', 'bg impl', 'review three']) {
     expect(texts(root).filter(t => shown(t) === d)).toHaveLength(1)
   }
+})
+
+test('a resumed agent drops its old grade chip', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn({ ...spawn('plan'), subagentType: 'my-orchestrator' } as never)
+  await $.agent.spawn({ ...spawn('review: x', 'a1'), subagentType: 'my-reviewer' } as never)
+  await finish($, 'a2', 'feat/x [A] round 1')
+  await finish($, 'a1', 'Done')
+  expect(textOf(await desk($), /A · r1/)).toBeDefined()
+  await $.agent.spawn(resume('a1'))
+  expect(textOf(await desk($), /A · r1/)).toBeUndefined()
 })

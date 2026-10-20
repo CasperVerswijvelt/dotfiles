@@ -163,7 +163,7 @@ export const register: Register = on => {
         list.some(n => n.id === node.id)
           ? list.map(n =>
               n.id === node.id
-                ? { ...n, description: e.description || n.description, model: r.model ?? n.model, startedAt: now, endedAt: undefined, status: 'running' as const, needsYou: undefined }
+                ? { ...n, description: e.description || n.description, model: r.model ?? n.model, startedAt: now, endedAt: undefined, status: 'running' as const, needsYou: undefined, review: undefined }
                 : n,
             )
           : [...list, node],
@@ -298,6 +298,7 @@ export const register: Register = on => {
         const ph = phase(n)
         const tool = run && n.currentTool ? n.currentTool : undefined
         const cc = n.review ? chipFill(n.review.grade) : undefined
+        const parent = kids(n.id).length > 0
         return (
           <Box key={n.id} flexDirection="row" width="100%">
             <Box flexDirection="row" flexShrink={0}>
@@ -311,28 +312,36 @@ export const register: Register = on => {
                 <Box flexGrow={1} flexDirection="row">{!last && bar}</Box>
               </Box>
             </Box>
-            {/* The row's spacing is padding in here, so the connector column has no gaps. */}
-            <Box flexDirection="row" flexGrow={1} gap={1} paddingY={1}>
-              {run ? <Text mono color={t.mark}>●</Text> : n.status === 'done' ? <Text mono color={DONE} dimColor>✓</Text> : <Text mono color={FAILED} dimColor>✗</Text>}
-              {/* Shrinks last: the description gives way first, down to its minimum. */}
-              <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
-                <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
-                  {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+            {/* The mark column carries the parent's line: a bar in the children's connector column, from below the mark to the row's bottom. */}
+            <Box flexDirection="row" flexGrow={1} gap={1}>
+              <Box flexDirection="column" flexShrink={0}>
+                <Box paddingTop={1}>
+                  {run ? <Text mono color={t.mark}>●</Text> : n.status === 'done' ? <Text mono color={DONE} dimColor>✓</Text> : <Text mono color={FAILED} dimColor>✗</Text>}
                 </Box>
-                {cc && chip(cc.fill, cc.text, chipText(n))}
-                {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
+                {parent && <Box width={BAR} flexGrow={1} backgroundColor={LINE} />}
               </Box>
-              <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
-                <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
-                {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
-              </Box>
-              {ph && (
-                <Box flexShrink={1} minWidth={0}>
-                  <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+              {/* The row's spacing is padding in here, so the connector column has no gaps. */}
+              <Box flexDirection="row" flexGrow={1} flexShrink={1} minWidth={0} gap={1} paddingY={1}>
+                {/* Shrinks last: the description gives way first, down to its minimum. */}
+                <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
+                  <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
+                    {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
+                  </Box>
+                  {cc && chip(cc.fill, cc.text, chipText(n))}
+                  {n.needsYou && chip(NEEDS.fill, NEEDS.ink, 'needs you')}
                 </Box>
-              )}
-              <Box flexShrink={0}>
-                <Text tabular dimColor size="caption">{mins(n)}</Text>
+                <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={12}>
+                  <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
+                  {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
+                </Box>
+                {ph && (
+                  <Box flexShrink={1} minWidth={0}>
+                    <Text wrap="truncate-end" italic dimColor size="caption">{ph}</Text>
+                  </Box>
+                )}
+                <Box flexShrink={0}>
+                  <Text tabular dimColor size="caption">{mins(n)}</Text>
+                </Box>
               </Box>
             </Box>
           </Box>
