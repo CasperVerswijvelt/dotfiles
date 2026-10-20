@@ -33,7 +33,7 @@ test('nested spawns render as a tree on both surfaces, with tool and done state'
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'agent-tree', surface, component: 'Pane', props: {} as never, requestId: 'agent-tree' })
     if (surface === 'desktop') {
-      expect((await ui.find({ type: 'Svg' }))?.props.source).toMatch(/inner task/)
+      expect((await ui.find({ type: 'Text', text: /inner task/ }))?.text).toBe('inner task')
     } else {
       expect((await ui.find({ type: 'Text', text: /Main/ }))?.text).toBeDefined()
       expect((await ui.find({ type: 'Text', text: /outer|worker/ }))?.text).toMatch(/^\s└─ ● my-implementer outer/)
@@ -49,18 +49,27 @@ test('nested spawns render as a tree on both surfaces, with tool and done state'
   await ui.unmount()
 })
 
-const mount = async ($: any, surface: 'terminal' | 'desktop') =>
-  $.ui.mount({ plugin: 'agent-tree', surface, component: 'Pane', props: {} as never, requestId: 'agent-tree' })
-const svg = async ($: any) => {
-  const ui = await mount($, 'desktop')
-  const node = await ui.find({ type: 'Svg' })
+const mount = async ($: any, surface: 'terminal' | 'desktop', props: object = {}) =>
+  $.ui.mount({ plugin: 'agent-tree', surface, component: 'Pane', props: props as never, requestId: 'agent-tree' })
+type El = { type: string; props: Record<string, any>; children: unknown[] }
+// The desktop tree as plain data, root Box first.
+const desk = async ($: any, props: object = {}): Promise<El> => {
+  const ui = await mount($, 'desktop', props)
+  const root = await ui.find({ type: 'Box' })
   await ui.unmount()
-  return node
+  return root
 }
-const rowsOf = (s: string) => s.match(/<g class="[osh]"><rect x="\d+" y="\d+" width="\d+" height="20"/g)?.length ?? 0
+const kids = (e: El): El[] => (e.children ?? []).filter((c): c is El => typeof c === 'object' && c !== null)
+const all = (e: El): El[] => [e, ...kids(e).flatMap(all)]
+const shown = (e: unknown): string =>
+  typeof e === 'string' ? e : e && typeof e === 'object' ? ((e as El).children ?? []).map(shown).join('') : ''
+const texts = (root: El) => all(root).filter(e => e.type === 'Text')
+const textOf = (root: El, re: RegExp) => texts(root).find(e => re.test(shown(e)))
+const say = (root: El) => texts(root).map(e => shown(e).trim())
 const row = async (ui: any, d: string) => ui.find({ type: 'Text', text: new RegExp(d) })
+const FILL = { o: '#CECBF6', s: '#9FE1CB', h: '#FAC775' }
 
-test('desktop svg: one row per agent, done rows dimmed with tier colour', async ($, on) => {
+test('desktop pane: one row per agent, done rows dimmed with tier colour', async ($, on) => {
   await setup($, on)
   Object.assign(models, { boss: 'opus', fast: 'haiku' })
   await $.agent.spawn(spawn('boss'))
@@ -68,39 +77,40 @@ test('desktop svg: one row per agent, done rows dimmed with tier colour', async 
   await $.agent.spawn(spawn('fast', 'a1'))
   await $.agent.spawn(spawn('finished', 'a1'))
   await $.turn.complete({ agentId: 'a4', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
-  const source = (await svg($)).props.source
-  expect(rowsOf(source)).toBe(4)
-  expect(source).toMatch(/<g opacity="0\.55">[\s\S]*<g class="s"><rect x="\d+" y="\d+" width="\d+" height="20"/)
-  expect(source).toContain('>Haiku<')
-  expect(source).not.toContain('[sonnet]')
-  expect(source).not.toContain('<title>')
+  const root = await desk($)
+  expect(all(root).filter(e => e.type === 'Box' && /^a\d+$/.test(e.props.key ?? ''))).toHaveLength(4)
+  const fills = texts(root).filter(e => shown(e).includes('my-implementer')).map(e => e.props.backgroundColor)
+  expect(fills).toEqual([FILL.o, FILL.s, FILL.h, FILL.s])
+  expect(textOf(root, /^finished$/)?.props.dimColor).toBe(true)
+  expect(textOf(root, /^worker$/)?.props.dimColor).toBeFalsy()
+  expect(say(root)).toContain('Haiku')
+  expect(shown(root)).not.toContain('[sonnet]')
 })
 
-test('descriptions are escaped in the svg', async ($, on) => {
+test('descriptions show verbatim on the desktop pane', async ($, on) => {
   await setup($, on)
-  await $.agent.spawn(spawn('<script>alert(1)</script> & "x"'))
-  const source = (await svg($)).props.source
-  expect(source).toContain('&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;x&quot;')
-  expect(source).not.toContain('<script>')
+  const d = '<script>alert(1)</script> & "x"'
+  await $.agent.spawn(spawn(d))
+  expect(shown(textOf(await desk($), /<script>/))).toBe(d)
 })
 
-test('the desktop svg is an image, not an interactive frame', async ($, on) => {
-  await setup($, on)
-  await $.agent.spawn(spawn('worker'))
-  expect((await svg($)).props.isInteractive).toBeFalsy()
-})
-
-test('the svg is drawn 1:1: width and height props equal the viewBox', async ($, on) => {
+test('the desktop pane is native elements, not an image', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('worker'))
-  const node = await svg($)
-  const [w, h] = node.props.source.match(/viewBox="0 0 (\d+) (\d+)"/).slice(1).map(Number)
-  expect([node.props.width, node.props.height]).toEqual([w, h])
+  const ui = await mount($, 'desktop')
+  expect(await ui.find({ type: 'Svg' })).toBeUndefined()
+  await ui.unmount()
 })
 
-test('empty pane says so', async ($, on) => {
+test('desktop pane fills the sidebar width', async ($, on) => {
   await setup($, on)
-  expect((await svg($)).props.source).toMatch(/No agents yet/)
+  await $.agent.spawn(spawn('worker'))
+  await $.agent.spawn(spawn('child', 'a1'))
+  const narrow = await desk($, { bodyColumns: 30 })
+  const wide = await desk($, { bodyColumns: 80 })
+  expect(narrow.props.width).toBe('100%')
+  expect(all(narrow).filter(e => typeof e.props.width === 'number')).toEqual([])
+  expect(JSON.stringify(narrow)).toBe(JSON.stringify(wide))
 })
 
 test('tool.call still returns next result when the mod bookkeeping throws', async ($, on) => {
@@ -124,15 +134,15 @@ test('tool.call shows the current tool while it runs', async ($, on) => {
   expect(seen).toMatch(/Edit GroupStore\.swift/)
 })
 
-test('a clock tick that changes no displayed value leaves the svg source unchanged', async ($, on) => {
+test('a clock tick that changes no displayed value leaves the tree unchanged', async ($, on) => {
   const clock = await setup($, on)
   await $.agent.spawn(spawn('worker'))
-  const before = (await svg($)).props.source
+  const before = JSON.stringify(await desk($))
   await clock.advance(1000)
   await clock.advance(1000)
-  expect((await svg($)).props.source).toBe(before)
+  expect(JSON.stringify(await desk($))).toBe(before)
   await clock.advance(60_000)
-  expect((await svg($)).props.source).not.toBe(before)
+  expect(JSON.stringify(await desk($))).not.toBe(before)
 })
 
 test('turn.complete still returns next result when the mod bookkeeping throws', async ($, on) => {
@@ -148,7 +158,7 @@ test('a spawn result with no model for my-scout gets the Haiku colour', async ($
   models.look = ''
   await $.agent.spawn({ prompt: 'p', description: 'look', subagentType: 'my-scout' } as never)
   delete models.look
-  expect((await svg($)).props.source).toMatch(/<g class="h"><rect x="\d+" y="\d+" width="\d+" height="20"/)
+  expect(textOf(await desk($), /my-scout/)?.props.backgroundColor).toBe(FILL.h)
 })
 
 test('a throwing tool call clears currentTool and rethrows', async ($, on) => {
@@ -162,16 +172,6 @@ test('a throwing tool call clears currentTool and rethrows', async ($, on) => {
   await ui.unmount()
 })
 
-test('desktop svg has no animation', async ($, on) => {
-  await setup($, on)
-  await $.agent.spawn(spawn('worker'))
-  await $.agent.spawn(spawn('child', 'a1'))
-  await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
-  const node = await svg($)
-  expect(node.props.source).not.toMatch(/<animate|<set|animateTransform/)
-  expect(node.props.isInteractive).toBeFalsy()
-})
-
 test('status glyphs', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('running one'))
@@ -179,25 +179,24 @@ test('status glyphs', async ($, on) => {
   await $.agent.spawn(spawn('failed one'))
   await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
-  const source = (await svg($)).props.source
-  expect(source).toMatch(/class="gl s"[^>]*>◐</)
-  expect(source).toMatch(/fill="#888780"[^>]*>✓</)
-  expect(source).toMatch(/fill="#E24B4A"[^>]*>✗</)
+  const root = await desk($)
+  expect(textOf(root, /^◐$/)?.props.color).toBe('#1D9E75')
+  expect(textOf(root, /^✓$/)?.props.color).toBe('#888780')
+  expect(textOf(root, /^✗$/)?.props.color).toBe('#E24B4A')
 })
 
 test('elapsed minutes', async ($, on) => {
   const clock = await setup($, on)
   await $.agent.spawn(spawn('worker'))
   await clock.advance(59_000)
-  const a = (await svg($)).props.source
-  expect(a).toContain('&lt;1m</text>')
+  expect(textOf(await desk($), /^<1m$/)).toBeDefined()
   await clock.advance(1000)
-  expect((await svg($)).props.source).toContain('>1m</text>')
+  expect(textOf(await desk($), /^1m$/)).toBeDefined()
   await clock.advance(139_000)
-  const b = (await svg($)).props.source
-  expect(b).toContain('>3m</text>')
+  const b = JSON.stringify(await desk($))
+  expect(b).toContain('"3m"')
   await clock.advance(20_000)
-  expect((await svg($)).props.source).toBe(b)
+  expect(JSON.stringify(await desk($))).toBe(b)
 })
 
 test('command name', async ($, on) => {
@@ -235,7 +234,7 @@ test('tier map from agents folder', async ($, on) => {
   models.look = ''
   await $.agent.spawn({ prompt: 'p', description: 'look', subagentType: 'custom-agent' } as never)
   delete models.look
-  expect((await svg($)).props.source).toMatch(/<g class="h"><rect/)
+  expect(textOf(await desk($), /custom-agent/)?.props.backgroundColor).toBe(FILL.h)
 })
 
 test('phase parsing', () => {
@@ -256,12 +255,12 @@ test('orchestrator phase label', async ($, on) => {
   const ui = await mount($, 'terminal')
   expect((await row(ui, 'the plan'))?.text).toMatch(/my-orchestrator review .*the plan/)
   await ui.unmount()
-  expect((await svg($)).props.source).toMatch(/>review<\/text>/)
+  expect(textOf(await desk($), /^review$/)?.props.italic).toBe(true)
   await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   const ui2 = await mount($, 'terminal')
   expect((await row(ui2, 'the plan'))?.text).toMatch(/my-orchestrator implement .*the plan/)
   await ui2.unmount()
-  expect((await svg($)).props.source).toMatch(/>implement<\/text>/)
+  expect(textOf(await desk($), /^implement$/)?.props.italic).toBe(true)
 })
 
 const spawnAs = (type: string, description: string, parentAgentId?: string) =>
@@ -289,13 +288,13 @@ test('review chip on orchestrator', async ($, on) => {
   const ui = await mount($, 'terminal')
   expect((await row(ui, 'the plan'))?.text).toContain('B \u00B7 r1')
   await ui.unmount()
-  expect((await svg($)).props.source).toContain('>B \u00B7 r1</text>')
+  expect(say(await desk($))).toContain('B \u00B7 r1')
   await $.agent.spawn(spawnAs('my-reviewer', 'review: tests', 'a1'))
   await finish($, 'a3', 'feat/x [F] round 2')
-  const source = (await svg($)).props.source
-  expect(source).toContain('>F \u00B7 r2</text>')
-  expect(source).not.toContain('>B \u00B7 r1</text>')
-  expect(source).toMatch(/<rect[^>]*fill="#E24B4A"[^>]*\/><text[^>]*>F \u00B7 r2</)
+  const root = await desk($)
+  expect(say(root)).toContain('F \u00B7 r2')
+  expect(say(root)).not.toContain('B \u00B7 r1')
+  expect(textOf(root, /F \u00B7 r2/)?.props.backgroundColor).toBe('#E24B4A')
 })
 
 test('quoted header leaves chip', async ($, on) => {
@@ -305,9 +304,9 @@ test('quoted header leaves chip', async ($, on) => {
   await finish($, 'a2', 'feat/x [B] round 1\nok')
   await $.agent.spawn(spawnAs('my-reviewer', 'review: tests', 'a1'))
   await finish($, 'a3', 'Found one issue.\n\nThe judge wrote:\nfeat/x [F] round 2')
-  const source = (await svg($)).props.source
-  expect(source).toContain('>B \u00B7 r1</text>')
-  expect(source).not.toContain('>F \u00B7 r2</text>')
+  const root = await desk($)
+  expect(say(root)).toContain('B \u00B7 r1')
+  expect(say(root)).not.toContain('F \u00B7 r2')
 })
 
 test('for you detection', () => {
@@ -327,7 +326,7 @@ test('needs you flag', async ($, on) => {
   const ui = await mount($, 'terminal')
   expect((await row(ui, 'the plan'))?.text).toContain('needs you')
   await ui.unmount()
-  expect((await svg($)).props.source).toContain('>needs you</text>')
+  expect(say(await desk($))).toContain('needs you')
   await finish($, 'a1', 'Done, nothing open')
-  expect((await svg($)).props.source).not.toContain('needs you')
+  expect(shown(await desk($))).not.toContain('needs you')
 })
