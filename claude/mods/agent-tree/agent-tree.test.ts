@@ -113,6 +113,49 @@ test('desktop pane fills the sidebar width', async ($, on) => {
   expect(JSON.stringify(narrow)).toBe(JSON.stringify(wide))
 })
 
+const LONG = 'Implement the sidebar width fix so that the agents panel fills the whole pane and relays out when widened by hand ok yes'
+const spawnLong = async ($: any, on: any, surface: 'terminal' | 'desktop', propsList: object[] = [{}]) => {
+  await setup($, on)
+  expect(LONG).toHaveLength(120)
+  await $.agent.spawn(spawn(LONG))
+  const seen: El[] = []
+  onTool = async () => {
+    for (const props of propsList) {
+      const ui = await mount($, surface, props)
+      seen.push(await ui.find({ type: 'Box' }))
+      await ui.unmount()
+    }
+  }
+  await $.tool.call({ tool: 'Bash', command: 'npm test', agentId: 'a1', tool_use_id: 't' } as never)
+  return seen
+}
+
+test('running agent shows its action on its own line under the description', async ($, on) => {
+  const [root] = await spawnLong($, on, 'desktop') as [El]
+  const desc = textOf(root, /^Implement the sidebar/)!
+  expect(shown(desc)).toBe(LONG)
+  expect(desc.props.wrap).toBe('truncate-end')
+  const tool = textOf(root, /npm test/)!
+  expect(tool.props.wrap).toBe('truncate-end')
+  expect(shown(tool)).toBe('Bash npm test')
+  expect(shown(desc)).not.toContain('npm test')
+  const col = all(root).find(e => kids(e).includes(desc))!
+  expect(kids(col).indexOf(tool)).toBe(kids(col).indexOf(desc) + 1)
+})
+
+test('terminal shows the action on its own line', async ($, on) => {
+  const [root, plain] = await spawnLong($, on, 'terminal', [{ bodyColumns: 200 }, {}]) as [El, El]
+  const desc = textOf(root, /Implement the sidebar/)!
+  expect(shown(desc)).toContain(LONG)
+  expect(shown(desc)).not.toContain('npm test')
+  const tool = textOf(root, /npm test/)!
+  expect(tool).not.toBe(desc)
+  const col = all(root).find(e => kids(e).includes(desc))!
+  expect(kids(col).indexOf(tool)).toBe(kids(col).indexOf(desc) + 1)
+  expect(shown(textOf(plain, /Implement the sidebar/)!)).not.toContain(LONG)
+  expect(shown(textOf(plain, /Implement the sidebar/)!)).toContain('~')
+})
+
 test('tool.call still returns next result when the mod bookkeeping throws', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('worker'))
@@ -127,11 +170,12 @@ test('tool.call shows the current tool while it runs', async ($, on) => {
   let seen = ''
   onTool = async () => {
     const ui = await $.ui.mount({ plugin: 'agent-tree', surface: 'terminal', component: 'Pane', props: {} as never, requestId: 'agent-tree' })
-    seen = (await ui.find({ type: 'Text', text: /outer|worker/ }))?.text ?? ''
+    seen = (await ui.find({ type: 'Text', text: /Edit GroupStore/ }))?.text ?? ''
     await ui.unmount()
   }
   await $.tool.call({ tool: 'Edit', file_path: '/x/GroupStore.swift', agentId: 'a1', tool_use_id: 't' } as never)
   expect(seen).toMatch(/Edit GroupStore\.swift/)
+  expect(seen).not.toMatch(/worker/)
 })
 
 test('a clock tick that changes no displayed value leaves the tree unchanged', async ($, on) => {

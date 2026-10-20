@@ -77,7 +77,7 @@ const tierIn = (map: Record<string, string>, n: AgentTreeNode) => {
 const label = (e: { tool: unknown }) => {
   const i = e as unknown as Record<string, unknown>
   const hint = i.file_path ?? i.command ?? i.pattern ?? i.description
-  return typeof hint === 'string' ? `${String(e.tool)} ${clip(hint.split('/').pop() ?? '', 30)}` : String(e.tool)
+  return typeof hint === 'string' ? `${String(e.tool)} ${clip(hint.split('/').pop() ?? '', 80)}` : String(e.tool)
 }
 
 // Tier colours of the desktop pane: a light chip fill with dark ink reads on both themes; marks are mid tones.
@@ -278,9 +278,9 @@ export const register: Register = on => {
             </Box>
             <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0}>
               <Text wrap="truncate-end" dimColor={dim}>{n.description}</Text>
+              {tool && <Text wrap="truncate-end" dimColor size="caption">{tool}</Text>}
             </Box>
             <Box flexDirection="row" flexShrink={0} gap={1}>
-              {tool && <Text dimColor size="caption">{tool}</Text>}
               {ph && <Text italic dimColor size="caption">{ph}</Text>}
               <Text tabular dimColor size="caption">{mins(n)}</Text>
             </Box>
@@ -302,6 +302,8 @@ export const register: Register = on => {
       )
     }
 
+    // The description is limited by the body width when the surface reports it, else 40 cells.
+    const cols = typeof (e.props as { bodyColumns?: unknown } | undefined)?.bodyColumns === 'number' ? (e.props as { bodyColumns: number }).bodyColumns : undefined
     return (
       <Box flexDirection="column">
         <Text bold color="magenta">Main</Text>
@@ -309,12 +311,23 @@ export const register: Register = on => {
         {rows.map(({ n, trail, last }) => {
           const run = n.status === 'running'
           const mark = run ? '●' : n.status === 'done' ? '✓' : '✗'
-          const tool = run && n.currentTool ? ` > ${n.currentTool}` : ''
+          const ph = phase(n)
+          const rev = n.review ? ` [${chipText(n)}]` : ''
+          const flag = n.needsYou ? ' [needs you]' : ''
+          const model = n.model ? ` [${n.model}]` : ''
+          // Everything on the row but the description, to size it against.
+          const fixed = ` ${trail}${last ? '└─' : '├─'} ${mark} ${n.type}${ph ? ` ${ph}` : ''}${rev}${flag} ${model} ${time(n)}`.length
+          const limit = cols === undefined ? 40 : Math.max(10, cols - fixed)
           return (
-            <Text key={n.id} dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
-              {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
-              <Text color={color(n)}>{n.type}</Text>{phase(n) ? <Text dimColor> {phase(n)}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}> [{chipText(n)}]</Text> : null}{n.needsYou ? <Text color="yellow"> [needs you]</Text> : null} {clip(n.description, 40)}{n.model ? ` [${n.model}]` : ''} {time(n)}{tool}
-            </Text>
+            <Box key={n.id} flexDirection="column">
+              <Text dimColor={n.status === 'done'} color={n.status === 'failed' ? 'red' : undefined}>
+                {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
+                <Text color={color(n)}>{n.type}</Text>{ph ? <Text dimColor> {ph}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}>{rev}</Text> : null}{n.needsYou ? <Text color="yellow">{flag}</Text> : null} {clip(n.description, limit)}{model} {time(n)}
+              </Text>
+              {run && n.currentTool ? (
+                <Text wrap="truncate-end" dimColor>{`  ${trail}${last ? '  ' : '│ '}   ${n.currentTool}`}</Text>
+              ) : null}
+            </Box>
           )
         })}
       </Box>
