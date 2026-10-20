@@ -239,9 +239,9 @@ test('status glyphs', async ($, on) => {
   await $.turn.complete({ agentId: 'a2', answer: '', durationMs: 1, isAborted: false, turnId: 't' } as never)
   await $.turn.complete({ agentId: 'a3', answer: '', durationMs: 1, isAborted: true, turnId: 't' } as never)
   const root = await desk($)
-  expect(textOf(root, /^◐$/)?.props.color).toBe('#1D9E75')
-  expect(textOf(root, /^✓$/)?.props.color).toBe('#888780')
-  expect(textOf(root, /^✗$/)?.props.color).toBe('#E24B4A')
+  expect(textOf(root, /^ ◐$/)?.props.color).toBe('#1D9E75')
+  expect(textOf(root, /^ ✓$/)?.props.color).toBe('#888780')
+  expect(textOf(root, /^ ✗$/)?.props.color).toBe('#E24B4A')
 })
 
 test('elapsed minutes', async ($, on) => {
@@ -516,7 +516,7 @@ test('nested agents draw tree connectors on desktop', async ($, on) => {
   const root = seen[0]!
   const prefix = (key: string) => {
     const r = all(root).find(e => e.props.key === key)!
-    return texts(kids(r)[0]!).map(shown)
+    return texts(kids(r)[0]!).map(shown).filter(t => !/^ [◐✓✗]$/.test(t))
   }
   for (const key of ['a1', 'a2', 'a3', 'a4']) {
     const t = texts(kids(all(root).find(e => e.props.key === key)!)[0]!)[0]!
@@ -527,4 +527,31 @@ test('nested agents draw tree connectors on desktop', async ($, on) => {
   expect(prefix('a3')).toEqual(['  └─'])
   // The deep node's action line continues the open ancestor column.
   expect(prefix('a4')).toEqual(['  │ └─', '  │   '])
+})
+
+test('desktop tree prefix is monospace', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('outer'))
+  await $.agent.spawn(spawn('middle', 'a1'))
+  await $.agent.spawn(spawn('leaf', 'a2'))
+  const seen: El[] = []
+  onTool = async () => { seen.push(await desk($)) }
+  await $.tool.call({ tool: 'Bash', command: 'npm test', agentId: 'a3', tool_use_id: 't' } as never)
+  const root = seen[0]!
+  for (const key of ['a1', 'a2', 'a3']) {
+    const [prefix, ...rest] = kids(all(root).find(e => e.props.key === key)!)
+    const [conn, mark] = texts(prefix!).map(shown)
+    expect(conn).toMatch(/[├└]─$/)
+    expect(mark).toMatch(/^ [◐✓✗]$/)
+    for (const t of texts(prefix!)) expect(t.props.mono).toBe(true)
+    // Everything else on the row stays in the normal face: chips, description, action, time.
+    for (const t of rest.flatMap(texts)) expect(t.props.mono).toBeFalsy()
+  }
+  // The action line's continuation prefix is mono, and the action text is not.
+  const leaf = kids(all(root).find(e => e.props.key === 'a3')!)
+  const cont = texts(leaf[0]!).filter(t => /^[ │]+$/.test(shown(t)))
+  expect(cont).toHaveLength(1)
+  expect(cont[0]!.props.mono).toBe(true)
+  expect(textOf(root, /npm test/)?.props.mono).toBeFalsy()
+  expect(textOf(root, /^leaf$/)?.props.mono).toBeFalsy()
 })

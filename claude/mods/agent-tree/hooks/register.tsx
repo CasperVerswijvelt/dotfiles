@@ -282,13 +282,16 @@ export const register: Register = on => {
         return (
           <Box key={n.id} flexDirection="row" width="100%" gap={1}>
             <Box flexDirection="column" flexShrink={0}>
-              <Text mono dimColor>{`${trail}${last ? '└─' : '├─'}`}</Text>
+              {/* Connector and status mark are adjacent mono Texts, so the prefix has a fixed width per depth. */}
+              <Box flexDirection="row">
+                <Text mono dimColor>{`${trail}${last ? '└─' : '├─'}`}</Text>
+                {run ? <Text mono color={t.mark}>{' ◐'}</Text> : n.status === 'done' ? <Text mono color={DONE} dimColor>{' ✓'}</Text> : <Text mono color={FAILED} dimColor>{' ✗'}</Text>}
+              </Box>
               {tool && <Text mono dimColor>{`${trail}${last ? '  ' : '│ '}`}</Text>}
             </Box>
             {/* Shrinks last: the description gives way first, down to its minimum. */}
             <Box flexDirection="row" flexShrink={0.2} minWidth={0} flexWrap="wrap" gap={1} alignItems="flex-start">
               <Box flexDirection="row" flexShrink={1} minWidth={0} gap={1} alignItems="flex-start">
-                {run ? <Text color={t.mark}>◐</Text> : n.status === 'done' ? <Text color={DONE} dimColor>✓</Text> : <Text color={FAILED} dimColor>✗</Text>}
                 {chip(t.fill, t.ink, n.type, { dim, tone: t.mark, cut: true })}
               </Box>
               {cc && chip(cc.fill, cc.text, chipText(n))}
