@@ -364,7 +364,8 @@ export const register: Register = on => {
           ) : (
             <Box flexDirection="column" width="100%">{rowEls}</Box>
           )}
-          <Box flexDirection="row" flexWrap="wrap" gap={2}>
+          {/* One line (two half-line units) above the legend, on top of the pane gap. */}
+          <Box flexDirection="row" flexWrap="wrap" gap={2} paddingTop={2}>
             {([['o', 'Opus'], ['s', 'Sonnet'], ['h', 'Haiku']] as const).map(([k, name]) => chip(TIER[k].fill, TIER[k].ink, name, { key: k }))}
           </Box>
         </Box>

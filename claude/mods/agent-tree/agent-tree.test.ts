@@ -266,6 +266,31 @@ test('empty pane keeps the empty text and the legend on separate rows', async ($
   expect(say(rows[legend]! as El)).toEqual(['Opus', 'Sonnet', 'Haiku'])
 })
 
+// Padding units are half a line on desktop, so 2 is one full line (19.5px at 13px). It is the only spacing change.
+const legendGap = async ($: any, withAgents: boolean) => {
+  const root = await desk($)
+  const rows = kids(root)
+  const legend = rows.find(r => /Opus/.test(shown(r)))!
+  expect(legend.props.paddingTop).toBe(2)
+  expect(legend.props.padding).toBeUndefined()
+  expect(legend.props.paddingY).toBeUndefined()
+  expect(legend.props.marginTop).toBeUndefined()
+  expect(legend.props.gap).toBe(2)
+  expect(root.props.gap).toBe(1)
+  expect(rows.some(r => /No agents yet/.test(shown(r)))).toBe(!withAgents)
+}
+
+test('the legend sits one line below the last row, with agents', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  await legendGap($, true)
+})
+
+test('the legend sits one line below the last row, empty state', async ($, on) => {
+  await setup($, on)
+  await legendGap($, false)
+})
+
 test('tool.call still returns next result when the mod bookkeeping throws', async ($, on) => {
   await setup($, on)
   await $.agent.spawn(spawn('worker'))
