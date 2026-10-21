@@ -22,12 +22,17 @@ the contract's extra areas and the UI and product checks included when UI change
 judge; no verify step. Split into separate area reviewers (the full set) only for a schema
 change, a security-relevant change or a new screen. Plan-close review (wins over the small-diff rule):
 correctness and architecture only, and no judge when there are no blockers or majors;
-the grade then follows from the minor count.
+the grade then follows from the minor count. A plan that touches no storage, sync or
+server code gets one all-areas reviewer at close; other plans keep the full set.
 Reviewers read code and, for a UI change, the before/after pair, not a full capture folder or the author's notes.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
+     Also the gate and docs checks: cite the gate result from the commit hook or the
+     landing step output rather than re-running it on a branch whose commits went through
+     the gate hook; re-run only when that evidence is missing or the branch has unhooked
+     commits. Docs and changelog in step with the change.
    - **UI and product** (one area, also where the contract names ui and product as
      extra areas): UI at every supported size, the project's UI rules, copy and l10n.
      Use it as a first-time user would. Can everything created be used? Does
@@ -37,10 +42,6 @@ Reviewers read code and, for a UI change, the before/after pair, not a full capt
      marked "ask Casper".
      A project's contract or rubric may fold a built-in area into another reviewer (for
      example UI and product run inside correctness); the area's checks still run.
-   - **gates**: cite the gate result from the commit hook or the landing step output
-     rather than re-running it on a branch whose commits went through the gate hook;
-     re-run only when that evidence is missing or the branch has unhooked commits. Docs
-     and changelog in step with the change.
    - every extra area the contract adds.
 
    Skip correctness, architecture and UI when no code changed. Each returns
@@ -88,8 +89,9 @@ closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
 
 ## Rounds
 
-At most two. Minors are fixed in the next commit with no new round; round 2 runs only
-after a blocker or major fix. When every finding will be fixed anyway, skip verify and
+At most two. Minors are fixed in the next commit with no new round and no fix wave of
+their own. Round 2 is a full review only when the fix wave touched concurrency, sync or
+ordering code; otherwise one verifier confirms the named findings are fixed. When every finding will be fixed anyway, skip verify and
 judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no
 minors. Anything still open after round 2 goes to Casper as a decision.

@@ -94,6 +94,10 @@ Agents skip this section: your own prompt says how you work and report.
   override this.
 - An agent listed as "completed" may only be idle between its children: it is finished
   only when its final report arrives. Never claim a plan is unattended from the list alone.
+- One orchestrator per plan: when it reports at plan close, start a fresh one for the next
+  plan from the tracker and the progress note.
+- Relay Casper's answers to an agent only after every free-text question in them is
+  answered and he confirmed; agreeing with his idea is not his decision.
 - An orchestrator prompt points at the contract and the plan. It does not restate gates,
   close steps or merge policy.
 - When something needs Casper, main's message ends with one bold line with an emoji, e.g.

@@ -51,6 +51,12 @@ Before implementation:
   (empty, loading, error, long, scrolled, saving) and their transitions, each with an
   animation note; the shared components used (a new one needs a reason).
 
+Split any task expected to take over about 45 minutes at planning time.
+
+Questions for Casper are raised here, in preflight, and sent to main at once. Work that
+does not depend on the answer starts meanwhile; dependent tasks wait, and a default with
+its cost goes in the progress note.
+
 Done when every task has files, interfaces, test names and acceptance.
 
 ## 3. Implement
@@ -69,10 +75,11 @@ first wastes a round.
 ## 5. Review
 
 Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a fresh
-implementer and are committed before the next round. The implementer of the last wave
-then lands the task (step 6), continued as the same agent. At plan close the plan-close
-gate (`check-all` or equivalent) and the live check run in that last fix-wave implementer,
-not a separate gate agent.
+implementer and are committed before the next round. A review with minors only gets no
+fix wave (see `my-orchestrator`). The implementer of the last wave
+then lands the task (step 6), continued as the same agent. At plan close the full gate
+(the contract's full check) runs once, in the last fix-wave commit, and the live check runs
+in that same implementer: no second run by a separate land or gate agent.
 
 ## 6. Land
 

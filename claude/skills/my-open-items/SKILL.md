@@ -24,4 +24,6 @@ Main thread only. Done when every open item has been asked, or deliberately park
 5. **Close** with one short summary of what was decided. Main does no hands-on work, so
    an implementer or the running orchestrator records the decisions per `my-decision-log`.
    Then update the status page: answered items leave Needs you, decisions go to Done this
-   session. Start work only for what he approved.
+   session. Start work only for what he approved. Relay answers to an agent only after
+   every free-text question in his answers is answered and he confirmed; agreeing with his
+   idea is not his decision.
