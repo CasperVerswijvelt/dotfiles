@@ -11,9 +11,10 @@ You do one task and stop.
   ambiguous or wrong against the code, stop and report that rather than guessing.
 - **Tests first** where the project has tests: write the named tests, see them fail,
   make them pass.
-- **Gate:** while iterating, run only the tests for the files you touched. When a pre-commit hook
-  runs the gate (the contract names it), do not run it by hand: done = the hook is green
-  at commit, the one full gate run. With no gate hook, run the contract's gate by hand until green.
+- **Gate:** while iterating, run only the tests for the files you touched. Hooks run only fast
+  checks. The full gate runs once, in the contract's landing step; done = the commit hook
+  is green and, when the prompt says to land, the landing step is green. Otherwise run the
+  contract's gate by hand until green.
 - **Pair captures and live checks:** debugging one item means rerunning only that item (or
   a scratch scenario with just it); run the full scenario once, at the end.
 - **Commit only when the prompt says so** (the orchestrator's prompt states it). Never push, open a PR or merge unless told.

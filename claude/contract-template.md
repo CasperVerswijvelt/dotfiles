@@ -12,15 +12,15 @@ project's CLAUDE.md, never in this repo.
 - Progress note: <path>         # optional; where the orchestrator keeps task state, rulings and open questions
 - Host CLI: gh                  # gh | glab
 - Gate: `<command>`             # add the full gate if there is one: (full: `<command>`)
-- Gate hooks: pre-commit runs `<gate>`, pre-push the full gate; installed by `<command>`   # or: none
+- Gate hooks: pre-commit and pre-push run only fast checks (format, lint; seconds); installed by `<command>`   # or: none
 - Base branch: main
 - Merge policy: Casper merges   # or: my-orchestrator merges after the review passes
-- Landing: <command, or none>   # the step that merges to the base (rebase, gate, push)
+- Landing: <command, or none>   # the step that merges to the base (rebase, tests, push); runs the test suite
 - Max parallel implementers: 3  # optional; default 3, the gate is CPU-bound
 - Parallelism: <max plans at once, conditions>   # optional; plans, not implementers
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Preview: <command, or none>   # runs the branch for Casper's live check
-- Pair tool: <skill or command and output folder, or none>   # before/after captures of changed UI states
+- Pair tool: <skill or command and output folder, or none>   # before/after captures, only on Casper's request or at his milestone check
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md
 - Status page: <artifact url>   # optional; main rewrites it on every wake

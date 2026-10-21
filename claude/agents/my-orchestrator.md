@@ -37,9 +37,8 @@ every wait over 5 minutes.
   for something irreversible or outward-facing the contract does not allow, stop and
   report. Never stay alive waiting on Casper: main resumes with a fresh orchestrator that
   reads the progress note.
-- **Pairs for a UI task:** list the before/after pair paths (gitignored folder inside the
-  repo) in the report's `Pairs:` block, at any stage (light only unless the change is
-  about dark; a new screen has the after shot alone).
+- **Pairs only on request:** no per-task pairs. When Casper asked for shots, list the
+  before/after pair paths (gitignored folder inside the repo) in the report's `Pairs:` block.
 - **Wait on a child with a foreground Agent call** and take its report yourself. Never
   resume a child with SendMessage and then end your turn "waiting", and never end a turn
   while a child runs. Never poll output files or loop with sleep, never spawn a
@@ -63,6 +62,6 @@ Open: <what is left, or none>
 ⚠️ For you: <decisions, each with a recommendation>
 ```
 
-Leave out the `For you` line when nothing needs Casper. For a UI task add a `Pairs:`
-block after the report, one before/after path per line; main strips it from the relay and
-puts the pairs on the status page. Leave it out when there are none.
+Leave out the `For you` line when nothing needs Casper. When Casper asked for
+shots add a `Pairs:` block after the report, one before/after path per line; main strips
+it from the relay and puts the pairs on the status page. Leave it out otherwise.

@@ -65,7 +65,7 @@ One `my-implementer` per task, tests first. The prompt states whether it commits
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
 number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there. Remove the worktree after the merge.
-A UI change gets before/after pairs of the changed states, captured by the implementer with the contract's `Pair tool` into a gitignored folder in the repo.
+No per-task before/after pairs: pairs only when Casper asks for shots of a screen, or at his milestone check (the contract's `Pair tool`, gitignored folder in the repo).
 
 ## 4. Gate
 
@@ -78,7 +78,7 @@ Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a f
 implementer and are committed before the next round. A review with minors only gets no
 fix wave (see `my-orchestrator`). The implementer of the last wave
 then lands the task (step 6), continued as the same agent. At plan close the full gate
-(the contract's full check) runs once, in the last fix-wave commit, and the live check runs
+(the contract's full check) runs once, in the landing step of the last fix wave, and the live check runs
 in that same implementer: no second run by a separate land or gate agent.
 
 ## 6. Land
@@ -89,8 +89,7 @@ push, delete the branch.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).
-2. Screenshots through the contract's `Pair tool`, when it has one and the change is
-   visible.
+2. Screenshots through the contract's `Pair tool`, only when Casper asked for them.
 3. Rebase on the base and run the gate again. This is the last rebase.
 4. Push and open the PR only when Casper asks. Never base a PR on another open PR.
 5. After posting: sync by merging the base in, never force-push. New commits get a

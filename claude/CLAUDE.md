@@ -24,9 +24,12 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 - Require him present for a step whose failure would leave no trace afterwards.
 - Motion and feel are Casper's call, judged live on the contract's `Preview`: before the
   plan is written and again before merge. His verdict is the gate. Tests still pin timing.
-- Show UI changes as before/after pairs (the contract's `Pair tool`), on the status page
-  when the contract names one. A judgement item without a pair (a mockup) gets its images
-  on the page the same way.
+- A layout or look decision gets a mockup on the real UI before it is built. No per-task
+  before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
+  shots of a screen or at his milestone check, on the status page when the contract names
+  one. A mockup gets its images on the page the same way.
+- A project with a web build gets one quick real-browser check of it at plan close (loads,
+  works offline).
 
 ## Shell hygiene
 
@@ -51,8 +54,10 @@ shortest sentence that keeps the reason.
 ## Rules and decisions
 
 - Prefer a rule a test enforces over a paragraph of prose.
-- Gates run as git hooks so they cannot be skipped. The contract's `Gate hooks` line says
-  which gate runs where.
+- Commit and push hooks run only fast checks (format, lint/analyze; seconds), never the
+  test suite or other long work. The tests run in the project's landing step, which every
+  change must pass to reach the base branch, so they still cannot be skipped. The
+  contract's `Gate hooks` and `Landing` lines say which runs where.
 - The `my-*` skills and the project's Workflow contract override superpowers skills: in a
   project with a contract, do not load superpowers brainstorming, writing-plans,
   subagent-driven-development or using-git-worktrees.

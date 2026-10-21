@@ -13,7 +13,7 @@ areas) comes from the project's `## Workflow contract` and the files it points t
 
 The orchestrator runs it as nested `my-reviewer` agents, never inline in a context that
 wrote the code. Each agent's prompt holds only the refs (`base...head`), the ticket and
-the approved approach and, for a UI change, the pair paths: never the author's rationale or a hint where to look. Commit first.
+the approved approach and, when Casper asked for shots, the pair paths: never the author's rationale or a hint where to look. Commit first.
 
 Agent descriptions follow the rule in `my-orchestrator`.
 
@@ -24,15 +24,13 @@ change, a security-relevant change or a new screen. Plan-close review (wins over
 correctness and architecture only, and no judge when there are no blockers or majors;
 the grade then follows from the minor count. A plan that touches no storage, sync or
 server code gets one all-areas reviewer at close; other plans keep the full set.
-Reviewers read code and, for a UI change, the before/after pair, not a full capture folder or the author's notes.
+Reviewers read code and, when given, the before/after pair, not a full capture folder or the author's notes.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
-     Also the gate and docs checks: cite the gate result from the commit hook or the
-     landing step output rather than re-running it on a branch whose commits went through
-     the gate hook; re-run only when that evidence is missing or the branch has unhooked
-     commits. Docs and changelog in step with the change.
+     Also the gate and docs checks: cite the gate result from the landing step
+     output rather than re-running it; re-run only when that evidence is missing. Docs and changelog in step with the change.
    - **UI and product** (one area, also where the contract names ui and product as
      extra areas): UI at every supported size, the project's UI rules, copy and l10n.
      Use it as a first-time user would. Can everything created be used? Does
