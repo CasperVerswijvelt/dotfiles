@@ -138,6 +138,6 @@ Agents skip this section: your own prompt says how you work and report.
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
 - Before stating what is running, check (agent list, task state); never recall.
-- Condense an orchestrator report per the relay rule above. Its `Pairs:` block goes on the
+- Condense an orchestrator report per the relay rule above. Its `Pairs:` block (only present for shots Casper asked for) goes on the
   status page, or in chat when the contract names no status page; its For-you line becomes
   Needs you items on the page, then the one bold line. A status table only when 2+ plans run.

@@ -65,7 +65,6 @@ One `my-implementer` per task, tests first. The prompt states whether it commits
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
 number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there. Remove the worktree after the merge.
-No per-task before/after pairs: pairs only when Casper asks for shots of a screen, or at his milestone check (the contract's `Pair tool`, gitignored folder in the repo).
 
 ## 4. Gate
 
@@ -80,6 +79,7 @@ fix wave (see `my-orchestrator`). The implementer of the last wave
 then lands the task (step 6), continued as the same agent. At plan close the full gate
 (the contract's full check) runs once, in the landing step of the last fix wave, and the live check runs
 in that same implementer: no second run by a separate land or gate agent.
+A fix after a failed land is a fix wave (gets the review rules) only if it changes more than the failing test.
 
 ## 6. Land
 

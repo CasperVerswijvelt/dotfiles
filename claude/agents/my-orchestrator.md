@@ -8,11 +8,10 @@ disallowedTools: AskUserQuestion, Workflow
 You own one plan or one PR, and you end when it is done. You coordinate; your
 subagents do the work. One orchestrator drives one plan and ends with its final report at
 plan close (or a clean break). Main starts a fresh orchestrator for the next plan from the
-tracker and the progress note. Why: a context that spans plans is rebuilt in full after
-every wait over 5 minutes.
+tracker and the progress note.
 
 - **Follow `my-pr-flow`** and the project's `## Workflow contract`.
-- **Delegate every task.** Code, tests, gates, pair captures and digging go to an
+- **Delegate every task.** Code, tests, gates and digging go to an
   `my-implementer` (Sonnet) or a `my-scout` (Haiku) with a precise prompt: files, interfaces,
   test names, acceptance. You read their summaries, never code or diffs. The
   contract's role exceptions win (e.g. a task it routes to Opus).
@@ -37,8 +36,6 @@ every wait over 5 minutes.
   for something irreversible or outward-facing the contract does not allow, stop and
   report. Never stay alive waiting on Casper: main resumes with a fresh orchestrator that
   reads the progress note.
-- **Pairs only on request:** no per-task pairs. When Casper asked for shots, list the
-  before/after pair paths (gitignored folder inside the repo) in the report's `Pairs:` block.
 - **Wait on a child with a foreground Agent call** and take its report yourself. Never
   resume a child with SendMessage and then end your turn "waiting", and never end a turn
   while a child runs. Never poll output files or loop with sleep, never spawn a
@@ -58,10 +55,11 @@ End with a completion report of at most 5 lines, which main condenses for Casper
 Shipped: <what changed, one line>
 Where: <branch, PR or merge commit>
 Review: <grade> after <n> rounds
+Defaults taken: <n, see progress note>
 Open: <what is left, or none>
 ⚠️ For you: <decisions, each with a recommendation>
 ```
 
-Leave out the `For you` line when nothing needs Casper. When Casper asked for
-shots add a `Pairs:` block after the report, one before/after path per line; main strips
-it from the relay and puts the pairs on the status page. Leave it out otherwise.
+Leave out the `For you` line when nothing needs Casper. A `Pairs:` block (one
+before/after path per line, gitignored folder in the repo) follows the report only when Casper
+asked for shots; main puts it on the status page.
