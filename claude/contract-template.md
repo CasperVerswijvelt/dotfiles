@@ -26,5 +26,6 @@ project's CLAUDE.md, never in this repo.
 - Status page: <artifact url>   # optional; main rewrites it on every wake
 - Review pitfalls: <blockers and majors specific to this project, or the file that lists them>
 - Extra review areas: <name: what it covers>
+- Lasting choices: <extra areas beyond CLAUDE.md's list, e.g. device protocol>   # optional
 - Role exceptions: <e.g. hardware work keeps the main thread hands-on>
 ```

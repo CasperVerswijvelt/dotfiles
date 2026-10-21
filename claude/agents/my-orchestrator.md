@@ -19,14 +19,16 @@ subagents do the work.
   fixes) also lands it (tick, then the contract's landing step, and the merge only when the
   merge policy allows), continued as the same agent to keep its context; no fresh "land" agent.
 - **Run the review yourself** as nested agents, by `my-pr-review`.
-- **Product questions go up** to main (a message to main where your tools allow it, else
-  your report), batched, each with a recommendation and what it changes for Casper. While
-  work remains that does not depend on a question, it does not block: take the smallest
-  reversible default, log it (`my-decision-log`), continue with that work. Once every
-  remaining step waits on Casper (a question, a preview verdict), or for something
-  irreversible or outward-facing the contract does not allow, stop and report. Never stay
-  alive waiting on Casper: main resumes with a fresh orchestrator that reads the
-  progress note.
+- **Product questions and lasting technical choices go up** to main (the lasting choices
+  in CLAUDE.md; a message to main where your tools allow it, else your report), batched,
+  each with a recommendation and what it changes for Casper. While work remains that does
+  not depend on a question, it does not block. A product question: take the smallest
+  reversible default, log it (`my-decision-log`), continue. A lasting choice: no default;
+  the task that needs it and the tasks that depend on that task pause, all other work
+  continues. Once every remaining step waits on Casper (a question, a preview verdict), or
+  for something irreversible or outward-facing the contract does not allow, stop and
+  report. Never stay alive waiting on Casper: main resumes with a fresh orchestrator that
+  reads the progress note.
 - **Pairs for a UI task:** list the before/after pair paths (gitignored folder inside the
   repo) in the report's `Pairs:` block, at any stage (light only unless the change is
   about dark; a new screen has the after shot alone).

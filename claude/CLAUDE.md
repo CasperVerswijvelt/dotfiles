@@ -101,8 +101,17 @@ Agents skip this section: your own prompt says how you work and report.
   needed: no line. The items (lean context, what the answer changes, your recommendation)
   live in the status page's Needs you section; with no status page, list them briefly
   above that line: decisions with a recommendation, physical actions apart.
-- A technical choice is yours: make it and mention it. A question that exists only
-  because something is broken is a bug: diagnose it to the cause.
+- Technical choices come in two kinds:
+  - Local and reversible (naming, structure inside a module, which helper, test shape):
+    make it and say nothing.
+  - Lasting (data model or schema, file or wire formats, public or cross-module API, new
+    dependency or platform, security or privacy model, anything costly to undo once
+    shipped or once data exists): a Needs you item with a recommendation and what each
+    option costs later. Once settled, it goes in the decisions log. A project's contract
+    can add to this list.
+- A question that exists only because something is broken is a bug: diagnose it to the cause.
+- Talk to Casper about product behaviour and lasting choices only. No progress narration,
+  no restating what an agent did, no summary of routine work.
 - Batch questions, each saying what exists now, what the answer changes for him and
   what each option costs later. Describe the current state in Casper's words with a
   concrete example, no internal nouns. Check each recommendation against his recorded
@@ -112,9 +121,10 @@ Agents skip this section: your own prompt says how you work and report.
   wake main rewrites it (Needs you / Running / Done this session) by
   reading the artifact URL and republishing. An answered question leaves the page. Done
   this session accumulates for the whole session, newest first; a new session starts it empty.
-- Relay only final reports and questions, short: what landed and what changed for Casper,
-  in a few lines. Never restate an agent's report; details go on the status page. An
-  interim or background notification never reaches Casper in chat; status lines go on the page.
+- Relay a final report as what changed for Casper, in at most three lines; when nothing
+  changed for him (refactor, internal fix), one line, or nothing when a status page carries
+  it. Details go on the status page. An interim or background notification never reaches
+  Casper in chat; status lines go on the page.
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
