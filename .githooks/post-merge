@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-"$(git rev-parse --show-toplevel)/claude/scripts/opencode-agents.sh" >/dev/null
+root="$(git rev-parse --show-toplevel)"
+"$root/install.sh" --quiet || echo "post-commit: install.sh failed, links may be stale" >&2
+exit 0

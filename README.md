@@ -9,7 +9,7 @@ symlinked into place.
 |---|---|
 | `claude/` | Claude Code config: `CLAUDE.md`, `settings.json`, `agents/`, `skills/`, `mods/`, `contract-template.md`, `scripts/`. |
 | `opencode/` | OpenCode config (`opencode.json`) and plugins. |
-| `.githooks/` | `post-commit` and `post-merge` hooks that regenerate the OpenCode agents, and a `pre-commit` hook that validates and tests the `agent-tree` mod. |
+| `.githooks/` | `post-commit` and `post-merge` hooks that run `install.sh --quiet` (links and OpenCode agents stay in sync), and a `pre-commit` hook that validates and tests the `agent-tree` mod. |
 | `install.sh` | Symlinks everything into `~/.claude` and `~/.config/opencode`. |
 
 ## Install
@@ -30,10 +30,16 @@ The installer:
 - links `CLAUDE.md` as `~/.config/opencode/AGENTS.md`, plus `opencode.json` and `plugins/`
 - sets `core.hooksPath` to `.githooks` and generates the OpenCode agents
 
-It is idempotent and never deletes your own files. It only regenerates the OpenCode
-agent files it generated itself. Anything it would replace is moved to
-`<name>.bak.<timestamp>`. That includes your existing `~/.claude/settings.json`, so copy
-over any settings you want to keep into `claude/settings.json` first. Because that file
+It is idempotent and never deletes your own files. Links are compared by resolved path,
+so a link to the same file under another path form is retargeted silently. A real file or
+directory in the way is moved to `~/.dotfiles-backup/<timestamp>/<path relative to ~>`,
+never next to the original. That includes your existing `~/.claude/settings.json`, so copy
+over any settings you want to keep into `claude/settings.json` first. It prunes stale
+symlinks into this repo (renamed or deleted skills and agents) from `~/.claude`,
+`~/.claude/skills`, `~/.claude/agents` and `~/.config/opencode`, and leaves every other
+link alone. It only regenerates the OpenCode agent files it generated itself. The git
+hooks run `install.sh --quiet` after every commit and pull, so a new skill appears without
+a manual run. Because that file
 is now a symlink, changes made through `/config` land in this repo. Commit them, or the
 startup pull stops fast-forwarding.
 
@@ -43,7 +49,7 @@ startup pull stops fast-forwarding.
   `my-implementer` (Sonnet) does one scoped task, `my-reviewer` (Sonnet, judge on
   Opus) reviews read-only, `my-scout` (Haiku) does fact lookups. The main thread decides and delegates.
 - **Skills** (`claude/skills/`): `my-pr-flow` (branch to PR), `my-pr-review` (review and
-  grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`, `my-retro` (session retrospective, `claude/tools/retro/`).
+  grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`, `my-open-items`, `my-retro` (session retrospective, `claude/tools/retro/`).
 - **Workflow contract**: each project can add a `## Workflow contract` section to its own
   `CLAUDE.md`: stage, gate, base branch, merge policy and so on. The template is
   `claude/contract-template.md`. Without one, the project is treated as mature.
