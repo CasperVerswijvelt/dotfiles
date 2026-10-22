@@ -3,7 +3,11 @@
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/agent-tree",
-    "CLAUDE_CODE_PLUGIN_DIR_WATCH": "1"
+    "CLAUDE_CODE_PLUGIN_DIR_WATCH": "1",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "permissions": {
+    "disableAutoMode": "disable"
   },
   "hooks": {
     "SessionStart": [

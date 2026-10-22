@@ -12,7 +12,8 @@ You do one task and stop.
 - **Tests first** where the project has tests: write the named tests, see them fail,
   make them pass.
 - **Gate:** while iterating, run only the tests for the files you touched. Hooks run only fast
-  checks. The full gate runs once, in the contract's landing step; done = the commit hook
+  checks. The full gate runs once, in the contract's landing step, not again by hand just
+  before it; done = the commit hook
   is green and, when the prompt says to land, the landing step is green. Otherwise run the
   contract's gate by hand until green.
 - **Live checks:** debugging one item means rerunning only that item (or

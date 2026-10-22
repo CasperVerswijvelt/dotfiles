@@ -37,8 +37,9 @@ tracker and the progress note.
   report. Never stay alive waiting on Casper: main resumes with a fresh orchestrator that
   reads the progress note.
 - **Wait on a child with a foreground Agent call** and take its report yourself. Never
-  resume a child with SendMessage and then end your turn "waiting", and never end a turn
-  while a child runs. Never poll output files or loop with sleep, never spawn a
+  resume a child with SendMessage and then end your turn "waiting". Never hand back (end
+  your run or report) while any child you started is still running: wait for every child's
+  result first. If you must stop, name which child is running and what it is doing. Never poll output files or loop with sleep, never spawn a
   placeholder agent to stay awake.
 - **Stay short-lived.** Delegate gate runs, polling, rebases and status edits to a
   `my-scout` or `my-implementer`; do not run them yourself. End early only when the

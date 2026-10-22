@@ -31,6 +31,17 @@ gate, and any other named check.
 | 2026-10-21 | gym-app | goldens (check-all) | M3a slot_sheet re-render | minor |
 | 2026-10-21 | gym-app | mockup (Casper) | Sync log moved into Data as "Server sync log" (product) | major |
 | 2026-10-21 | gym-app | summary | about 150 minors, mostly stale plan text and test nits | minor |
+| 2026-10-21 | gym-app | correctness review | M3j T1 adopt skipped parent and reference checks | blocker |
+| 2026-10-21 | gym-app | correctness review | M3j T2 adopt gave 500 on a malformed row, now 400 | major |
+| 2026-10-21 | gym-app | correctness review | M3j T3 connect did not log out on a failed connect, no re-entry guard, phone-only check not exact | major |
+| 2026-10-21 | gym-app | plan-close review correctness | M3j close: adopt refused local- photo names, phone photos lost on connect | blocker |
+| 2026-10-21 | gym-app | correctness review | M3i T3 photo edits did not share the outbox queue rule after sign-out | major |
+| 2026-10-21 | gym-app | correctness review | M3i T2 a linked account with a lost token could not sign in | major |
+| 2026-10-22 | gym-app | plan-close review correctness | M3h close: History detail page read every workout | major |
+| 2026-10-22 | gym-app | correctness review | M3h T4a History lost its order with old queued edits and hid a failed older read | major |
+| 2026-10-22 | gym-app | correctness review round 3 | M4b T3 reopening the weight sheet in lb and tapping Done rewrote stored kg (1.25 became 1.27) | major |
+| 2026-10-21 | gym-app | goldens (check-all) | M3i close: catalog harness rendered the unlinked UI | minor |
+| 2026-10-22 | gym-app | goldens (check-all) | M3h close: catalog workout page needed its entry provider overridden | minor |
 
 ## Escaped
 
@@ -39,3 +50,5 @@ would have caught.
 
 | date found | project | bug | found by | check that would have caught it | check state (existing / removed) |
 |---|---|---|---|---|---|
+| 2026-10-22 | gym-app | M3j demo snapshot test dated its weigh-in local tomorrow; the server refuses it between 00:00 and 02:00 Brussels | a landing run (flake) | a test that pins the clock | existing (no check caught it) |
+| 2026-10-22 | gym-app | M3h perf test counted the 2 s watchPerformance flush as History load (read 2.1 s, real ~100 ms) | the implementer in T4d | a review of the measurement start point | existing (no check caught it) |

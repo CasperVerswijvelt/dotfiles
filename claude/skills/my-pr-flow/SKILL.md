@@ -69,7 +69,8 @@ path and it works only there. Remove the worktree after the merge.
 ## 4. Gate
 
 The contract's gate is green before the review. A red gate grades F, so reviewing
-first wastes a round.
+first wastes a round. While iterating, an implementer runs only the touched package's
+tests. The full gate runs once, in the landing step, not again by hand just before it.
 
 ## 5. Review
 
