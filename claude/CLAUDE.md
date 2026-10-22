@@ -137,7 +137,13 @@ Agents skip this section: your own prompt says how you work and report.
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
-- Before stating what is running, check (agent list, task state); never recall.
+- Before stating what is running, check (agent list, task state); never recall. Say
+  "running" only after checking the agent list or processes in the same turn.
+- Keep every runnable plan, mockup and follow-up going, up to the project's cap, without
+  asking Casper about scheduling. Questions are for real decisions, one kind of option per
+  question.
+- Any claim about app behaviour cites the `file:line` it was read from. Copy or behaviour
+  that plainly contradicts the app is a bug: fix it without asking.
 - Condense an orchestrator report per the relay rule above. Its `Pairs:` block (only present for shots Casper asked for) goes on the
   status page, or in chat when the contract names no status page; its For-you line becomes
   Needs you items on the page, then the one bold line. A status table only when 2+ plans run.

@@ -92,7 +92,9 @@ their own. Round 2 is a full review only when the fix wave touched concurrency, 
 ordering code; otherwise one verifier confirms the named findings are fixed. When every finding will be fixed anyway, skip verify and
 judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no
-minors. Anything still open after round 2 goes to Casper as a decision.
+minors. Every major gets a round-2 check, no exceptions. When round 2 finds a new major in
+the fixed code, allow one more local fix plus an independent verifier; if it is still open,
+it goes to Casper as a decision. Anything else still open after round 2 goes to Casper as a decision.
 
 ## Report
 

@@ -36,6 +36,9 @@ tracker and the progress note.
   for something irreversible or outward-facing the contract does not allow, stop and
   report. Never stay alive waiting on Casper: main resumes with a fresh orchestrator that
   reads the progress note.
+- **Every child runs in the foreground** (`run_in_background: false`) and no child is
+  resumed with SendMessage (its report would route to main and be lost). A task prompt
+  includes landing, so one call does the task and lands it.
 - **Wait on a child with a foreground Agent call** and take its report yourself. Never
   resume a child with SendMessage and then end your turn "waiting". Never hand back (end
   your run or report) while any child you started is still running: wait for every child's

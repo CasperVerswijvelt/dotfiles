@@ -8,3 +8,4 @@
 | 2026-10-21 | gym-app | 66f20f75 + c18d3333 | 19h34m (main) | $190.11 | 203 | 164 | 25 | $7.60 | 0.2 | 8.1 | 1.36 |
 | 2026-10-21 | gym-app | 86f48aee (pm) | 2h43m (main) | $13.42 | 25 | 19 | 2 | $6.71 | 0.5 | 12.6 | 2.00 |
 | 2026-10-22 | gym-app | 2a6a6f1c (Mb to M4c, retro window 21 Oct 20:17 to 22 Oct 09:47) | 13h29m (main, incl. ~4h wait for Casper) | $79.64 | 137 | 174 | 27 | $2.95 | 0.5 | 5.1 | 1.00 |
+| 2026-10-22 | gym-app | f115a4aa (M4b T5 to M5c T2, 10:47 to 18:49) | 8h02m (main) | $122.64 | 65 | 175 | 32 | $3.83 | 1.5 | 2.0 | 1.19 (commit proxy; 1.00 by the tool, no "Task <n>:" commits) |
