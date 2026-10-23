@@ -138,7 +138,12 @@ Agents skip this section: your own prompt says how you work and report.
 - Relay a final report as what changed for Casper, in at most three lines; when nothing
   changed for him (refactor, internal fix), one line, or nothing when a status page carries
   it. Details go on the status page. An interim or background notification never reaches
-  Casper in chat; status lines go on the page.
+  Casper in chat: after one, say nothing unless something changed for him or needs him
+  (no progress narration); status lines go on the page.
+- Ask an unanswered question once and keep it on the status page; never repeat it on a later
+  wake. When the status page cannot be updated (no Artifact tool), say so once and show
+  images by reading the PNG files with Read in the reply (files sent with a send-file tool
+  may not reach him).
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
   the implementer to commit but land only on main's go. A SendMessage that returns
   "queued" to an agent that is mid-land gets a fresh agent with a new task instead.

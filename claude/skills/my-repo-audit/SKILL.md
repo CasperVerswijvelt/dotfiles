@@ -22,6 +22,10 @@ leaks, UI and responsive layout, copy and accessibility, docs against code, secu
 and leaked data, tests and CI, product fit. Add the contract's extra areas; drop what
 the repo has no surface for.
 
+At stage `mvp` (the contract's Stage line) add a simplification reviewer: "what would we
+delete for the actual user count": architecture weight, dead code, features not worth
+their upkeep. Its deletions are planned first (see 4).
+
 Each gets: the scope, the open PRs, the severities in `my-pr-review` (the "caused by
 this change" rule does not apply), and these rules: cite a `file:line` you read and a
 concrete failure scenario; check code, not comments; respect recorded decisions; at
@@ -40,7 +44,10 @@ each, reviewable in one sitting, every PR off the base and independent of the ot
 (no stacking). Per PR: title, why, files, screenshots yes/no, overlap with an open PR,
 risk, technical cost (low, medium, high: lines and complexity added or removed, upkeep).
 A PR or finding whose fix costs high is a product decision with that cost, not a planned
-PR. Then a merge order, and the product decisions, each with options and a
+PR. Simplification deletions come first in the order, before any hardening task, so no fix
+hardens code that is about to be cut. A finding whose fix adds stored state, a stored
+check or a new format goes to Casper as one question with a recommendation, not as a
+series of edge-case decisions. Then a merge order, and the product decisions, each with options and a
 recommendation. Other technical choices are made, not asked.
 
 ## 5. Present
@@ -48,5 +55,7 @@ recommendation. Other technical choices are made, not asked.
 Counts (reported, kept, needs a human, rejected), the PR table, the merge order, then
 the decisions as Needs you items (status page, else a short list). Spot-check two kept findings first.
 
-Afterwards each PR runs through its own `my-orchestrator`, one at a time, never as a
-parallel fan-out. The plan entry and its decisions are that orchestrator's input.
+Afterwards the PRs run through `my-orchestrator`s. Bundle small tasks that share no files
+under one orchestrator (one review, one landing per task or per bundle, as the contract
+allows). Run bundles in parallel up to the contract's parallelism cap. A plan entry and its
+decisions are that orchestrator's input.

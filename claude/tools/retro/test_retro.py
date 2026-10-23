@@ -38,6 +38,15 @@ class T(unittest.TestCase):
         self.assertEqual(self.r["main_thread"]["notification_turns_relayed"], 1)
         self.assertEqual(m["spawned"]["my-implementer"], 1)
 
+    def test_land_forms_and_notification_replies(self):
+        import re
+        for c in ("just land", "just --justfile /a/b/justfile --working-directory /a/b land",
+                  "just --justfile=/a/justfile land"):
+            self.assertEqual(retro.bash_class(c), "land", c)
+        self.assertEqual(retro.bash_class("just check-all"), "gate")
+        self.assertIsNone(re.search(retro.LAND_RX, "just check"))
+        self.assertEqual(self.r["main_thread"]["notification_replies"], 1)
+
     def test_per_task(self):
         pt = retro.per_task(self.r, "/nonexistent", tasks=2)
         self.assertEqual(pt["tasks"], 2)

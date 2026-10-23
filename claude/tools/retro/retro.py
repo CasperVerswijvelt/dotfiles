@@ -17,9 +17,11 @@ PRICES = {
     "claude-haiku-5-5": (0.10, 0.50, 0.01), "claude-haiku-4-5": (1, 5, 0.10),
     "claude-fable-5-1": (10, 50, 0.25), "claude-fable-5": (10, 50, 0.25),
 }
+# `just land` and its one-call form `just --justfile <path> [--working-directory <path>] land`
+LAND_RX = r"\bjust(\s+--[\w-]+(=|\s+)\S+)*\s+land\b"
 # first match wins; applied to the command with heredoc bodies stripped
 BASH_CLASSES = [
-    ("land", r"\bjust land\b"), ("goldens", r"update-goldens|--tags[ =]golden|\bjust goldens\b"),
+    ("land", LAND_RX), ("goldens", r"update-goldens|--tags[ =]golden|\bjust goldens\b"),
     ("gate", r"\bjust check(-all)?\b|\bgit commit\b|\bgit push\b|\.githooks|pre-commit"),
     ("tests", r"\b(flutter|dart) test\b|\bjust test"),
     ("walkthrough", r"\bwalk(-demo)?\b|playwright|chrome"),
@@ -258,8 +260,9 @@ def analyse(path, aid, role, idle):
                     a["send_message"] += 1
                 if b["name"] == "Bash":
                     cmd = re.sub(r"<<.*", "", inp.get("command", ""), flags=re.S)
-                    for k in ("just land", "just check-all", "just check"):
-                        if re.search(r"\b" + k + r"\b(?!-)", cmd):
+                    for k, rx in (("just land", LAND_RX), ("just check-all", r"\bjust check-all\b"),
+                                  ("just check", r"\bjust check\b(?!-)")):
+                        if re.search(rx, cmd):
                             a["gate"][k] += 1
                     if re.search(r"\bgit commit\b", cmd):
                         a["commits"]["cmds"] += 1
@@ -445,7 +448,9 @@ def summarise(agents, notes, idle):
     for m in main:
         ht = sum(h["secs_to_reply"] for h in m["human_turns"]); nt = sum(n["secs"] for n in m["notif_turns"])
         mt = {"answering_casper_secs": ht, "handling_notifications_secs": nt,
-              "notification_turns": len(m["notif_turns"]), "notification_turns_relayed": sum(n["relayed"] for n in m["notif_turns"])}
+              "notification_turns": len(m["notif_turns"]), "notification_turns_relayed": sum(n["relayed"] for n in m["notif_turns"]),
+              # main replies that follow a task-notification (narration is a subset; not every reply is narration)
+              "notification_replies": sum(n["relayed"] for n in m["notif_turns"])}
     gaps = sorted((g for a in agents for g in a["gaps"]), key=lambda g: -g["secs"])
     return {"idle_threshold_secs": idle, "notes": notes, "totals": tot, "main_thread": mt, "top_gaps": gaps[:20],
             "agents": agents}
