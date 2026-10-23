@@ -38,8 +38,10 @@ a human to settle, the smallest fix and the files it touches.
 One Opus `my-reviewer` merges duplicates and groups the kept findings into PRs: one theme
 each, reviewable in one sitting, every PR off the base and independent of the others
 (no stacking). Per PR: title, why, files, screenshots yes/no, overlap with an open PR,
-risk. Then a merge order, and the product decisions, each with options and a
-recommendation. Technical choices are made, not asked.
+risk, technical cost (low, medium, high: lines and complexity added or removed, upkeep).
+A PR or finding whose fix costs high is a product decision with that cost, not a planned
+PR. Then a merge order, and the product decisions, each with options and a
+recommendation. Other technical choices are made, not asked.
 
 ## 5. Present
 

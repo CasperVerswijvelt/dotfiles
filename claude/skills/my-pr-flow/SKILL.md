@@ -38,6 +38,7 @@ A `my-scout` gathers what you need to know about the code.
 - Product questions go up as `my-orchestrator` says; a changed answer becomes a
   follow-up task.
 - A big change (new screen, data model change) waits for Casper's approval of the plan.
+- A task with a high technical cost (see the cost rule in `CLAUDE.md`) goes to Casper as a decision before the plan is final.
 
 Before implementation:
 

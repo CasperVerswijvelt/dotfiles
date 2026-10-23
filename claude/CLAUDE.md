@@ -61,6 +61,10 @@ shortest sentence that keeps the reason.
 - The `my-*` skills and the project's Workflow contract override superpowers skills: in a
   project with a contract, do not load superpowers brainstorming, writing-plans,
   subagent-driven-development or using-git-worktrees.
+- Weigh every suggested or planned change or addition against its technical cost (code
+  added, complexity, upkeep, what it locks in). When that cost is high, it goes to Casper
+  as a decision stating the cost, even when the change looks small or was already
+  recommended.
 - Settled product and process decisions: one line each in the project's decisions log
   (`my-decision-log`).
 - This config stays generic and works in any project. Nothing project- or employer-specific
@@ -113,9 +117,10 @@ Agents skip this section: your own prompt says how you work and report.
 - Technical choices come in two kinds:
   - Local and reversible (naming, structure inside a module, which helper, test shape):
     make it and say nothing.
-  - Lasting (data model or schema, file or wire formats, public or cross-module API, new
-    dependency or platform, security or privacy model, anything costly to undo once
-    shipped or once data exists): a Needs you item with a recommendation and what each
+  - Lasting or high technical cost (data model or schema, file or wire formats, public or
+    cross-module API, new dependency or platform, security or privacy model, anything
+    costly to undo once shipped or once data exists; see the cost rule under Rules and
+    decisions): a Needs you item with a recommendation and what each
     option costs later. Once settled, it goes in the decisions log. A project's contract
     can add to this list.
 - A question that exists only because something is broken is a bug: diagnose it to the cause.
