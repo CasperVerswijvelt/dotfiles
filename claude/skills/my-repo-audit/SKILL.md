@@ -30,16 +30,14 @@ and leaked data, tests and CI, product fit. Also these standard areas:
 - **UX walk:** walk the product as its user would. Friction is reported as product
   questions with a concrete example, not as fixes.
 - **Zoomed-out architecture:** question the whole system for overengineering. Each finding
-  says what a simpler system looks like and its technical cost; one that reopens a
-  recorded decision is a decision for Casper, not a fix.
+  says what a simpler system looks like and its technical cost. At stage `mvp` (the
+  contract's Stage line) ask it "what would we delete for the actual user count":
+  architecture weight, dead code, features not worth their upkeep. Its deletions are
+  planned first (see 4).
 
 Add the contract's extra areas; drop what the repo has no surface for (a non-UI project
 skips the UI areas). When the focus is architecture, state and concurrency folds into the
 architecture reviewer (they duplicated each other).
-
-At stage `mvp` (the contract's Stage line) add a simplification reviewer: "what would we
-delete for the actual user count": architecture weight, dead code, features not worth
-their upkeep. Its deletions are planned first (see 4).
 
 Each gets: the scope, the open PRs, the severities in `my-pr-review` (the "caused by
 this change" rule does not apply), and these rules: cite a `file:line` you read and a
@@ -61,9 +59,10 @@ One Opus `my-reviewer` merges duplicates and groups the kept findings into PRs: 
 each, reviewable in one sitting, every PR off the base and independent of the others
 (no stacking). Per PR: title, why, files, screenshots yes/no, overlap with an open PR,
 risk, technical cost (low, medium, high: lines and complexity added or removed, upkeep).
-A PR or finding whose fix costs high is a product decision with that cost, not a planned
-PR; so is any UX-walk friction and any zoomed-out finding that reopens a recorded decision. Simplification deletions come first in the order, before any hardening task, so no fix
-hardens code that is about to be cut. A finding whose fix adds stored state, a stored
+A finding whose fix costs high (the cost rule in `CLAUDE.md`), any UX-walk friction and
+any finding that reopens a recorded decision is a product decision with its cost, not a
+planned PR. Simplification deletions come first in the order, before any hardening task,
+so no fix hardens code that is about to be cut. A finding whose fix adds stored state, a stored
 check or a new format goes to Casper as one question with a recommendation, not as a
 series of edge-case decisions. Then a merge order, and the product decisions, each with options and a
 recommendation. Other technical choices are made, not asked.
