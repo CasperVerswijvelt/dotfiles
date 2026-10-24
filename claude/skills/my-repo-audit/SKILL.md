@@ -20,7 +20,8 @@ One `my-reviewer` per specialty, in parallel, blind to each other: correctness, 
 concurrency, architecture, over-engineering and dead code, code quality and resource
 leaks, UI and responsive layout, copy and accessibility, docs against code, security
 and leaked data, tests and CI, product fit. Add the contract's extra areas; drop what
-the repo has no surface for.
+the repo has no surface for. When the focus is architecture, state and concurrency folds
+into the architecture reviewer (they duplicated each other).
 
 At stage `mvp` (the contract's Stage line) add a simplification reviewer: "what would we
 delete for the actual user count": architecture weight, dead code, features not worth
@@ -29,12 +30,15 @@ their upkeep. Its deletions are planned first (see 4).
 Each gets: the scope, the open PRs, the severities in `my-pr-review` (the "caused by
 this change" rule does not apply), and these rules: cite a `file:line` you read and a
 concrete failure scenario; check code, not comments; respect recorded decisions; at
-most 12 findings, most severe first; read-only.
+most 12 findings, most severe first; read-only. A finding that contradicts a recorded
+decision is framed as "decision X costs Y", not as a bug.
 
 ## 3. Verify
 
 One fresh reviewer per blocker or major finding (none for minors) tries to refute it, defaulting to "not valid" when
-unsure, and returns: valid, worth fixing, severity, visible to users, needs hardware or
+unsure. Every item that will go to Casper as a decision gets one too, whatever its
+severity: it tries to refute the premise (does the situation it describes happen in the
+code, file:line). Each returns: valid, worth fixing, severity, visible to users, needs hardware or
 a human to settle, the smallest fix and the files it touches.
 
 ## 4. Plan
@@ -50,9 +54,20 @@ check or a new format goes to Casper as one question with a recommendation, not 
 series of edge-case decisions. Then a merge order, and the product decisions, each with options and a
 recommendation. Other technical choices are made, not asked.
 
+Every audit, the planner also produces:
+- A short map of the canonical flow every feature should follow (how it reads, writes,
+  syncs or communicates data). It is the yardstick for findings.
+- An exceptions table: each place that deviates from that flow, with `file:line`, why it
+  deviates, its existence cost (low, medium, high: lines, complexity, upkeep) and one
+  option: make it fit (how, cost), remove (impact), or keep as a recorded exception with
+  the trigger that ends it.
+- Proposed long-term rules, each marked test-enforced (which test, and how) or
+  reviewer-enforced.
+
 ## 5. Present
 
-Counts (reported, kept, needs a human, rejected), the PR table, the merge order, then
+Counts (reported, kept, needs a human, rejected), the flow map, the exceptions table, the
+proposed rules, the PR table, the merge order, then
 the decisions as Needs you items (status page, else a short list). Spot-check two kept findings first.
 
 Afterwards the PRs run through `my-orchestrator`s. Bundle small tasks that share no files
