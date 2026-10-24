@@ -80,6 +80,18 @@ gate, and any other named check.
 | 2026-10-23 | gym-app | mockup (Casper) | M6 T7b first mockup stacked two segmented controls; one app bar toggle instead (decision 176) | major |
 | 2026-10-23 | gym-app | simplification review (5 lenses + judge) | 5 of 5 proposals approved by Casper; about 10.8k net lines out (REST routes, 20 walks, overwrite notices, Settings invites, Docker image stage) for $6.4 plus $17.2 to execute | major |
 | 2026-10-23 | gym-app | summary | most per-task reviews (about 30 of 40) gave A or A- with minors only; no live-check or golden catch in this window | minor |
+| 2026-10-24 | gym-app | correctness review (round 3) | picker-sheet T1: showAppSheet disposed its controller on a finger-down drag to 0, release left a stuck sheet with the barrier up | blocker |
+| 2026-10-24 | gym-app | correctness review | picker-sheet T1 round 1: sheet header did not use the shared blur (one concept, one look) | major |
+| 2026-10-24 | gym-app | correctness review (2 rounds) | audit-p2b: photo lost on retry; round 2 refusal branch untested | major |
+| 2026-10-24 | gym-app | correctness review | audit-p5 T2: workout when-title still MMMEd, bypassing formatDate | major |
+| 2026-10-24 | gym-app | correctness review round 2 | audit-p12 T1 doc comment wrong, T3 goal-weight sheet | major |
+| 2026-10-24 | gym-app | correctness and architecture review | arch-audit T9a row-write rule missed update/delete; T10 start=1 retry while signed out; T2 theme wording | major |
+| 2026-10-24 | gym-app | correctness review (2 fix waves) | arch-audit T6: duplicate page key crash in Save as routine (pre-existing), round 2 found it again via the sub-route | major |
+| 2026-10-24 | gym-app | correctness review | coach-tokens T2 stub dropped pending proposal ids; thinking-experiment usage.log grep fatal in the EXIT trap | major |
+| 2026-10-24 | gym-app | plan review | invites-cli: dead ApiErrorCode.forbidden | major |
+| 2026-10-24 | gym-app | mockup / APK verdicts (Casper) | picker see-through header; weighted pull-up showed only the rep counter (became the added-weight decision); P12 T5 side figure and align guide ugly | major |
+| 2026-10-24 | gym-app | audit verifiers | 31 verifiers for about $3.5 confirmed the audit's real majors | minor |
+| 2026-10-24 | gym-app | summary | about 30 of the other per-task reviews gave A or A- with minors only; no live-check or golden catch in this window | minor |
 
 ## Escaped
 
@@ -103,3 +115,7 @@ would have caught.
 | 2026-10-23 | gym-app | A7 injected clocks into route tests and added a demo path test that simplification T1 deleted within 50 minutes (ordering) | simplification T1 | run deletions before hardening on the same files | existing (no ordering rule) |
 | 2026-10-23 | gym-app | A9 global challenge cap of 10,000 let one visitor lock every sign-in; per-visitor limit added a day later | the A9 review follow-up and main | a security verifier asked about abuse of the cap itself | existing (verifier accepted the cap) |
 | 2026-10-23 | gym-app | walk scenarios rotted: walk-local start, weight-live, walk-offline fail on stale UI text on main; live-coach apply mode clicks "Apply" but the UI says "Apply all" | simplify-1 T1 and M5c close | the on-request walks run once per plan | removed (walks cut until release) |
+| 2026-10-24 | gym-app | P12 T5 three photos on one day could not change pose, a bug that reached APK 3 under review A- | Casper on APK 3 | a UI and product reviewer using the built flow as a first-time user (swap a pose) | existing (whether it ran is not in the notes) |
+| 2026-10-24 | gym-app | picker-sheet blocker (stuck sheet on finger-down drag) passed T1 round 1 and rounds 1 to 2, found only in fix wave 3 | review round 3 | a test that drags past the bottom with the finger down, then releases, written with the sheet | existing (no check caught it earlier) |
+| 2026-10-24 | gym-app | several sessions' full test runs at once overloaded the 10-core machine; gates failed on time caps for about 10 h (7 gate/land fixes, ~15 agent-hours blocked) | landing and gate failures | a machine-wide test-run limit sized to cores, measured before changing gate placement | existing (no check) |
+| 2026-10-24 | gym-app | weighted pull-up showed only the rep counter, no weight control | Casper on the phone | a mockup or review of added-weight exercises against the spec | existing (no check caught it) |
