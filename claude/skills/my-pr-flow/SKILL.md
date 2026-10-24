@@ -65,7 +65,7 @@ Done when every task has files, interfaces, test names and acceptance.
 One `my-implementer` per task, tests first. The prompt states whether it commits. Tasks run in parallel only when their files
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
 number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
-path and it works only there. Remove the worktree after the merge.
+path and it works only there.
 
 ## 4. Gate
 
@@ -87,7 +87,10 @@ A fix after a failed land is a fix wave (gets the review rules) only if it chang
 
 **mvp**: no changelog, PR screenshots or release steps. After the review passes, merge to
 the base if the merge policy allows (through the contract's landing step when it has one),
-push, delete the branch.
+push.
+
+Cleanup: at plan close and after a standalone change lands, run the contract's `Cleanup`
+command if it names one; with none, remove the task's own worktree and its merged branch.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).

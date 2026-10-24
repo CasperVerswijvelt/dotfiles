@@ -16,6 +16,7 @@ project's CLAUDE.md, never in this repo.
 - Base branch: main
 - Merge policy: Casper merges   # or: my-orchestrator merges after the review passes
 - Landing: <command, or none>   # the step that merges to the base (rebase, tests, push); runs the test suite
+- Cleanup: <command run at plan close>   # optional; default: remove the task's own worktree and merged branch
 - Max parallel implementers: 3  # optional; default 3, the gate is CPU-bound
 - Parallelism: <max plans at once, conditions>   # optional; plans, not implementers
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
