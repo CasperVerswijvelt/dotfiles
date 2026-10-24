@@ -34,7 +34,8 @@ A `my-scout` gathers what you need to know about the code.
 - A task about motion or feel carries Casper's verdict from a live check on the contract's
   `Preview`; without it the task waits, and the orchestrator stops and reports (it does
   not stay alive waiting). Main resumes with a fresh orchestrator that reads the progress
-  note.
+  note. This holds between preview rounds too: report and end, main relays the verdict to a
+  fresh agent, and no Opus agent idles waiting.
 - Product questions go up as `my-orchestrator` says; a changed answer becomes a
   follow-up task.
 - A big change (new screen, data model change) waits for Casper's approval of the plan.
@@ -66,6 +67,11 @@ One `my-implementer` per task, tests first. The prompt states whether it commits
 are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
 number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there.
+
+Capacity: before changing a shared gate or land, or before releasing several sessions at once,
+measure the cores one test run uses. Size concurrent test runs to cores divided by cores per
+run, rounded down; proof runs count. Release holds one session at a time. Prefer a hold file
+or lock the gate checks over messages.
 
 ## 4. Gate
 

@@ -24,6 +24,8 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 - Require him present for a step whose failure would leave no trace afterwards.
 - Motion and feel are Casper's call, judged live on the contract's `Preview`: before the
   plan is written and again before merge. His verdict is the gate. Tests still pin timing.
+  When a step waits on his live verdict, the orchestrator reports and ends; main relays the
+  verdict to a fresh agent. No Opus agent idles waiting.
 - A layout or look decision gets a mockup on the real UI before it is built. No per-task
   before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
   shots of a screen or at his milestone check, on the status page when the contract names
