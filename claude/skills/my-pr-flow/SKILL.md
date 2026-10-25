@@ -5,10 +5,11 @@ description: Take a change from branch to merge or open PR, in any project, by i
 
 # Branch to PR
 
-The main thread starts a `my-orchestrator` with the task and relays its report. The
-orchestrator runs these steps, delegating each one (gate runs, rebases and status edits
-included). Read the project's
-`## Workflow contract` first: its stage picks the path in step 6.
+Size picks who runs it. A single-task feature or a look-and-feel loop: main starts a
+`my-implementer` that does the task and lands it, then a `my-reviewer` (`my-pr-review`),
+with no orchestrator. A plan with several tasks: main starts a `my-orchestrator`, which runs
+these steps and delegates each one (gate runs, rebases and tracker edits included). Read the
+project's `## Workflow contract` first: its stage picks the path in step 6.
 
 Agent descriptions follow the rule in `my-orchestrator`.
 
@@ -33,18 +34,18 @@ A `my-scout` gathers what you need to know about the code.
   before it is built.
 - A task about motion or feel carries Casper's verdict from a live check on the contract's
   `Preview`; without it the task waits, and the orchestrator stops and reports (it does
-  not stay alive waiting). Main resumes with a fresh orchestrator that reads the progress
-  note. This holds between preview rounds too: report and end, main relays the verdict to a
-  fresh agent, and no Opus agent idles waiting.
+  not stay alive waiting). Main resumes with a fresh agent that reads the plan file. This
+  holds between preview rounds too: report and end, main relays the verdict to a fresh
+  agent, and no Opus agent idles waiting.
 - Product questions go up as `my-orchestrator` says; a changed answer becomes a
-  follow-up task.
+  follow-up task. Rulings, defaults and open questions go in the plan file.
 - A big change (new screen, data model change) waits for Casper's approval of the plan.
 - A task with a high technical cost (see the cost rule in `CLAUDE.md`) goes to Casper as a decision before the plan is final.
 
 Before implementation:
 
 - **Preflight.** Check every task's files and interfaces against the base, read only, and
-  record each adaptation or conflict in the progress note with its cost if wrong. An
+  record each adaptation or conflict in the plan file with its cost if wrong. An
   implementer reusing a preflight commit checks `git diff <base>` for deletions outside
   the task: preflight commits lag the base and would undo merged review fixes.
 - **UI task check**, written in the plan: the user goal in one sentence; everything the
@@ -55,23 +56,16 @@ Before implementation:
 
 Split any task expected to take over about 45 minutes at planning time.
 
-Questions for Casper are raised here, in preflight, and sent to main at once. Work that
-does not depend on the answer starts meanwhile; dependent tasks wait, and a default with
-its cost goes in the progress note.
+Questions for Casper are raised here, in preflight. Dependent tasks wait; a default with
+its cost goes in the plan file.
 
 Done when every task has files, interfaces, test names and acceptance.
 
 ## 3. Implement
 
 One `my-implementer` per task, tests first. The prompt states whether it commits. Tasks run in parallel only when their files
-are disjoint, at most 3 at once (the gate is CPU-bound) unless the contract sets another
-number, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
+are disjoint, and each parallel task gets its own worktree: the `my-implementer`'s prompt names the exact
 path and it works only there.
-
-Capacity: before changing a shared gate or land, or before releasing several sessions at once,
-measure the cores one test run uses. Size concurrent test runs to cores divided by cores per
-run, rounded down; proof runs count. Release holds one session at a time. Prefer a hold file
-or lock the gate checks over messages.
 
 ## 4. Gate
 
@@ -82,11 +76,9 @@ tests. The full gate runs once, in the landing step, not again by hand just befo
 ## 5. Review
 
 Commit, then run `my-pr-review` until it passes or round 2 ends. Fixes go to a fresh
-implementer and are committed before the next round. A review with minors only gets no
-fix wave (see `my-orchestrator`). The implementer of the last wave
-then lands the task (step 6), continued as the same agent. At plan close the full gate
-(the contract's full check) runs once, in the landing step of the last fix wave, and the live check runs
-in that same implementer: no second run by a separate land or gate agent.
+implementer and are committed before the next round. A review with minors only lands as is
+(see `my-pr-review`). The implementer that did the task, or the last fix wave, lands it
+(step 6): no separate landing agent.
 A fix after a failed land is a fix wave (gets the review rules) only if it changes more than the failing test.
 
 ## 6. Land
@@ -95,8 +87,14 @@ A fix after a failed land is a fix wave (gets the review rules) only if it chang
 the base if the merge policy allows (through the contract's landing step when it has one),
 push.
 
-Cleanup: at plan close and after a standalone change lands, run the contract's `Cleanup`
-command if it names one; with none, remove the task's own worktree and its merged branch.
+**Plan close** is light: tick the plan, point the tracker at what is next, run the
+contract's `Cleanup` command (with none, remove the task's own worktrees and merged
+branches). The same cleanup follows a standalone change.
+
+**Milestone close** (the contract's milestone, or Casper's call) is the heavy one: the
+contract's full check once, in the landing step of the last task; the full status rewrite;
+a review over the whole milestone per `my-pr-review`. A plan that touched sync, data or
+security also gets a closing review at its own close; other plans get none.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).

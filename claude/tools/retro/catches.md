@@ -92,6 +92,16 @@ gate, and any other named check.
 | 2026-10-24 | gym-app | mockup / APK verdicts (Casper) | picker see-through header; weighted pull-up showed only the rep counter (became the added-weight decision); P12 T5 side figure and align guide ugly | major |
 | 2026-10-24 | gym-app | audit verifiers | 31 verifiers for about $3.5 confirmed the audit's real majors | minor |
 | 2026-10-24 | gym-app | summary | about 30 of the other per-task reviews gave A or A- with minors only; no live-check or golden catch in this window | minor |
+| 2026-10-24 | gym-app | all-areas review | home-redesign T2: rest-day calendar cells had no fill (B round 1, A round 2) | major |
+| 2026-10-24 | gym-app | all-areas review | audit-lane A5 sign-out spinner swap (B round 1, A round 2) | major |
+| 2026-10-24 | gym-app | all-areas review | logging-and-picker T2: second route for one routine page, Delete from it, fix waves 1 and 2 | major |
+| 2026-10-24 | gym-app | all-areas review | quick-sheet T1: perf_test tapped a removed control (not in the gate) | minor |
+| 2026-10-24 | gym-app | plan preflight | history-tab: a new chat's first send `go('/coach/<id>')` drops Home from the stack; pinned by a test, fixed with replace before T2 | major |
+| 2026-10-24 | gym-app | audit 2026-10-24 (15 auditors, 22 verifiers, planner) | 121 reported, 2 real majors (COR-1 restore on a phone that synced ignored the epoch, STA-1 a proxy 403 refused the sync), 62 kept in PRs, mostly copy, widget and test-rule minors; about $30 audit plus about $17 execution in the window | major |
+| 2026-10-24 | gym-app | plan-close review | home-redesign, schedule-polish, picker-sheet closes: A or A-, only plan text and minors | nil |
+| 2026-10-24 | gym-app | all-areas review | schedule-polish T1 to T4: 48 dp tap target, semantics label, Reveal leak guard | minor |
+| 2026-10-24 | gym-app | tidy review | dead audit link, missing walk-base worktree reported as pruned | minor |
+| 2026-10-24 | gym-app | mockup / phone verdicts (Casper) | schedule layout (Edit schedule row back, 16 dp align) and calendar cells (day number on every cell) changed after he saw the built UI; "Motion feels good" on cycle rows | major |
 
 ## Escaped
 
@@ -119,3 +129,7 @@ would have caught.
 | 2026-10-24 | gym-app | picker-sheet blocker (stuck sheet on finger-down drag) passed T1 round 1 and rounds 1 to 2, found only in fix wave 3 | review round 3 | a test that drags past the bottom with the finger down, then releases, written with the sheet | existing (no check caught it earlier) |
 | 2026-10-24 | gym-app | several sessions' full test runs at once overloaded the 10-core machine; gates failed on time caps for about 10 h (7 gate/land fixes, ~15 agent-hours blocked) | landing and gate failures | a machine-wide test-run limit sized to cores, measured before changing gate placement | existing (no check) |
 | 2026-10-24 | gym-app | weighted pull-up showed only the rep counter, no weight control | Casper on the phone | a mockup or review of added-weight exercises against the spec | existing (no check caught it) |
+| 2026-10-24 | gym-app | rest card label moved three times in 3 h (7767dcad, 798ee7fd, b98521a2), 5 agents, about $4.7, reversing each other | Casper on the phone | a layout test pinning the label offset and tap area, written with the first change | existing (no check caught it) |
+| 2026-10-24 | gym-app | 535f3a75 changed the shared Space.hair for one joined-run gap; calendars, heatmap and hero outline changed look, restored 6 h later (dafad5d5, new Space.joined) (finder not in notes, unverified) | a follow-up task | a reviewer listing the users of a token before changing its value (one token, one use) | existing (no check caught it) |
+| 2026-10-24 | gym-app | overload again: 746 gate calls 10:14 to 22:47, 53 passed, 542 refused "test slots busy" (1650 busy call-minutes after the 15:08 capacity rule, 449 before); hold file never used | gate failures | the contract's one-plan-at-once cap actually held by main (about 5 sessions ran), or a gate wait that blocks to the 9 min attach point instead of failing at 180 s | existing (rule R41 unenforced) |
+| 2026-10-24 | gym-app | calendar look: ring-today built 11:00 from an approved mockup, cells redesigned 15:28 (day number on every cell, filled done, rest dimmed) and fixed again 17:25 (row height at any text scale) | Casper on the preview | a mockup of the whole month with all four cell states and text scale 1.3 | existing (mockup approved the partial look) |

@@ -19,7 +19,7 @@ top 3 findings.
    The JSON has `per_task` (cost, orchestrator wakes, gate minutes, review rounds per landed
    task, from the repo's `<plan> Task <n>:` commits in the window); `--tasks N` overrides the
    count, `--repo` the repo.
-2. **Plan vs landed.** One `my-scout` reads the plan, the progress note and `git log` for the
+2. **Plan vs landed.** One `my-scout` reads the plan file and `git log` for the
    window and reports what landed against what was planned. It also counts the items in
    Casper's feedback rounds and milestone checks in the window (the project's roadmap and
    plans, e.g. "Feedback round" plans) and lists them per round.
@@ -41,7 +41,7 @@ top 3 findings.
    `role` and `description` (implementation, each review area and verifier, fix waves,
    gates, landing, and the project's verification activities as named in its CLAUDE.md or
    contract, e.g. UI capture, goldens, live checks), summing `wall`, `cost_usd` and `time`. For each class it reads what it caught
-   in the plan's progress note, review findings, fix waves, capture notes and live check
+   in the plan file, review findings, fix waves, capture notes and live check
    results, and classifies each catch as confirmed real bug, minor, or nothing. Verdict per
    class: keep, slim, cut or replace. The yardstick is the project's stated priorities: the
    contract `Stage:` line in its CLAUDE.md and the criteria in its decisions log. Output a
@@ -52,7 +52,9 @@ top 3 findings.
    then appends this retro's catches and escapes (bugs found later by Casper, a later plan
    or the live app, with the check that would have caught them) to that file.
 6. **Rank** findings by measured cost (minutes, dollars). Each gets one concrete fix and
-   the file it changes.
+   the file it changes. Propose removals before additions: a rule that did not work, or
+   whose ledger row says "worse" or "no effect", is removed from the files that carry it.
+   A retro adds no new rule by default; an addition needs measured cost and a prediction.
 7. **Publish** an HTML page with the Artifact tool (load `artifact-design` first):
    summary, time and tokens by role, the value table, progress vs plan, ranked findings, main-thread turns
    that needed Casper, and a trend section: per-task metrics across the retro-log rows and

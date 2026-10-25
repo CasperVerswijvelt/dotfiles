@@ -20,10 +20,10 @@ Agent descriptions follow the rule in `my-orchestrator`.
 **Scale by diff, same bar.** Default: ONE `my-reviewer` per task covers every area below,
 the contract's extra areas and the UI and product checks included when UI changed, then the
 judge; no verify step. Split into separate area reviewers (the full set) only for a schema
-change, a security-relevant change or a new screen. Plan-close review (wins over the small-diff rule):
-correctness and architecture only, and no judge when there are no blockers or majors;
-the grade then follows from the minor count. A plan that touches no storage, sync or
-server code gets one all-areas reviewer at close; other plans keep the full set.
+change, a security-relevant change or a new screen. Closing review (wins over the small-diff rule), only when the plan touched sync, data
+or security, or at milestone close: correctness and architecture only, and no judge when
+there are no blockers or majors; the grade then follows from the minor count. A UI-only plan
+gets no closing review.
 Reviewers read code and, when given, the before/after pair, not a full capture folder or the author's notes.
 
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
@@ -87,8 +87,8 @@ closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
 
 ## Rounds
 
-At most two. Minors are fixed in the next commit with no new round and no fix wave of
-their own. Round 2 is a full review only when the fix wave touched concurrency, sync or
+At most two. A review with only minor findings lands as is: the minors are noted in the plan
+under Follow-ups, with no fix pass and no new round. Round 2 is a full review only when the fix wave touched concurrency, sync or
 ordering code; otherwise one verifier confirms the named findings are fixed. When every finding will be fixed anyway, skip verify and
 judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no

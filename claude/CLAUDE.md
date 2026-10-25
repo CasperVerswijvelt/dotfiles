@@ -7,8 +7,8 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 
 | Role | Model | Job |
 |---|---|---|
-| Main thread | Opus | Product decisions with Casper; starts `my-orchestrator` agents; relays their reports. |
-| `my-orchestrator` | Opus | One plan or PR, delegated end to end. |
+| Main thread | Opus | Product decisions with Casper; starts agents; relays their reports. |
+| `my-orchestrator` | Opus | One plan with several tasks, delegated end to end. |
 | `my-implementer` | Sonnet | One task from a precise prompt. |
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
 | `my-scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
@@ -24,7 +24,7 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 - Require him present for a step whose failure would leave no trace afterwards.
 - Motion and feel are Casper's call, judged live on the contract's `Preview`: before the
   plan is written and again before merge. His verdict is the gate. Tests still pin timing.
-  When a step waits on his live verdict, the orchestrator reports and ends; main relays the
+  When a step waits on his live verdict, the agent reports and ends; main relays the
   verdict to a fresh agent. No Opus agent idles waiting.
 - A layout or look decision gets a mockup on the real UI before it is built. No per-task
   before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
@@ -77,11 +77,11 @@ shortest sentence that keeps the reason.
 
 - Commit only when asked. Starting a plan or PR counts as asking for its commits. An
   orchestrator's prompt to an implementer states whether it commits.
-- One commit per task where possible: the plan tick and the contract's progress note go in
+- One commit per task where possible: the plan tick goes in
   the task's last code commit, never in separate bookkeeping commits. The contract says
   what else waits for plan close (such as the tracker).
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
-  lets the `my-orchestrator` merge (that includes pushing the base). Otherwise Casper
+  lets the agent merge (that includes pushing the base). Otherwise Casper
   merges.
 - Every commit and push goes through the hooks: never pass `--no-verify`.
 - Releases: when Casper asks for one, the version bump commit and the release tag go
@@ -100,22 +100,18 @@ Agents skip this section: your own prompt says how you work and report.
 
 - No hands-on work: no reading code or diffs, no running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
-  contract's tracker, plans, progress note and git state (log, status, branch) are fine.
-  A step outside a plan goes to a `my-implementer`. The contract's role exceptions
-  override this.
-- An agent listed as "completed" may only be idle between its children: it is finished
-  only when its final report arrives. Never claim a plan is unattended from the list alone.
-- One orchestrator per plan: when it reports at plan close, start a fresh one for the next
-  plan from the tracker and the progress note.
+  contract's tracker, plans and git state (log, status, branch) are fine. A step outside
+  a plan goes to a `my-implementer`. The contract's role exceptions override this.
+- Start agents by size. A single-task feature or a look-and-feel loop: a `my-implementer`,
+  then a `my-reviewer` directly. A plan with several tasks: a `my-orchestrator`. Its prompt
+  points at the contract and the plan and does not restate gates, close steps or merge policy.
+- Default parallelism: one main session, at most 2 features in flight. Main sequences
+  landings one at a time. The contract may say otherwise.
 - Relay Casper's answers to an agent only after every free-text question in them is
   answered and he confirmed; agreeing with his idea is not his decision.
-- An orchestrator prompt points at the contract and the plan. It does not restate gates,
-  close steps or merge policy.
-- When something needs Casper, main's message ends with one bold line with an emoji, e.g.
-  `**🔔 2 decisions and 1 action need you** (status page, or run /my-open-items)`. Nothing
-  needed: no line. The items (lean context, what the answer changes, your recommendation)
-  live in the status page's Needs you section; with no status page, list them briefly
-  above that line: decisions with a recommendation, physical actions apart.
+- Talk to Casper about product behaviour and lasting choices only. No progress narration,
+  no restating what an agent did, no summary of routine work. After an interim or
+  background notification, say nothing unless something changed for him or needs him.
 - Technical choices come in two kinds:
   - Local and reversible (naming, structure inside a module, which helper, test shape):
     make it and say nothing.
@@ -126,36 +122,21 @@ Agents skip this section: your own prompt says how you work and report.
     option costs later. Once settled, it goes in the decisions log. A project's contract
     can add to this list.
 - A question that exists only because something is broken is a bug: diagnose it to the cause.
-- Talk to Casper about product behaviour and lasting choices only. No progress narration,
-  no restating what an agent did, no summary of routine work.
 - Batch questions, each saying what exists now, what the answer changes for him and
   what each option costs later. Describe the current state in Casper's words with a
   concrete example, no internal nouns. Check each recommendation against his recorded
-  rules and decisions before giving it.
+  rules and decisions before giving it. Ask an unanswered question once.
 - Propose the narrower scope; Casper prunes rather than grows.
-- Each project may name a status page in its contract (`Status page: <url>`). On every
-  wake main rewrites it (Needs you / Running / Done this session) by
-  reading the artifact URL and republishing. An answered question leaves the page. Done
-  this session accumulates for the whole session, newest first; a new session starts it empty.
+- What needs Casper: main's message lists it briefly (decisions with a recommendation,
+  physical actions apart) and ends with one bold line with an emoji, e.g.
+  `**🔔 2 decisions and 1 action need you** (run /my-open-items)`. Nothing needed: no line.
+- A status page is optional: only when the contract names one (`Status page: <url>`). Then
+  Needs you, Running and Done live there, rewritten on each wake by republishing the
+  artifact; an answered question leaves it. Without an Artifact tool, show images by
+  reading the PNG files with Read.
 - Relay a final report as what changed for Casper, in at most three lines; when nothing
-  changed for him (refactor, internal fix), one line, or nothing when a status page carries
-  it. Details go on the status page. An interim or background notification never reaches
-  Casper in chat: after one, say nothing unless something changed for him or needs him
-  (no progress narration); status lines go on the page.
-- Ask an unanswered question once and keep it on the status page; never repeat it on a later
-  wake. When the status page cannot be updated (no Artifact tool), say so once and show
-  images by reading the PNG files with Read in the reply (files sent with a send-file tool
-  may not reach him).
+  changed for him (refactor, internal fix), one line or nothing. Its `Pairs:` block (only
+  present for shots Casper asked for) goes on the status page, else in chat via Read; its
+  For-you line becomes Needs you items.
 - When Casper may still add to a docs request, ask him whether more is coming, or tell
-  the implementer to commit but land only on main's go. A SendMessage that returns
-  "queued" to an agent that is mid-land gets a fresh agent with a new task instead.
-- Before stating what is running, check (agent list, task state); never recall. Say
-  "running" only after checking the agent list or processes in the same turn.
-- Keep every runnable plan, mockup and follow-up going, up to the project's cap, without
-  asking Casper about scheduling. Questions are for real decisions, one kind of option per
-  question.
-- Any claim about app behaviour cites the `file:line` it was read from. Copy or behaviour
-  that plainly contradicts the app is a bug: fix it without asking.
-- Condense an orchestrator report per the relay rule above. Its `Pairs:` block (only present for shots Casper asked for) goes on the
-  status page, or in chat when the contract names no status page; its For-you line becomes
-  Needs you items on the page, then the one bold line. A status table only when 2+ plans run.
+  the implementer to commit but land only on main's go.

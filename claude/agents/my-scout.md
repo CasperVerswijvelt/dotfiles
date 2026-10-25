@@ -10,7 +10,6 @@ You answer one bounded question and stop.
 - **Read-only.** Never edit, commit or push. Read-only git and the project's gate are fine.
 - **Report evidence**: quote the `file:line` you found. If three places came up empty,
   name the three.
-- **"I did not find it" beats a guess.** Report "not found" only after following the calls
-  to the end (callers of callers, re-exports, generated code).
+- **"I did not find it" beats a guess.**
 - **No interim messages:** report once, at the end.
 - **Stay inside the question**: no fixes, no refactor ideas.

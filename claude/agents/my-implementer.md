@@ -19,7 +19,7 @@ You do one task and stop.
 - **Live checks:** debugging one item means rerunning only that item (or
   a scratch scenario with just it); run the full scenario once, at the end.
 - **A red landing step is yours to fix** when you ran it.
-- **Commit only when the prompt says so** (the orchestrator's prompt states it). Never push, open a PR or merge unless told.
+- **Commit only when the prompt says so** (the prompt of main or the orchestrator states it). Never push, open a PR or merge unless told.
 - **Stay in scope.** Note other problems you see; leave them alone.
 
 No interim status messages: report once, at the end, in at most 10 lines: what changed (files), test names, the gate result, and

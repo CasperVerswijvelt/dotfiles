@@ -59,7 +59,9 @@ One Opus `my-reviewer` merges duplicates and groups the kept findings into PRs: 
 each, reviewable in one sitting, every PR off the base and independent of the others
 (no stacking). Per PR: title, why, files, screenshots yes/no, overlap with an open PR,
 risk, technical cost (low, medium, high: lines and complexity added or removed, upkeep).
-A finding whose fix costs high (the cost rule in `CLAUDE.md`), any UX-walk friction and
+Only findings about stored data, sync, data loss and security are planned into PRs. Every
+other finding goes into one list Casper picks from (a Needs you item), and is not executed
+by default. A finding whose fix costs high (the cost rule in `CLAUDE.md`), any UX-walk friction and
 any finding that reopens a recorded decision is a product decision with its cost, not a
 planned PR. Simplification deletions come first in the order, before any hardening task,
 so no fix hardens code that is about to be cut. A finding whose fix adds stored state, a stored
@@ -81,9 +83,7 @@ Every audit, the planner also produces:
 
 Counts (reported, kept, needs a human, rejected), the flow map, the exceptions table, the
 proposed rules, the PR table, the merge order, then
-the decisions as Needs you items (status page, else a short list). Spot-check two kept findings first.
+the decisions as Needs you items (listed briefly in chat, or the status page when the contract names one). Spot-check two kept findings first.
 
-Afterwards the PRs run through `my-orchestrator`s. Bundle small tasks that share no files
-under one orchestrator (one review, one landing per task or per bundle, as the contract
-allows). Run bundles in parallel up to the contract's parallelism cap. A plan entry and its
-decisions are that orchestrator's input.
+Afterwards the planned PRs and the findings Casper picked run as plans through
+`my-pr-flow`. A plan entry and its decisions are the input.
