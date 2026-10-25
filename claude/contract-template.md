@@ -17,6 +17,7 @@ project's CLAUDE.md, never in this repo.
 - Landing: <command, or none>   # the step that merges to the base (rebase, tests, push); runs the test suite
 - Cleanup: <command run at plan close>   # optional; default: remove the task's own worktree and merged branch
 - Parallelism: <features in flight>   # optional; default: one main session, at most 2 features, landings one at a time
+- Main session: <exact session title>   # optional; the one session that builds; planning sessions message it
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Preview: <command, or none>   # runs the branch for Casper's live check
 - Pair tool: <skill or command and output folder, or none>   # before/after captures, only on Casper's request or at his milestone check

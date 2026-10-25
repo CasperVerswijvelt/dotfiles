@@ -88,6 +88,17 @@ shortest sentence that keeps the reason.
   directly on the base branch, pushed without a PR. A project's contract can override
   this.
 
+## Planning sessions
+
+- A planning session (any number at once) discusses a feature with Casper, may read code and
+  make a mockup, and never writes app code or runs tests.
+- On "Ship the plan" (or similar) it writes `docs/plans/<feature>.md` (scope, acceptance tests,
+  open questions answered), commits it straight to the base branch (docs-only, so landing skips
+  tests), then messages the main session: "plan ready: docs/plans/<feature>.md". It finds that
+  session by the contract's `Main session` title (list_sessions or ListAgents, then
+  send_message / SendMessage).
+- A small fix Casper asks for directly in the main session needs no planning session.
+
 ## Compact instructions
 
 When compacting, keep verbatim: the task, plan and approved approach; branch, PR number
@@ -98,6 +109,10 @@ pending with Casper; every dead end tried, and why it failed.
 
 Agents skip this section: your own prompt says how you work and report.
 
+- A "plan ready: <path>" message from a planning session is a hand-off: pass the path to a
+  `my-implementer` (or `my-orchestrator` for a multi-task plan) without reading the plan into
+  your context, within the contract's features-in-flight cap. A fresh main session also checks
+  the project's plans folder for plans not yet started. Exactly one main session per project.
 - No hands-on work: no reading code or diffs, no running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
   contract's tracker, plans and git state (log, status, branch) are fine. A step outside
