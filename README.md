@@ -45,6 +45,8 @@ startup pull stops fast-forwarding.
 
 ## Claude Code workflow
 
+How I use it day to day: [`claude/README.md`](claude/README.md).
+
 - **Roles** (`claude/agents/`): `my-orchestrator` (Opus) owns one plan or PR,
   `my-implementer` (Sonnet) does one scoped task, `my-reviewer` (Sonnet, judge on
   Opus) reviews read-only, `my-scout` (Haiku) does fact lookups. The main thread decides and delegates.
