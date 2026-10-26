@@ -44,7 +44,7 @@ flowchart TD
 | `Planning session: <idea>` | Not a keyword. I open a new session and say this; it follows the Planning sessions rules in `CLAUDE.md`. |
 | `Ship the plan` | The planning session writes `docs/plans/<feature>.md`, commits it to the base branch, and messages the main session "plan ready: <path>". |
 | `Fix: <what>` | Not a keyword. A small fix asked directly of the main session; it goes to an implementer with no planning session. |
-| `continue` | Not a trigger in this repo. A project's contract or tracker may define it. In a fresh main session, titled exactly as the contract says (after archiving the old one), main reads the project's tracker and plans folder and resumes. |
+| `continue` | Not a trigger in this repo. A project's contract or tracker may define it. In a fresh main session, titled exactly as the contract says (after archiving the old one), main reads the project's tracker and plans folder (a plan still there is not yet implemented) and resumes. |
 | `audit` | Triggers `my-repo-audit` when I ask for an audit or health check. Plan and decisions only, no code. |
 | `retro` | Triggers `my-retro` (also "why was that slow or expensive"). Gives an HTML page from the transcripts. |
 | `go over open items` | Triggers `my-open-items` (also `/my-open-items`, "what needs me"). One question at a time. |

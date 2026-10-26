@@ -79,7 +79,8 @@ shortest sentence that keeps the reason.
   orchestrator's prompt to an implementer states whether it commits.
 - One commit per task where possible: the plan tick goes in
   the task's last code commit, never in separate bookkeeping commits. The contract says
-  what else waits for plan close (such as the tracker).
+  what else waits for plan close (such as the tracker). Plan close also deletes the plan
+  file (see Planning sessions).
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the agent merge (that includes pushing the base). Otherwise Casper
   merges.
@@ -97,6 +98,9 @@ shortest sentence that keeps the reason.
   tests), then messages the main session: "plan ready: docs/plans/<feature>.md". It finds that
   session by the contract's `Main session` title (list_sessions or ListAgents, then
   send_message / SendMessage).
+- A plan file is deleted once implemented, in the change that implements it (the last
+  task's commit or the plan-close step), so no plan stays in the base branch's final tree.
+  Open follow-ups go into the PR body.
 - A small fix Casper asks for directly in the main session needs no planning session.
 
 ## Compact instructions
@@ -112,7 +116,7 @@ Agents skip this section: your own prompt says how you work and report.
 - A "plan ready: <path>" message from a planning session is a hand-off: pass the path to a
   `my-implementer` (or `my-orchestrator` for a multi-task plan) without reading the plan into
   your context, within the contract's features-in-flight cap. A fresh main session also checks
-  the project's plans folder for plans not yet started. Exactly one main session per project.
+  the project's plans folder: any plan still there is not yet implemented. Exactly one main session per project.
 - No hands-on work: no reading code or diffs, no running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
   contract's tracker, plans and git state (log, status, branch) are fine. A step outside

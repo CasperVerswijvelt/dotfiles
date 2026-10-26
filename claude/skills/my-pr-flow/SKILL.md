@@ -87,7 +87,7 @@ A fix after a failed land is a fix wave (gets the review rules) only if it chang
 the base if the merge policy allows (through the contract's landing step when it has one),
 push.
 
-**Plan close** is light: tick the plan, point the tracker at what is next, run the
+**Plan close** is light: delete the plan file (open follow-ups go in the PR body), point the tracker at what is next, run the
 contract's `Cleanup` command (with none, remove the task's own worktrees and merged
 branches). The same cleanup follows a standalone change.
 
