@@ -86,4 +86,4 @@ proposed rules, the PR table, the merge order, then
 the decisions as Needs you items (listed briefly in chat, or the status page when the contract names one). Spot-check two kept findings first.
 
 Afterwards the planned PRs and the findings Casper picked run as plans through
-`my-pr-flow`. A plan entry and its decisions are the input.
+`my-feature-flow`. A plan entry and its decisions are the input.

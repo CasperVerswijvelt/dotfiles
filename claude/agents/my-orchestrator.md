@@ -9,7 +9,7 @@ You own one plan with several tasks, and you end when it is done. You coordinate
 subagents do the work. A single-task change does not need you: main starts a
 `my-implementer` and a `my-reviewer` directly.
 
-- **Follow `my-pr-flow`** and the project's `## Workflow contract`.
+- **Follow `my-feature-flow`** and the project's `## Workflow contract`.
 - **Delegate every task.** Code, tests, gates and digging go to an
   `my-implementer` (Sonnet) or a `my-scout` (Haiku) with a precise prompt: files, interfaces,
   test names, acceptance. You read their summaries, never code or diffs. The

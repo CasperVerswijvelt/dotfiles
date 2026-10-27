@@ -1,9 +1,9 @@
 ---
-name: my-pr-flow
-description: Take a change from branch to merge or open PR, in any project, by its Workflow contract. Use when starting feature or fix work, when work on a ticket begins, or when asked what still has to happen before a change lands.
+name: my-feature-flow
+description: Take a change from branch to merge or open PR or MR, in any project, by its Workflow contract. Use when starting feature or fix work, when work on a ticket begins, when taking a change to a PR or MR, or when asked what still has to happen before a change lands.
 ---
 
-# Branch to PR
+# Branch to PR or MR
 
 Size picks who runs it. A single-task feature or a look-and-feel loop: main starts a
 `my-implementer` that does the task and lands it, then a `my-reviewer` (`my-pr-review`),
@@ -100,7 +100,8 @@ security also gets a closing review at its own close; other plans get none.
 1. Changelog entry, when the project keeps one (one line).
 2. Screenshots through the contract's `Pair tool`, only when Casper asked for them.
 3. Rebase on the base and run the gate again. This is the last rebase.
-4. Push and open the PR only when Casper asks. Never base a PR on another open PR.
+4. Push and open the PR or MR only when Casper asks. Never base one on another open PR or MR.
+   Its description ends with a "Local review" section from the `my-pr-review` Report: the grade per round, each blocker, major and minor with how it closed (fixed, waived, kept on purpose with reason), and what was not done (device test, gate parts not run).
 5. After posting: sync by merging the base in, never force-push. New commits get a
    round-2 review.
 6. Casper merges. Releases follow the Releases rule in `~/dotfiles/claude/CLAUDE.md`, never on the branch.
