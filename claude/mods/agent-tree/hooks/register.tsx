@@ -395,9 +395,8 @@ export const register: Register = on => {
                 {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
                 <Text color={color(n)}>{n.type}</Text>{ph ? <Text dimColor> {ph}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}>{rev}</Text> : null}{n.needsYou ? <Text color="yellow">{flag}</Text> : null} {limit > 0 ? clip(n.description, limit) : ''}{model} {time(n)}
               </Text>
-              {run && n.currentTool ? (
-                <Text wrap="truncate-end" dimColor>{`  ${trail}${last ? '  ' : '│ '}   ${n.currentTool}`}</Text>
-              ) : null}
+              {/* Always one line, blank without an action: a row never changes height. */}
+              <Text wrap="truncate-end" dimColor>{run && n.currentTool ? ` ${trail}${last ? ' ' : '│'}    ${n.currentTool}` : ' '}</Text>
             </Box>
           )
         })}

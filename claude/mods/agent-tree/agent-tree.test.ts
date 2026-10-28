@@ -878,3 +878,54 @@ test('a resumed agent drops its old grade chip', async ($, on) => {
   await $.agent.spawn(resume('a1'))
   expect(textOf(await desk($), /A · r1/)).toBeUndefined()
 })
+
+test('a terminal row keeps the same line count with and without a current action', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('worker'))
+  const lines = async () => {
+    const ui = await mount($, 'terminal')
+    const row = await ui.find({ type: 'Box', key: 'a1' } as never)
+    await ui.unmount()
+    return kids(row).filter(c => c.type === 'Text').length
+  }
+  const idle = await lines()
+  let during = 0
+  onTool = async () => { during = await lines() }
+  await $.tool.call({ tool: 'Bash', command: 'ls', agentId: 'a1', tool_use_id: 't1' } as never)
+  expect(idle).toBe(2)
+  expect(during).toBe(idle)
+})
+
+test('terminal action line: guide under the branch glyph, text under the name, at every depth', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('outer'))
+  await $.agent.spawn(spawn('inner', 'a1'))
+  await $.agent.spawn(spawn('sibling', 'a1'))
+  await $.agent.spawn(spawn('second top'))
+  const check = async () => {
+    const ui = await mount($, 'terminal')
+    for (const id of ['a1', 'a2', 'a3', 'a4']) {
+      const row = kids(await ui.find({ type: 'Box', key: id } as never))
+      const flat = (e: unknown): string => typeof e === 'string' ? e : (e as El).children ? (e as El).children.map(flat).join('') : ''
+      const [head, action] = row.filter(c => c.type === 'Text').map(flat)
+      const branch = head!.search(/[├└]/)
+      expect(action!.trimEnd().length).toBeGreaterThan(0)
+      expect(action!.search(/Bash/)).toBe(head!.indexOf('my-implementer'))
+      if (head![branch] === '├') expect(action![branch]).toBe('│')
+      else expect(action![branch]).toBe(' ')
+      expect(action!.slice(0, action!.search(/Bash/)).replace(/[│ ]/g, '')).toBe('')
+    }
+    await ui.unmount()
+  }
+  for (const id of ['a1', 'a2', 'a3', 'a4']) {
+    await $.tool.call({ tool: 'Bash', command: 'ls', agentId: id, tool_use_id: 't' + id } as never)
+  }
+  // Every row shows an action only during its call: hold all four open.
+  let release!: () => void
+  const gate = new Promise<void>(r => { release = r })
+  onTool = () => gate
+  const calls = ['a1', 'a2', 'a3', 'a4'].map(id => $.tool.call({ tool: 'Bash', command: 'ls', agentId: id, tool_use_id: 'h' + id } as never))
+  await check()
+  release()
+  await Promise.all(calls)
+})
