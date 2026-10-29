@@ -69,9 +69,10 @@ path and it works only there.
 
 ## 4. Gate
 
-The contract's gate is green before the review. A red gate grades F, so reviewing
-first wastes a round. While iterating, an implementer runs only the touched package's
-tests. The full gate runs once, in the landing step, not again by hand just before it.
+The contract's fast gate is green before each review, and the review cites that result.
+While iterating, an implementer runs only the touched files' tests. The full gate runs
+once per branch, in the landing step before the PR, MR or merge, never per task, branch
+merge or fix wave. A red full gate grades F in the final review.
 
 ## 5. Review
 
@@ -85,23 +86,23 @@ A fix after a failed land is a fix wave (gets the review rules) only if it chang
 
 **mvp**: no changelog, PR screenshots or release steps. After the review passes, merge to
 the base if the merge policy allows (through the contract's landing step when it has one),
-push.
+push. Run the full gate once first.
 
 **Plan close** is light: delete the plan file (open follow-ups go in the PR body), point the tracker at what is next, run the
 contract's `Cleanup` command (with none, remove the task's own worktrees and merged
 branches). The same cleanup follows a standalone change.
 
 **Milestone close** (the contract's milestone, or Casper's call) is the heavy one: the
-contract's full check once, in the landing step of the last task; the full status rewrite;
+contract's full gate once, in the landing step of the last task; the full status rewrite;
 a review over the whole milestone per `my-pr-review`. A plan that touched sync, data or
 security also gets a closing review at its own close; other plans get none.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).
 2. Screenshots through the contract's `Pair tool`, only when Casper asked for them.
-3. Rebase on the base and run the gate again. This is the last rebase.
+3. Rebase on the base and run the full gate once, before the PR or MR. This is the last rebase.
 4. Push and open the PR or MR only when Casper asks. Never base one on another open PR or MR.
-   Its description ends with a "Local review" section from the `my-pr-review` Report: the grade per round, each blocker, major and minor with how it closed (fixed, waived, kept on purpose with reason), and what was not done (device test, gate parts not run).
+   Its description ends with a "Local review" section from the `my-pr-review` Report: the grade per round, each blocker, major and minor with how it closed (fixed, waived, kept on purpose with reason), and what was not done (device test, full gate parts not run).
 5. After posting: sync by merging the base in, never force-push. New commits get a
    round-2 review.
 6. Casper merges. Releases follow the Releases rule in `~/dotfiles/claude/CLAUDE.md`, never on the branch.

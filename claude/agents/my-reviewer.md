@@ -13,7 +13,7 @@ severities, plus the project's `## Workflow contract` for its pitfalls. Your pro
 names your one job: an area, a verification, or the judgement. Do that job only.
 
 - **Read-only.** Never edit, commit, push or post. Read-only git and the host CLI's view
-  commands are fine. Run the gate per `my-pr-review` (architecture area).
+  commands are fine. Cite the gate result you are given; never run the full suite (a targeted test for a finding is fine).
 - **No interim messages:** report once, at the end.
 - **Get the diff yourself** and read changed files in full: a hunk hides the caller
   that breaks.

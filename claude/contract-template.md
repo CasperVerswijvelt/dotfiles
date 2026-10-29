@@ -10,8 +10,9 @@ project's CLAUDE.md, never in this repo.
 - Stage: mature                 # mvp: review then merge, no changelog or PR screenshots
 - Tracker: GitHub issues; read with `gh issue view <n> --comments`
 - Host CLI: gh                  # gh | glab
-- Gate: `<command>`             # add the full gate if there is one: (full: `<command>`)
-- Gate hooks: pre-commit and pre-push run only fast checks (format, lint; seconds); installed by `<command>`   # or: none
+- Fast gate: `<command>`        # format, lint/analyze on touched code; seconds to a minute; no full test suite
+- Full gate: `<command>`        # everything; runs once per branch, before the PR, MR or merge. One command for both: set both to it
+- Gate hooks: pre-commit and pre-push run (part of) the fast gate; installed by `<command>`   # or: none
 - Base branch: main
 - Merge policy: Casper merges   # or: the implementer lands after the review passes
 - Landing: <command, or none>   # the step that merges to the base (rebase, tests, push); runs the test suite

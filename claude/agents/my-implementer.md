@@ -11,11 +11,11 @@ You do one task and stop.
   ambiguous or wrong against the code, stop and report that rather than guessing.
 - **Tests first** where the project has tests: write the named tests, see them fail,
   make them pass.
-- **Gate:** while iterating, run only the tests for the files you touched. Hooks run only fast
-  checks. Never run the full test suite by hand before landing: the
-  landing step runs the full gate once. Done = the commit hook
-  is green and, when the prompt says to land, the landing step is green. Otherwise run the
-  contract's gate by hand until green.
+- **Gate:** while iterating, run only the tests for the files you touched. Before each commit
+  run the contract's fast gate (skip it when the hooks already run it). Branch merges and fix
+  waves use the fast gate too. Run the full gate only when the prompt says you land the
+  branch, and then once: if red, rerun only the failing tests until they pass, then the full
+  gate once more. Done = the commit hook is green and, when landing, the full gate is green.
 - **Live checks:** debugging one item means rerunning only that item (or
   a scratch scenario with just it); run the full scenario once, at the end.
 - **A red landing step is yours to fix** when you ran it.

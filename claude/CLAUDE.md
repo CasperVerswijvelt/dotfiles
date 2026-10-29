@@ -11,7 +11,7 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 | `my-orchestrator` | Opus | One plan with several tasks, delegated end to end. |
 | `my-implementer` | Sonnet | One task from a precise prompt. |
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
-| `my-scout` | Haiku | Checkable lookups; runs the gate and reports failures. |
+| `my-scout` | Haiku | Checkable lookups; runs the fast or full gate and reports failures. |
 
 - Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus or the contract's role exceptions do.
 - A subagent saw none of your conversation: its prompt carries everything it needs.
@@ -56,10 +56,10 @@ shortest sentence that keeps the reason.
 ## Rules and decisions
 
 - Prefer a rule a test enforces over a paragraph of prose.
-- Commit and push hooks run only fast checks (format, lint/analyze; seconds), never the
-  test suite or other long work. The tests run in the project's landing step, which every
-  change must pass to reach the base branch, so they still cannot be skipped. The
-  contract's `Gate hooks` and `Landing` lines say which runs where.
+- Commit and push hooks run only (part of) the fast gate (format, lint/analyze; seconds),
+  never the test suite or other long work. The full gate runs once per branch, before the
+  PR, MR or merge, so tests still cannot be skipped. The contract's `Gate hooks` and
+  `Landing` lines say which runs where. No contract: infer both gates from the repo.
 - The `my-*` skills and the project's Workflow contract override superpowers skills: in a
   project with a contract, do not load superpowers brainstorming, writing-plans,
   subagent-driven-development or using-git-worktrees.

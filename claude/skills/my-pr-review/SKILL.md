@@ -29,8 +29,8 @@ Reviewers read code and, when given, the before/after pair, not a full capture f
 1. **Areas**, in parallel, one `my-reviewer` each (Sonnet), blind to each other:
    - **correctness**: logic, state, async, error paths, data loss, trust boundaries.
    - **architecture**: layering, reuse of existing helpers, over-engineering, dead code.
-     Also the gate and docs checks: cite the gate result from the landing step
-     output rather than re-running it; re-run only when that evidence is missing. Docs and changelog in step with the change.
+     Also the gate and docs checks: cite the gate result you are given (fast for a
+     task review, full for the final review); never run the full suite. A targeted test to check a finding is fine. Docs and changelog in step with the change.
    - **UI and product** (one area, also where the contract names ui and product as
      extra areas): UI at every supported size, the project's UI rules, copy and l10n.
      Use it as a first-time user would. Can everything created be used? Does
@@ -80,7 +80,7 @@ change never claimed, or a refactor taste is a follow-up, never a finding.
 | B | 0 blockers, 1-2 majors |
 | C | 0 blockers, 3-5 majors |
 | D | 1 blocker, or 6+ majors |
-| F | 2+ blockers, or a red gate |
+| F | 2+ blockers, or a red full gate in the final review (a red fast gate in a task review) |
 
 A gate failure that also fails on the base is pre-existing and does not count. A major
 closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
@@ -106,7 +106,7 @@ it goes to Casper as a decision. Anything else still open after round 2 goes to 
 Blockers (n) / Majors (n): file:line: defect. Failure: scenario.
 Minors (n): file:line: one line
 Unconfirmed (n) / Refuted (n): file:line: claim. Evidence.
-Gate: <result>. Verdict: mergeable | not: <what must close>.
+Gate: <fast or full, result>. Verdict: mergeable | not: <what must close>.
 Ask Casper: <findings marked so, or none>
 Follow-ups: <one line each, or omit>
 ```
