@@ -97,12 +97,14 @@ shortest sentence that keeps the reason.
 - A planning session (any number at once) discusses a feature with Casper, may read code and
   make a mockup, and never writes app code or runs tests.
 - On "Ship the plan" (or similar) it writes `docs/plans/<feature>.md` (scope, acceptance tests,
-  open questions answered), commits it straight to the base branch (docs-only, so landing skips
-  tests), then messages the main session: "plan ready: docs/plans/<feature>.md". It finds that
+  open questions answered), commits it on the feature's own branch (named by the contract's
+  rules, cut from the base branch) and pushes that branch without opening a PR. The
+  implementation continues on that branch. It then messages the main session: "plan ready:
+  <branch> docs/plans/<feature>.md". It finds that
   session by the contract's `Main session` title (list_sessions or ListAgents, then
   send_message / SendMessage).
 - A plan file is deleted once implemented, in the change that implements it (the last
-  task's commit or the plan-close step), so no plan stays in the base branch's final tree.
+  task's commit or the plan-close step), so no plan ever reaches the base branch.
   Open follow-ups go into the PR body.
 - A small fix Casper asks for directly in the main session needs no planning session.
 
@@ -116,10 +118,11 @@ pending with Casper; every dead end tried, and why it failed.
 
 Agents skip this section: your own prompt says how you work and report.
 
-- A "plan ready: <path>" message from a planning session is a hand-off: pass the path to a
-  `my-implementer` (or `my-orchestrator` for a multi-task plan) without reading the plan into
-  your context, within the contract's features-in-flight cap. A fresh main session also checks
-  the project's plans folder: any plan still there is not yet implemented. Exactly one main session per project.
+- A "plan ready: <branch> <path>" message from a planning session is a hand-off: pass the
+  branch and path to a `my-implementer` (or `my-orchestrator` for a multi-task plan) without
+  reading the plan into your context, within the contract's features-in-flight cap. A fresh
+  main session also checks the remote branches for a plans folder: a plan still there is not
+  yet implemented. Exactly one main session per project.
 - No hands-on work: no reading code or diffs, no running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
   contract's tracker, plans and git state (log, status, branch) are fine. A step outside
