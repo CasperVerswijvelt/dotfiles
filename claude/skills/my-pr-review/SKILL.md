@@ -88,7 +88,9 @@ closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
 ## Rounds
 
 At most two. A review with only minor findings lands as is: the minors are noted in the plan
-under Follow-ups, with no fix pass and no new round. Round 2 is a full review only when the fix wave touched concurrency, sync or
+under Follow-ups, with no fix pass and no new round. When a fix wave runs anyway (a blocker or
+major to fix), it also fixes the open minors, and the round-2 verifier checks them with the
+rest; a minor it cannot fix cheaply stays a follow-up. Round 2 is a full review only when the fix wave touched concurrency, sync or
 ordering code; otherwise one verifier confirms the named findings are fixed. When every finding will be fixed anyway, skip verify and
 judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no
