@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { buildTierMap, fmtDuration, hasForYou, parseAgentModel, parseJudgeHeader, parsePhase, register } from './hooks/register'
+import { buildTierMap, fmtDuration, hasForYou, parseAgentModel, parseJudgeHeader, parsePhase, register, span } from './hooks/register'
 
 const spawn = (description: string, parentAgentId?: string) =>
   ({ prompt: 'p', description, subagentType: 'my-implementer', parentAgentId }) as never
@@ -254,6 +254,35 @@ test('terminal shows the action on its own line', async ($, on) => {
   expect(shown(textOf(plain, /Implement the sidebar/)!)).toContain('~')
 })
 
+test('the line under a row draws the same guides with or without an action', async ($, on) => {
+  await setup($, on)
+  await $.agent.spawn(spawn('outer'))
+  await $.agent.spawn(spawn('inner one', 'a1'))
+  await $.agent.spawn(spawn('inner two', 'a1'))
+  await $.agent.spawn(spawn('sibling'))
+  const ids = ['a1', 'a2', 'a3', 'a4']
+  const flat = (e: unknown): string => typeof e === 'string' ? e : (e as El).children ? (e as El).children.map(flat).join('') : ''
+  const under = async () => {
+    const ui = await mount($, 'terminal')
+    const out: string[] = []
+    for (const id of ids) out.push(flat(kids(await ui.find({ type: 'Box', key: id } as never)).filter(c => c.type === 'Text')[1]))
+    await ui.unmount()
+    return out
+  }
+  const idle = await under()
+  let release!: () => void
+  const gate = new Promise<void>(r => { release = r })
+  onTool = () => gate
+  const calls = ids.map(id => $.tool.call({ tool: 'Bash', command: 'ls', agentId: id, tool_use_id: 'h' + id } as never))
+  const busy = await under()
+  release()
+  await Promise.all(calls)
+  // Guides: ancestors' trail, then a bar under the branch of a non-last row, a space under a last one.
+  expect(idle).toEqual([' │', ' │ │', ' │  ', '  '])
+  expect(busy.map(s => s.replace(/Bash.*$/, '').trimEnd())).toEqual(idle.map(s => s.trimEnd()))
+  expect(busy.every(s => s.includes('Bash'))).toBe(true)
+})
+
 test('empty pane keeps the empty text and the legend on separate rows', async ($, on) => {
   await setup($, on)
   const root = await desk($)
@@ -362,6 +391,13 @@ test('a running agent\'s seconds advance on the tick', async ($, on) => {
   expect(textOf(await desk($), /^1s$/)).toBeDefined()
   await clock.advance(11_000)
   expect(textOf(await desk($), /^12s$/)).toBeDefined()
+})
+
+test('terminal duration puts a space between units', () => {
+  expect(span(46_000)).toBe('46s')
+  expect(span(79_000)).toBe('1m 19s')
+  expect(span(65_000)).toBe('1m 05s')
+  expect(span(3_725_000)).toBe('62m 05s')
 })
 
 test('duration format boundaries', () => {

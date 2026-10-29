@@ -12,9 +12,10 @@ const tick = atom({ plugin: 'agent-tree', key: 'tick' } as const, 0)
 const COMMAND = 'agent-tree'
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}~` : s)
-const span = (ms: number) => {
+// Terminal duration: 46s, 1m 19s.
+export const span = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`
 }
 
 // Desktop duration: 12s, 4m, 1h 5m.
@@ -395,8 +396,8 @@ export const register: Register = on => {
                 {' '}<Text dimColor>{trail}{last ? '└─' : '├─'}</Text> <Text color={run ? 'green' : undefined}>{mark}</Text>{' '}
                 <Text color={color(n)}>{n.type}</Text>{ph ? <Text dimColor> {ph}</Text> : null}{n.review ? <Text color={n.review.grade === 'F' ? 'red' : n.review.grade.startsWith('A') ? 'green' : undefined}>{rev}</Text> : null}{n.needsYou ? <Text color="yellow">{flag}</Text> : null} {limit > 0 ? clip(n.description, limit) : ''}{model} {time(n)}
               </Text>
-              {/* Always one line, blank without an action: a row never changes height. */}
-              <Text wrap="truncate-end" dimColor>{run && n.currentTool ? ` ${trail}${last ? ' ' : '│'}    ${n.currentTool}` : ' '}</Text>
+              {/* Always one line, so a row never changes height. Without an action it still draws the guides, so the tree stays unbroken. */}
+              <Text wrap="truncate-end" dimColor>{` ${trail}${last ? ' ' : '│'}`}{run && n.currentTool ? `    ${n.currentTool}` : ''}</Text>
             </Box>
           )
         })}
