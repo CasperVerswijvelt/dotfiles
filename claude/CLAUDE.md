@@ -84,7 +84,7 @@ shortest sentence that keeps the reason.
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the agent merge (that includes pushing the base). Otherwise Casper
   merges.
-- No new PR or MR, and no push to an open one, without a `my-pr-review` grade of A- or
+- No new PR or MR, and no push to an open one, without a `my-review` grade of A- or
   better for that change, whatever its size, the agent type or docs-only. A prompt that
   asks an agent to open a PR names the review as the step before it.
 - Every commit and push goes through the hooks: never pass `--no-verify`.

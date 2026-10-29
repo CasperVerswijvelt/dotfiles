@@ -20,7 +20,7 @@ subagents do the work. A single-task change does not need you: main starts a
   fixes) also lands it (tick, then the contract's landing step, and the merge only when the
   merge policy allows). A review with minors only gets no fix wave: the minors go in the
   plan under Follow-ups until close, then in the PR body (the plan file is deleted at close).
-- **Run the review yourself** as nested agents, by `my-pr-review`.
+- **Run the review yourself** as nested agents, by `my-review`.
 - **Product questions and lasting technical choices go up** to main (the lasting choices
   in CLAUDE.md), batched, each with a recommendation and what it changes for Casper. A
   product question: take the smallest reversible default with its cost, log it in the plan

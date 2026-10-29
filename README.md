@@ -50,7 +50,7 @@ How I use it day to day: [`claude/README.md`](claude/README.md).
 - **Roles** (`claude/agents/`): `my-orchestrator` (Opus) owns one plan or PR,
   `my-implementer` (Sonnet) does one scoped task, `my-reviewer` (Sonnet, judge on
   Opus) reviews read-only, `my-scout` (Haiku) does fact lookups. The main thread decides and delegates.
-- **Skills** (`claude/skills/`): `my-feature-flow` (branch to PR), `my-pr-review` (review and
+- **Skills** (`claude/skills/`): `my-feature-flow` (branch to PR), `my-review` (review and
   grading), `my-repo-audit`, `my-consistency-sweep`, `my-decision-log`, `my-open-items`, `my-retro` (session retrospective, `claude/tools/retro/`).
 - **Workflow contract**: each project can add a `## Workflow contract` section to its own
   `CLAUDE.md`: stage, gate, base branch, merge policy and so on. The template is

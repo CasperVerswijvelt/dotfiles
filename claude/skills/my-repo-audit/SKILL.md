@@ -39,7 +39,7 @@ Add the contract's extra areas; drop what the repo has no surface for (a non-UI 
 skips the UI areas). When the focus is architecture, state and concurrency folds into the
 architecture reviewer (they duplicated each other).
 
-Each gets: the scope, the open PRs, the severities in `my-pr-review` (the "caused by
+Each gets: the scope, the open PRs, the severities in `my-review` (the "caused by
 this change" rule does not apply), and these rules: cite a `file:line` you read and a
 concrete failure scenario; check code, not comments; respect recorded decisions; at
 most 12 findings, most severe first; read-only. A finding that contradicts a recorded

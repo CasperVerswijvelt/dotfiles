@@ -1,6 +1,6 @@
 ---
-name: my-pr-review
-description: Review, grade and iterate on a change in any project. Use when asked to review a branch or PR, check whether it is mergeable, run the pre-merge review, or re-review after fixes. Also the reference for what counts as a finding, the severities and the grade.
+name: my-review
+description: Review, grade and iterate on a change in any project. Use when asked to review a branch, PR or MR, check whether it is mergeable, run the pre-merge review, or re-review after fixes. Also the reference for what counts as a finding, the severities and the grade.
 ---
 
 # Review

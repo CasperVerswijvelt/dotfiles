@@ -49,7 +49,7 @@ flowchart TD
 | `retro` | Triggers `my-retro` (also "why was that slow or expensive"). Gives an HTML page from the transcripts. |
 | `go over open items` | Triggers `my-open-items` (also `/my-open-items`, "what needs me"). One question at a time. |
 
-Other skills fire on their own descriptions: `my-feature-flow` (starting a change), `my-pr-review`
+Other skills fire on their own descriptions: `my-feature-flow` (starting a change), `my-review`
 (reviews), `my-decision-log` (a settled decision), `my-consistency-sweep` (on request).
 
 ## What lives where
