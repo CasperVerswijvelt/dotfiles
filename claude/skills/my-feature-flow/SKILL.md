@@ -77,8 +77,8 @@ merge or fix wave. A red full gate grades F in the final review.
 ## 5. Review
 
 Commit, then run `my-review` until it passes or round 2 ends. Fixes go to a fresh
-implementer and are committed before the next round. A review with minors only lands as is
-(see `my-review`). The implementer that did the task, or the last fix wave, lands it
+implementer and are committed before the next round. A review with minors only gets one fix wave and a
+verifier (see `my-review`). The implementer that did the task, or the last fix wave, lands it
 (step 6): no separate landing agent.
 A fix after a failed land is a fix wave (gets the review rules) only if it changes more than the failing test.
 

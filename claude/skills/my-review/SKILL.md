@@ -87,10 +87,11 @@ closes by a fix or by Casper's explicit waiver, which becomes a filed issue.
 
 ## Rounds
 
-At most two. A review with only minor findings lands as is: the minors are noted in the plan
-under Follow-ups, with no fix pass and no new round. When a fix wave runs anyway (a blocker or
-major to fix), it also fixes the open minors, and the round-2 verifier checks them with the
-rest; a minor it cannot fix cheaply stays a follow-up. Round 2 is a full review only when the fix wave touched concurrency, sync or
+At most two. A review with only minor findings gets one fix wave (a fresh implementer) for the
+minors; one verifier then confirms the named minors are fixed, with no full round 2 and no new
+minors. A minor that cannot be fixed cheaply stays a follow-up, noted in the plan under
+Follow-ups and in the PR's Local review section with its reason. A fix wave for a blocker or
+major also fixes the open minors, and the round-2 verifier checks them with the rest. Round 2 is a full review only when the fix wave touched concurrency, sync or
 ordering code; otherwise one verifier confirms the named findings are fixed. When every finding will be fixed anyway, skip verify and
 judge and send the findings straight to the fix. Round 2 reviews only the fix commits plus the open findings (fixed, not
 fixed, regressed); new blockers count anywhere, new majors only in fixed code, no
