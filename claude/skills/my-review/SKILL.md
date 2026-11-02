@@ -111,3 +111,16 @@ Gate: <fast or full, result>. Verdict: mergeable | not: <what must close>.
 Ask Casper: <findings marked so, or none>
 Follow-ups: <one line each, or omit>
 ```
+
+## PR or MR description
+
+Whoever opens or updates the PR or MR ends its description with this block, filled from
+the last round's report. A later round replaces it.
+
+```
+## Review
+Grade: <grade>, round <n>. Blockers <n>, majors <n>, minors <n>.
+Open minors:
+- file:line: one line (or "none")
+Gate: <full gate result, e.g. green, 734 tests>.
+```
