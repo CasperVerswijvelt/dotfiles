@@ -65,6 +65,7 @@ row in retro-log.md (wall 15h29m, cost $36, gate 109 min, 90 agents). Per-task n
 with the first retro that has them; until then compare per plan.
 
 Target pace: under about $240 per week (Pro, measured 2026-11-05), from about $510 per week.
+Next retro, raise with Casper: test a Sonnet orchestrator on one multi-task plan? No comparison exists yet. He kept Opus on 2026-11-05 and asked to reopen this at the next retro. Saving about $20 to $25 a week.
 
 ## Casper's signal
 
