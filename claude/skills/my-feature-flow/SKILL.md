@@ -54,7 +54,7 @@ Before implementation:
   (empty, loading, error, long, scrolled, saving) and their transitions, each with an
   animation note; the shared components used (a new one needs a reason).
 
-Split any task expected to take over about 45 minutes at planning time.
+Split any task expected to take over about 45 minutes at planning time. Scope each implementer task to finish under about 100k tokens: one concern, relevant files named in the prompt. Pieces split from one change share one review and one full gate per branch.
 
 Questions for Casper are raised here, in preflight. Dependent tasks wait; a default with
 its cost goes in the plan file.

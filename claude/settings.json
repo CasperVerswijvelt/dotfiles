@@ -4,7 +4,8 @@
     "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/agent-tree",
     "CLAUDE_CODE_PLUGIN_DIR_WATCH": "1",
-    "DISABLE_AUTOUPDATER": "1"
+    "DISABLE_AUTOUPDATER": "1",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
   },
   "permissions": {
     "disableAutoMode": "disable"
@@ -34,15 +35,15 @@
       }
     ]
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/dotfiles/claude/scripts/status-line.sh"
   },
   "enabledPlugins": {
-    "chrome-devtools-mcp@chrome-devtools-plugins": true,
-    "superpowers@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true
+    "chrome-devtools-mcp@chrome-devtools-plugins": false,
+    "superpowers@claude-plugins-official": false,
+    "mattpocock-skills@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "chrome-devtools-plugins": {
@@ -69,5 +70,5 @@
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
-  "autoCompactEnabled": false
+  "autoCompactEnabled": true
 }

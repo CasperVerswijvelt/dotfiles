@@ -30,6 +30,10 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
   before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
   shots of a screen or at his milestone check, on the status page when the contract names
   one. A mockup gets its images on the page the same way.
+- Images for Casper go on a private artifact page through `files`, never read by the model.
+  A single quick shot: copy it shrunk with `sips -Z 800` into a gitignored folder in the cwd
+  (build/) and Read that copy. An agent checking a shot shrinks it the same way. Each mockup
+  round is a fresh agent. Native file sending does not work in remote sessions.
 - A project with a web build gets one quick real-browser check of it at plan close (loads,
   works offline).
 
@@ -60,9 +64,6 @@ shortest sentence that keeps the reason.
   never the test suite or other long work. The full gate runs once per branch, before the
   PR, MR or merge, so tests still cannot be skipped. The contract's `Gate hooks` and
   `Landing` lines say which runs where. No contract: infer both gates from the repo.
-- The `my-*` skills and the project's Workflow contract override superpowers skills: in a
-  project with a contract, do not load superpowers brainstorming, writing-plans,
-  subagent-driven-development or using-git-worktrees.
 - Weigh every suggested or planned change or addition against its technical cost (code
   added, complexity, upkeep, what it locks in). When that cost is high, it goes to Casper
   as a decision stating the cost, even when the change looks small or was already
@@ -118,6 +119,9 @@ pending with Casper; every dead end tried, and why it failed.
 
 Agents skip this section: your own prompt says how you work and report.
 
+- Start a named `my-*` agent, never general-purpose.
+- A gate-only agent is `my-scout`, never a Sonnet agent. An implementer that lands still runs its own full gate.
+
 - A "plan ready: <branch> <path>" message from a planning session is a hand-off: pass the
   branch and path to a `my-implementer` (or `my-orchestrator` for a multi-task plan) without
   reading the plan into your context, within the contract's features-in-flight cap. A fresh
@@ -157,8 +161,7 @@ Agents skip this section: your own prompt says how you work and report.
   `**🔔 2 decisions and 1 action need you** (run /my-open-items)`. Nothing needed: no line.
 - A status page is optional: only when the contract names one (`Status page: <url>`). Then
   Needs you, Running and Done live there, rewritten on each wake by republishing the
-  artifact; an answered question leaves it. Without an Artifact tool, show images by
-  reading the PNG files with Read.
+  artifact; an answered question leaves it.
 - Relay a final report as what changed for Casper, in at most three lines; when nothing
   changed for him (refactor, internal fix), one line or nothing. Its `Pairs:` block (only
   present for shots Casper asked for) goes on the status page, else in chat via Read; its

@@ -102,6 +102,10 @@ gate, and any other named check.
 | 2026-10-24 | gym-app | all-areas review | schedule-polish T1 to T4: 48 dp tap target, semantics label, Reveal leak guard | minor |
 | 2026-10-24 | gym-app | tidy review | dead audit link, missing walk-base worktree reported as pruned | minor |
 | 2026-10-24 | gym-app | mockup / phone verdicts (Casper) | schedule layout (Edit schedule row back, 16 dp align) and calendar cells (day number on every cell) changed after he saw the built UI; "Motion feels good" on cycle rows | major |
+| 2026-11-05 | Sonority | correctness review | #192 round 1: Trueplay badges lost after an op that wrote nothing; detail row showed "Not tuned" after an aborted op | major |
+| 2026-11-05 | Sonority | review (all areas) | #193 rescan path lacked a test; #199, #201, #203 minors only (direct, PR bodies) | minor |
+| 2026-11-05 | Sonority | summary | #202, #204, #205, #206, #198 reviewed A or A- with no majors; capture agents ($69, $61 of it one mockup agent) caught nothing in the PR bodies | nil |
+| 2026-11-05 | gym-app | summary (inferred from commit subjects, not transcripts) | about 12 "review minors/wave" commits on main since 10-24; no majors verified in this retro | minor |
 
 ## Escaped
 
@@ -133,3 +137,5 @@ would have caught.
 | 2026-10-24 | gym-app | 535f3a75 changed the shared Space.hair for one joined-run gap; calendars, heatmap and hero outline changed look, restored 6 h later (dafad5d5, new Space.joined) (finder not in notes, unverified) | a follow-up task | a reviewer listing the users of a token before changing its value (one token, one use) | existing (no check caught it) |
 | 2026-10-24 | gym-app | overload again: 746 gate calls 10:14 to 22:47, 53 passed, 542 refused "test slots busy" (1650 busy call-minutes after the 15:08 capacity rule, 449 before); hold file never used | gate failures | the contract's one-plan-at-once cap actually held by main (about 5 sessions ran), or a gate wait that blocks to the 9 min attach point instead of failing at 180 s | existing (rule R41 unenforced) |
 | 2026-10-24 | gym-app | calendar look: ring-today built 11:00 from an approved mockup, cells redesigned 15:28 (day number on every cell, filled done, rest dimmed) and fixed again 17:25 (row height at any text scale) | Casper on the preview | a mockup of the whole month with all four cell states and text scale 1.3 | existing (mockup approved the partial look) |
+| 2026-11-05 | gym-app | Catalog Home goldens never finished the marked-days read (regression from 50e9cb63) | commit subject (inferred) | goldens in landing | removed (goldens run at plan close only) |
+| 2026-11-05 | gym-app | An idle coach list row has no trailing (regression from 7eb82af7) | commit subject (inferred) | a reviewer reading the after shot | existing (did not catch it) |
