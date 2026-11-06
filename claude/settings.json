@@ -65,7 +65,7 @@
       }
     }
   },
-  "outputStyle": "concise",
+  "outputStyle": "Main thread",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,

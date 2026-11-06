@@ -58,7 +58,7 @@ and what to turn off. `claude/scripts/tool-usage.py` counts MCP and skill calls 
 
 | Dotfiles (generic, this repo) | Project repo |
 |---|---|
-| Roles and rules: `claude/CLAUDE.md` | The `## Workflow contract` in its `CLAUDE.md` |
+| Roles and rules: `claude/CLAUDE.md`; main-thread rules: `claude/output-styles/main-thread.md` | The `## Workflow contract` in its `CLAUDE.md` |
 | Skills `my-*` and agents `my-*` | Gate and land scripts, git hooks |
 | Retro tools: `claude/tools/retro` | Plans, tracker or status file |
 | Contract template: `claude/contract-template.md` | Decisions log, review rubric |
