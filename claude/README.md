@@ -51,6 +51,8 @@ flowchart TD
 
 Other skills fire on their own descriptions: `my-feature-flow` (starting a change), `my-review`
 (reviews), `my-decision-log` (a settled decision), `my-consistency-sweep` (on request).
+`my-workspace-setup` (new account, missing connector, trimming startup context) lists what to connect
+and what to turn off. `claude/scripts/tool-usage.py` counts MCP and skill calls over the last N days.
 
 ## What lives where
 
