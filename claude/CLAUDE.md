@@ -88,6 +88,10 @@ shortest sentence that keeps the reason.
 - No new PR or MR, and no push to an open one, without a `my-review` grade of A- or
   better for that change, whatever its size, the agent type or docs-only. A prompt that
   asks an agent to open a PR names the review as the step before it.
+- A worktree you create (`git worktree add`, or an agent isolation worktree) you remove
+  once its work is merged into its target or pushed and reported (`git worktree remove`,
+  never `--force`). Never remove one holding uncommitted or unpushed work. Leftovers: the
+  `my-worktree-cleanup` skill.
 - Every commit and push goes through the hooks: never pass `--no-verify`.
 - Releases: when Casper asks for one, the version bump commit and the release tag go
   directly on the base branch, pushed without a PR. A project's contract can override

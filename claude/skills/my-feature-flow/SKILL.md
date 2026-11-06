@@ -90,7 +90,7 @@ push. Run the full gate once first.
 
 **Plan close** is light: delete the plan file (open follow-ups go in the PR body), point the tracker at what is next, run the
 contract's `Cleanup` command (with none, remove the task's own worktrees and merged
-branches). The same cleanup follows a standalone change.
+branches, with `my-worktree-cleanup`'s script). The same cleanup follows a standalone change.
 
 **Milestone close** (the contract's milestone, or Casper's call) is the heavy one: the
 contract's full gate once, in the landing step of the last task; the full status rewrite;
