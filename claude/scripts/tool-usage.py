@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Count MCP tool calls per server and Skill calls per skill over the last N days."""
+"""Count MCP tool calls per server and Skill calls per skill over the last N days.
+
+Calls are deduped on tool_use id (resumed sessions repeat them); sessions are
+counted by top-level session id."""
 import argparse
 import glob
 import json
@@ -19,9 +22,12 @@ def main():
     )
     files = [f for f in files if os.path.getmtime(f) >= cutoff]
 
+    seen = set()
     mcp = defaultdict(lambda: [0, set()])
     skills = defaultdict(lambda: [0, set()])
     for f in files:
+        parts = f.split(os.sep)
+        sid = parts[-3] if parts[-2] == "subagents" else os.path.splitext(parts[-1])[0]
         with open(f, errors="replace") as fh:
             for line in fh:
                 if '"tool_use"' not in line:
@@ -35,6 +41,11 @@ def main():
                 for b in content:
                     if not isinstance(b, dict) or b.get("type") != "tool_use":
                         continue
+                    bid = b.get("id")
+                    if bid:
+                        if bid in seen:
+                            continue
+                        seen.add(bid)
                     name = b.get("name") or ""
                     if name.startswith("mcp__"):
                         row = mcp[name.split("__")[1]]
@@ -44,7 +55,7 @@ def main():
                     else:
                         continue
                     row[0] += 1
-                    row[1].add(f)
+                    row[1].add(sid)
 
     print(f"Last {days} days, {len(files)} session files\n")
     for title, table in (("MCP server", mcp), ("Skill", skills)):

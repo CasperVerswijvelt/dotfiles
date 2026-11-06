@@ -5,23 +5,29 @@ description: Set up or audit a Claude account or workspace so the workflow works
 
 # Workspace setup
 
-A desktop session starts at about 88k tokens, mostly the app's own prompt. What Casper
-controls: each connector costs its tool names (about 15 tokens each) plus its
+A desktop session starts at roughly 88k tokens, mostly the app's own prompt. What Casper
+controls: each connector costs its tool names (roughly 15 tokens each) plus its
 instructions; each account skill costs its description line every session; CLAUDE.md
 files and the memory index load in full.
 
-Data below: 6 Nov 2026, 30 days, 3,226 session files (`claude/scripts/tool-usage.py`).
+Token figures are rough estimates from the desktop app on 6 Nov 2026. Call counts are
+from 6 Nov 2026, 30 days, 3,239 session files, deduped by tool call id and counted per
+session (`claude/scripts/tool-usage.py`).
 
 ## Needed
 
-- **Linear**, tracker for work projects (306 calls, 79 sessions). The claude.ai connector
-  or the `linear-server` Claude Code MCP server (`https://mcp.linear.app/mcp`), one of them.
-- **GitLab** (241 calls, 49 sessions). Claude Code MCP server `GitLab`, HTTP,
+This is Casper's Basalte work setup. On an account where a Needed server is missing and
+not wanted (e.g. a personal account), skip it; do not ask to add it.
+
+- **Linear**, tracker for work projects (281 calls, 63 sessions, via the claude.ai
+  connector; `claude_ai_Linear` and `linear-server` add 5 calls each, separately). The
+  connector or the `linear-server` Claude Code MCP server (`https://mcp.linear.app/mcp`), one of them.
+- **GitLab** (224 calls, 46 sessions). Claude Code MCP server `GitLab`, HTTP,
   `https://gitlab.com/api/v4/mcp`. The `glab` CLI is also used by the gitlab-mr skill.
   Only one GitLab: with the claude.ai Gitlab connector on too, turn the connector off.
-- **Sentry** (186 calls, 13 sessions). Claude Code MCP server `sentry`, HTTP,
+- **Sentry** (163 calls, 5 sessions). Claude Code MCP server `sentry`, HTTP,
   `https://mcp.sentry.dev/mcp`.
-- **Built-in browser** of the desktop app (1,333 calls, 30 sessions): nothing to set up.
+- **Built-in browser** of the desktop app (1,047 calls, 30 sessions): nothing to set up.
 - **Dotfiles** installed with `install.sh` (settings.json, CLAUDE.md, skills, agents, mods).
 
 ## Off
