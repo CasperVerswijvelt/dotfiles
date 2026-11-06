@@ -18,6 +18,9 @@ PATHS=()
 if [ $# -gt 0 ]; then case "$1" in --*) ;; *) REPO="$1"; shift ;; esac; fi
 while [ $# -gt 0 ]; do
   case "$1" in
+    --base|--min-age-hours) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; } ;;
+  esac
+  case "$1" in
     --base) BASE="${2:-}"; shift 2 ;;
     --sizes) SIZES=1; shift ;;
     --no-fetch) FETCH=0; shift ;;
@@ -31,7 +34,7 @@ REPO="$(cd -P "$REPO" 2>/dev/null && pwd -P)" || { echo "not a directory" >&2; e
 g() { /usr/bin/git -C "$REPO" "$@"; }
 g rev-parse --git-dir >/dev/null 2>&1 || { echo "not a git repo: $REPO" >&2; exit 2; }
 
-[ "$FETCH" = 0 ] || GIT_TERMINAL_PROMPT=0 g fetch -q origin 2>/dev/null || echo "note: fetch failed, using local remote refs" >&2
+[ "$FETCH" = 0 ] || GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND='ssh -o BatchMode=yes' g fetch -q origin 2>/dev/null || echo "note: fetch failed, using local remote refs" >&2
 
 if [ -z "$BASE" ]; then
   BASE="$(g symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || true)"
