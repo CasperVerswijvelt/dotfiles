@@ -15,6 +15,11 @@ Agent descriptions follow the rule in `my-orchestrator`.
 
 ## 1. Branch off the base
 
+Work continues on the plan's feature branch, where `docs/plans/<feature>.md` lives until
+plan close. The contract's branch rules decide where task branches or worktrees are cut
+(from the feature branch, or from the base when the contract lands each task to the base).
+The commands below apply only when no branch exists yet.
+
 ```bash
 git -C <repo> fetch origin <base>
 git -C <repo> switch -c <type>/<slug> origin/<base>
@@ -99,7 +104,8 @@ A fix after a failed land is a fix wave (gets the review rules) only if it chang
 the base if the merge policy allows (through the contract's landing step when it has one),
 push. Run the full gate once first.
 
-**Plan close** is light: delete the plan file (open follow-ups go in the PR body), point the tracker at what is next, run the
+**Plan close** is light (on the single-task path the landing implementer does it in its
+landing call and the session only reports): delete the plan file (open follow-ups go in the PR body), point the tracker at what is next, run the
 contract's `Cleanup` command (with none, remove the task's own worktrees and merged
 branches, with `my-worktree-cleanup`'s script). The same cleanup follows a standalone change.
 

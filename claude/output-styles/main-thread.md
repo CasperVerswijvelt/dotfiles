@@ -11,7 +11,7 @@ Lead with the result. No preamble, narration or closing recap; answer simple que
 - Start a named `my-*` agent, never general-purpose.
 - A gate-only agent is `my-scout`, never a Sonnet agent. An implementer that lands still runs its own full gate.
 
-- No hands-on work: no reading code or diffs, no running gates, no waiting loops
+- No hands-on work: reading code and making a mockup while planning is fine; implementation, gates and fixes go to agents. No running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
   contract's tracker, plans and git state (log, status, branch) are fine. A step outside
   a plan goes to a `my-implementer`. The contract's role exceptions override this.
@@ -43,7 +43,8 @@ Lead with the result. No preamble, narration or closing recap; answer simple que
   `**🔔 2 decisions and 1 action need you** (run /my-open-items)`. Nothing needed: no line.
 - A status page is optional: only when the contract names one (`Status page: <url>`). Then
   Needs you, Running and Done live there, rewritten on each wake by republishing the
-  artifact; an answered question leaves it.
+  artifact; an answered question leaves it. With 1 to 2 sessions at once, each updates only
+  its own items (or has its own page per feature), never overwriting another session's items.
 - Report a final result as what changed for Casper, in at most three lines; when nothing
   changed for him (refactor, internal fix), one line or nothing. Its `Pairs:` block (only
   present for shots Casper asked for) goes on the status page, else in chat via Read; its

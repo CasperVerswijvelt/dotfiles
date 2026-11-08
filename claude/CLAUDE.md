@@ -111,12 +111,10 @@ shortest sentence that keeps the reason.
 - Plan review before shipping: a clean `my-reviewer` reads the draft plan with the spec and
   decisions log and lists every question an implementer would still have to ask. The session
   answers each with Casper or records a default in the plan.
-- A plan file (`docs/plans/<feature>.md`) has: scope in and out; acceptance tests per task;
-  every open question with Casper's answer or a stated default; "decide yourself" rules for
-  small details; per look check, the device it needs (web, emulator, phone). Look and feel is
-  signed off before shipping: a mockup on the real UI, or a test APK for blur, motion or insets.
+- A plan file (`docs/plans/<feature>.md`) has the sections listed in `my-feature-flow`
+  (Required plan sections).
 - On "Ship the plan" (or similar) it commits the plan on the feature's own branch (named by
-  the contract's rules, cut from the base branch) and pushes it without opening a PR.
+  the contract's rules, cut from the base branch) and pushes it without opening a PR. Implementation continues on that branch.
 - It then starts the `my-orchestrator` (several tasks) or a `my-implementer` then a
   `my-reviewer` (one task), receives their reports, answers their questions with Casper in
   the same session, and closes the plan (merge per the contract, tracker, cleanup).
