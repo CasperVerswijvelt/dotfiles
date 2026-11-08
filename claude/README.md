@@ -73,4 +73,4 @@ Nothing project-specific goes in dotfiles. A project without a contract is treat
 - Motion and feel are my call on the contract's `Preview`; the work waits for my verdict.
 - Every commit goes through the hooks. Nothing is pushed or merged unless I ask or the
   contract's merge policy says so.
-- Settled decisions go in the project's decisions log, one line each.
+- Product decisions and project-specific choices go in the project's decisions log, one line each; workflow rules stay in dotfiles.
