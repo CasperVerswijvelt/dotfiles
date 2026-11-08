@@ -5,9 +5,9 @@ description: Take a change from branch to merge or open PR or MR, in any project
 
 # Branch to PR or MR
 
-Size picks who runs it. A single-task feature or a look-and-feel loop: main starts a
+The feature session (one Opus session per feature, see Feature sessions in `CLAUDE.md`) runs this flow. Size picks who does the work. A single-task feature or a look-and-feel loop: it starts a
 `my-implementer` that does the task and lands it, then a `my-reviewer` (`my-review`),
-with no orchestrator. A plan with several tasks: main starts a `my-orchestrator`, which runs
+with no orchestrator. A plan with several tasks: it starts a `my-orchestrator`, which runs
 these steps and delegates each one (gate runs, rebases and tracker edits included). Read the
 project's `## Workflow contract` first: its stage picks the path in step 6.
 
@@ -34,10 +34,10 @@ A `my-scout` gathers what you need to know about the code.
   before it is built.
 - A task about motion or feel carries Casper's verdict from a live check on the contract's
   `Preview`; without it the task waits, and the orchestrator stops and reports (it does
-  not stay alive waiting). Main resumes with a fresh agent that reads the plan file. This
-  holds between preview rounds too: report and end, main relays the verdict to a fresh
+  not stay alive waiting). The feature session resumes with a fresh agent that reads the plan file. This
+  holds between preview rounds too: report and end, the session hands the verdict to a fresh
   agent, and no Opus agent idles waiting.
-- Product questions go up as `my-orchestrator` says; a changed answer becomes a
+- Product questions go up to the feature session as `my-orchestrator` says; a changed answer becomes a
   follow-up task. Rulings, defaults and open questions go in the plan file.
 - A big change (new screen, data model change) waits for Casper's approval of the plan.
 - A task with a high technical cost (see the cost rule in `CLAUDE.md`) goes to Casper as a decision before the plan is final.
@@ -59,7 +59,18 @@ Split any task expected to take over about 45 minutes at planning time. Scope ea
 Questions for Casper are raised here, in preflight. Dependent tasks wait; a default with
 its cost goes in the plan file.
 
-Done when every task has files, interfaces, test names and acceptance.
+**Plan review.** Before the plan ships, a clean `my-reviewer` reads the draft with the spec and
+decisions log and lists every question an implementer would still have to ask. The feature
+session answers each with Casper or records a default.
+
+**Required plan sections:** scope in and out; acceptance tests per task; every open question
+with Casper's answer or a stated default; "decide yourself" rules for small details; per look
+check, the device it needs (web, emulator, phone). Look and feel is signed off before
+shipping (mockup on the real UI; a test APK for blur, motion or insets). A worker hitting
+something unsettled takes the plan's default and lists it in its report; it stops only for a
+real product decision.
+
+Done when every task has files, interfaces, test names and acceptance, and the review's questions are answered.
 
 ## 3. Implement
 

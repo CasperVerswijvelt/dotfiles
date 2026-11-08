@@ -1,13 +1,13 @@
 # Personal workflow
 
-Applies in every project, to the main thread and every agent. Main-thread-only rules live in the `Main thread` output style (`claude/output-styles/main-thread.md`). The project's own
+Applies in every project, to the feature session and every agent. Feature-session-only rules live in the `Main thread` output style (`claude/output-styles/main-thread.md`). The project's own
 CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the project's fields (template: `~/dotfiles/claude/contract-template.md`). No contract: infer what you can from the repo and treat the stage as `mature`.
 
 ## Roles
 
 | Role | Model | Job |
 |---|---|---|
-| Main thread | Opus | Product decisions with Casper; starts agents; relays their reports. |
+| Feature session | Opus | One per feature: product decisions with Casper, the plan, starts agents, closes the plan. |
 | `my-orchestrator` | Opus | One plan with several tasks, delegated end to end. |
 | `my-implementer` | Sonnet | One task from a precise prompt. |
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
@@ -24,8 +24,8 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 - Require him present for a step whose failure would leave no trace afterwards.
 - Motion and feel are Casper's call, judged live on the contract's `Preview`: before the
   plan is written and again before merge. His verdict is the gate. Tests still pin timing.
-  When a step waits on his live verdict, the agent reports and ends; main relays the
-  verdict to a fresh agent. No Opus agent idles waiting.
+  When a step waits on his live verdict, the agent reports and ends; the feature session
+  hands the verdict to a fresh agent. No Opus agent idles waiting.
 - A layout or look decision gets a mockup on the real UI before it is built. No per-task
   before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
   shots of a screen or at his milestone check, on the status page when the contract names
@@ -41,7 +41,7 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 
 Agents run hooks, landing, gate runs, builds, server starts and pair captures in the
 foreground with a long Bash timeout (up to 600000 ms), never backgrounded: a subagent's
-background completions go to the main thread, not to the agent or its parent. Never
+background completions go to the feature session, not to the agent or its parent. Never
 background a command and then end the turn. Such a long command never shares a command
 with a commit. No pgrep loops. Heavy runs (app test suites,
 full builds) go through `~/dotfiles/claude/tools/heavy-slot`, which queues them (2 slots) and
@@ -82,7 +82,7 @@ shortest sentence that keeps the reason.
 - One commit per task where possible: the plan tick goes in
   the task's last code commit, never in separate bookkeeping commits. The contract says
   what else waits for plan close (such as the tracker). Plan close also deletes the plan
-  file (see Planning sessions).
+  file (see Feature sessions).
 - Push, open a PR or merge only when Casper asks, or when the contract's merge policy
   lets the agent merge (that includes pushing the base). Otherwise Casper
   merges.
@@ -98,21 +98,31 @@ shortest sentence that keeps the reason.
   directly on the base branch, pushed without a PR. A project's contract can override
   this.
 
-## Planning sessions
+## Feature sessions
 
-- A planning session (any number at once) discusses a feature with Casper, may read code and
-  make a mockup, and never writes app code or runs tests.
-- On "Ship the plan" (or similar) it writes `docs/plans/<feature>.md` (scope, acceptance tests,
-  open questions answered), commits it on the feature's own branch (named by the contract's
-  rules, cut from the base branch) and pushes that branch without opening a PR. The
-  implementation continues on that branch. It then messages the main session: "plan ready:
-  <branch> docs/plans/<feature>.md". It finds that
-  session by the contract's `Main session` title (list_sessions or ListAgents, then
-  send_message / SendMessage).
+- One Opus session per feature (Casper runs 1 to 2 at once). It discusses the feature with
+  Casper, may read code and make a mockup, and never writes app code or runs tests itself.
+- Plan review before shipping: a clean `my-reviewer` reads the draft plan with the spec and
+  decisions log and lists every question an implementer would still have to ask. The session
+  answers each with Casper or records a default in the plan.
+- A plan file (`docs/plans/<feature>.md`) has: scope in and out; acceptance tests per task;
+  every open question with Casper's answer or a stated default; "decide yourself" rules for
+  small details; per look check, the device it needs (web, emulator, phone). Look and feel is
+  signed off before shipping: a mockup on the real UI, or a test APK for blur, motion or insets.
+- On "Ship the plan" (or similar) it commits the plan on the feature's own branch (named by
+  the contract's rules, cut from the base branch) and pushes it without opening a PR.
+- It then starts the `my-orchestrator` (several tasks) or a `my-implementer` then a
+  `my-reviewer` (one task), receives their reports, answers their questions with Casper in
+  the same session, and closes the plan (merge per the contract, tracker, cleanup).
+- A worker hitting something unsettled takes the plan's default when one fits and lists it in
+  its report. It stops only for a real product decision.
+- Parallel landings rely on the contract's landing step rejecting when the base moved (rerun)
+  and on the cap of 2 features. A small main session may exist for a standing loop, only to
+  start feature sessions, never relaying.
 - A plan file is deleted once implemented, in the change that implements it (the last
   task's commit or the plan-close step), so no plan ever reaches the base branch.
   Open follow-ups go into the PR body.
-- A small fix Casper asks for directly in the main session needs no planning session.
+- A small fix Casper asks for directly needs no plan: the session starts an implementer.
 
 ## Compact instructions
 

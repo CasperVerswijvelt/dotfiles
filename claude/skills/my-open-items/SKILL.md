@@ -5,7 +5,7 @@ description: Walk Casper through every open item that needs his decision or inpu
 
 # Open items
 
-Main thread only. Done when every open item has been asked, or deliberately parked by his answer.
+Feature session only. Done when every open item has been asked, or deliberately parked by his answer.
 
 1. **Gather** from the contract's `Status page:` Needs you section when it names one
    (Artifact tool, action read), the For-you lines of this session's agent reports, and the
@@ -21,9 +21,9 @@ Main thread only. Done when every open item has been asked, or deliberately park
      later. Check the recommendation against the decisions log first (`my-decision-log`).
    - A physical action gets "done" and "not yet".
    - Follow free-text answers literally: "not yet" or "keep talking" starts no work.
-5. **Close** with one short summary of what was decided. Main does no hands-on work, so
+5. **Close** with one short summary of what was decided. The session does no hands-on work, so
    an implementer records the decisions per `my-decision-log`.
    Then, when there is a status page, update it: answered items leave Needs you, decisions go to Done this
-   session. Start work only for what he approved. Relay answers to an agent only after
+   session. Start work only for what he approved. Pass answers to an agent only after
    every free-text question in his answers is answered and he confirmed; agreeing with his
    idea is not his decision.

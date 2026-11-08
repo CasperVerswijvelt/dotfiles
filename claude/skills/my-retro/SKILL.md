@@ -26,7 +26,7 @@ top 3 findings.
 3. **Review the ledger.** For every `open` row in `~/dotfiles/claude/tools/retro/fix-ledger.md`
    (and any "too little data"), compare its prediction with this retro's numbers and set the
    status (worked, no effect, worse, too little data) with evidence: retro dates and
-   numbers. A "worse" row goes to Casper as a question on the page's findings and in main's
+   numbers. A "worse" row goes to Casper as a question on the page's findings and in the feature session's
    Needs you, with the revert as one option. Never revert on your own. Append Casper's items
    per round to the ledger's "Casper's signal" table.
 4. **Incidents.** One `my-reviewer` checks the transcripts and the JSON for each pattern,
