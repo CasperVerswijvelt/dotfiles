@@ -21,6 +21,7 @@ project's CLAUDE.md, never in this repo.
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Preview: <command, or none>   # runs the branch for Casper's live check
 - Pair tool: <skill or command and output folder, or none>   # before/after captures, only on Casper's request or at his milestone check
+- Tests: <override of the default test rule in CLAUDE.md, or omit>   # optional
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md
 - Status page: <artifact url>   # optional; without it the feature session lists what needs Casper in chat

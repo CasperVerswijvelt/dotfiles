@@ -63,6 +63,7 @@ Status: open, worked, no effect, worse, too little data.
 | R53 | 2026-11-08 | all | PreToolUse Bash hook logs waiting loops (pgrep, until, sleep polling), log only | dotfiles this commit | Polling minutes measured from the log; false blocks 0 before it enforces | open | |
 | R54 | 2026-11-08 | all | Feature sessions replace the main session: plan review, required plan sections, the session runs and closes its plan | dotfiles this commit | Main and relay cost share from 21% to under 8%; questions to Casper after a plan ships halve (count per plan next retro) | open | |
 | R55 | 2026-11-08 | all | my-orchestrator: 1-hour cache removed (R44 no effect); not for UI or look-and-feel fix rounds | dotfiles this commit | No cost change from the cache removal; orchestrator spend on UI fix rounds to about 0 | open | |
+| R56 | 2026-11-08 | all | Test rule (mvp): test data-loss and wrong-answer logic, flow tests only for multi-step paths, no layout, colour, copy, token or component tests, pin once, fix waves test only reproduced bugs; in ~/.claude/CLAUDE.md and the gym-app, Sonority and casper-ui contracts | dotfiles this commit | Test share of added lines from 57% to under 35% (gym) | open | |
 
 Baselines for R1 to R6 are the 2026-10-20 gym-app retro (page https://claude.ai/artifact/9iNqpfadNhwDrUJd8V1wmE) and its
 row in retro-log.md (wall 15h29m, cost $36, gate 109 min, 90 agents). Per-task numbers start

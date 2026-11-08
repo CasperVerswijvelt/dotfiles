@@ -66,7 +66,7 @@ change never claimed, or a refactor taste is a follow-up, never a finding.
 - **Blocker**: wrong output, crash, data loss, hang or security hole on a reachable
   path; a broken project principle; the ticket's problem still reachable; a bypassed
   gate (`--no-verify`).
-- **Major**: wrong in a rare reachable state; risky logic with no test; a UI rule
+- **Major**: wrong in a rare reachable state; risky logic with no test (per the Tests rule in CLAUDE.md: never a missing layout, colour or copy test); a UI rule
   broken; logic duplicated where a shared helper exists; dead code added; docs now
   contradicting the code; a product dead end; a requirement missing or unasked work added.
 - **Minor**: everything else. At most five reported.

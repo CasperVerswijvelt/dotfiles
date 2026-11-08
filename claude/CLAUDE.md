@@ -60,6 +60,12 @@ shortest sentence that keeps the reason.
 
 ## Rules and decisions
 
+- Tests (mvp stage default; a project's contract `Tests:` line may override): test logic that
+  can lose data or give a wrong answer (sync, save, undo, schedule and date rules, migrations,
+  parsing, error paths). Flow tests only for multi-step user paths. No tests for layout
+  constants, colour, copy, tokens or component choice (reviewers and repo rule tests cover
+  those), except one pin for a layout bug that happened twice. Pin each property once, in the
+  owning package. No getter or framework tests. A fix wave adds a test only for a reproduced bug.
 - Prefer a rule a test enforces over a paragraph of prose.
 - Commit and push hooks run only (part of) the fast gate (format, lint/analyze; seconds),
   never the test suite or other long work. The full gate runs once per branch, before the
