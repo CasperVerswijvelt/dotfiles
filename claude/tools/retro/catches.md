@@ -106,6 +106,16 @@ gate, and any other named check.
 | 2026-11-05 | Sonority | review (all areas) | #193 rescan path lacked a test; #199, #201, #203 minors only (direct, PR bodies) | minor |
 | 2026-11-05 | Sonority | summary | #202, #204, #205, #206, #198 reviewed A or A- with no majors; capture agents ($69, $61 of it one mockup agent) caught nothing in the PR bodies | nil |
 | 2026-11-05 | gym-app | summary (inferred from commit subjects, not transcripts) | about 12 "review minors/wave" commits on main since 10-24; no majors verified in this retro | minor |
+| 2026-11-08 | gym-app | correctness review | session-dates T2/T3: a session date on a rest slot was ignored (schedule_plan.dart:134); pick mode not tied to the schedule still being a Cycle (schedule_view.dart:94) | major |
+| 2026-11-08 | casper-ui | correctness review | sheet back caret wiped on a step swap (SheetBackRegistrar disposed after the new body mounted), found in fix round 2 | major |
+| 2026-11-08 | casper-ui | correctness review | AppRow below slot popped 12 dp on the first frame of an expanding slot (row-bottom-space, round 1 B) | major |
+| 2026-11-08 | Sonority | UI and product / correctness | #213 failed scan on the no-system page showed no error; Diagnostics footer overflowed at large text, then still scrolled behind the navbar (round 2) | major |
+| 2026-11-08 | Sonority | review of trim (round 1) | #213 trim deleted the only test pinning the menu anchor on the button; restored in fb2e2c18 | major |
+| 2026-11-08 | gym-app + Sonority + casper-ui | review (docs and rules) | about 8 majors were docs contradicting code or decisions (decisions.md:69 headings, GUIDE rows line, RowVariant doc, Settings headings), 1 raw Sync log icon row, 1 missed subtitle adoption; no bug | minor |
+| 2026-11-08 | gym-app + Sonority + casper-ui | review verify / round 2 | 44 verifier agents (about $5): every round-1 B went to A or A-; no verifier refuted a finding | minor |
+| 2026-11-08 | gym-app + Sonority | per-consumer bump reviews | 15 reviews of casper_ui version bumps ($1.8): {findings: []} or minors on the bump diff, nothing real | nil |
+| 2026-11-08 | gym-app + Sonority | gate / tests | about 25 failing full runs in the window were all test updates after a deliberate UI change or TDD red; no failure was a real bug | nil |
+| 2026-11-08 | gym-app + Sonority + casper-ui | summary | 66 review reports with a grade: 0 blockers, 10 B round 1 (1 to 3 majors each), 27 A with zero majors | minor |
 
 ## Escaped
 
@@ -139,3 +149,9 @@ would have caught.
 | 2026-10-24 | gym-app | calendar look: ring-today built 11:00 from an approved mockup, cells redesigned 15:28 (day number on every cell, filled done, rest dimmed) and fixed again 17:25 (row height at any text scale) | Casper on the preview | a mockup of the whole month with all four cell states and text scale 1.3 | existing (mockup approved the partial look) |
 | 2026-11-05 | gym-app | Catalog Home goldens never finished the marked-days read (regression from 50e9cb63) | commit subject (inferred) | goldens in landing | removed (goldens run at plan close only) |
 | 2026-11-05 | gym-app | An idle coach list row has no trailing (regression from 7eb82af7) | commit subject (inferred) | a reviewer reading the after shot | existing (did not catch it) |
+| 2026-11-08 | gym-app + Sonority | faint teal glow behind the nav bar (blur read pixels about 54 dp above the bar): passed PR 213 reviews, fixed twice (casper_ui v0.7.4, v0.7.5), about $3.5 | Casper on the built app | a pixel or golden check of the bar over a coloured footer button, or a UI pair read by a reviewer | existing (pairs were shot, none caught it) |
+| 2026-11-08 | casper-ui | sheet X position took 4 rounds (v0.3.1 band, v0.3.3 title edge, v0.3.4 24/24, #25 trailing end), about 15 agents | Casper on the built UI | a mockup of the sheet head with X, title, Back and trailing together before the build | existing (mockups were per option, not whole) |
+| 2026-11-08 | casper-ui | row padding and compact row churned across v0.7.0, 0.7.1, 0.7.2 (76 to 72, 8 to 12, text sizes) | Casper on shots and the APK | a mockup of one list page at the final padding on the real UI | existing (no check caught it) |
+| 2026-11-08 | gym-app | weight stepper in the workout screen lacked its fixed decimals (0e031650) | Casper | a test of a stepper in the workout screen with a whole-number weight | existing (no check caught it) |
+| 2026-11-08 | Sonority | PR 213 carried scan-first apply and scan-error flow, unrelated to the UI overhaul; Casper had it split into #214 | Casper | an architecture or scope reviewer comparing the diff to the ticket | existing (no review flagged scope) |
+| 2026-11-08 | Sonority | PR 213 first opened from gym-app's UI branch (#208 and #209 combined); Casper: revert and reopen, a 103 min orchestrator at about $1.25 | Casper | a plan step stating who merges which PRs | existing (no check) |
