@@ -69,6 +69,23 @@ top 3 findings.
    `fix-ledger.md` in the same commit: date, project, change, commit sha, a prediction naming
    its metric, direction and size, status `open`.
 
+## What an audit optimises
+
+Look for token cuts that keep efficiency, and for efficiency gains at the same token level,
+then balance the two. The quality bar stays fixed: code that works as expected, is robust,
+maintainable and extendable. Rate each cut against that bar as well as its dollars. Casper
+believes Opus is needed where it is kept: challenge that when evidence says otherwise, and
+say plainly when there is no evidence either way.
+
+## Quota yardstick (Pro plan, measured Nov 2026)
+
+A 5-hour window ends at about $32 of API-priced usage (four windows: $31.6 to $33.2). The
+week is the tighter limit, about $240 or 7.5 windows. Cache re-sends dominate: in one
+retro window 60% of spend was cache writes, and about a third of the total was whole
+contexts re-sent after the cache expired (subagents 5 min, main 1 h). So size work in
+windows, keep contexts small, avoid agents that wait over 5 minutes, and do not read
+screenshots into context when they are only for Casper.
+
 ## Known limits
 
 Say these on the page, and fix them when iterating.

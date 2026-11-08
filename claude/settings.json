@@ -82,5 +82,6 @@
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
-  "autoCompactEnabled": true
+  "autoCompactEnabled": true,
+  "autoMemoryEnabled": false
 }

@@ -129,6 +129,10 @@ shortest sentence that keeps the reason.
   Open follow-ups go into the PR body.
 - A small fix Casper asks for directly needs no plan: the session starts an implementer.
 
+## Memory
+
+Auto memory is off. Nothing is remembered unless Casper asks. When he asks to remember something, write it into the repo: a settled decision in the decisions log (`my-decision-log`), a project rule in its CLAUDE.md, a procedure in a skill, a generic workflow rule here in the dotfiles. Never a memory file.
+
 ## Compact instructions
 
 When compacting, keep verbatim: the task, plan and approved approach; branch, PR number
