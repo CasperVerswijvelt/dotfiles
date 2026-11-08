@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# heavy-slot <command> [args...]: run a command under one of SLOTS machine-wide slots.
+# Scope: heavy = app test suites and full builds; format, lint and small package tests run
+# freely; the emulator is outside the cap.
+# Exit codes: the child's, or 75 when no slot freed within the wait limit.
+import fcntl
+import os
+import signal
+import subprocess
+import sys
+import time
+
+SLOTS = int(os.environ.get("HEAVY_SLOTS", "2"))
+WAIT = float(os.environ.get("HEAVY_SLOT_WAIT", "300"))
+POLL = float(os.environ.get("HEAVY_SLOT_POLL", "2"))
+LOCK_DIR = os.environ.get("HEAVY_SLOT_DIR") or os.path.expanduser("~/.cache/heavy-slot")
+
+
+def try_acquire():
+    os.makedirs(LOCK_DIR, exist_ok=True)
+    for i in range(SLOTS):
+        fd = os.open(os.path.join(LOCK_DIR, f"slot-{i}.lock"), os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            os.set_inheritable(fd, False)
+            return fd
+        except OSError:
+            os.close(fd)
+    return None
+
+
+def main():
+    cmd = sys.argv[1:]
+    if not cmd:
+        print("usage: heavy-slot <command> [args...]", file=sys.stderr)
+        return 2
+    if os.environ.get("HEAVY_SLOT_HELD") == "1":
+        os.execvp(cmd[0], cmd)
+    fd = try_acquire()
+    if fd is None:
+        print("waiting for a test slot", file=sys.stderr, flush=True)
+        deadline = time.monotonic() + WAIT
+        while fd is None:
+            if time.monotonic() >= deadline:
+                print("machine busy, run again", file=sys.stderr)
+                return 75
+            time.sleep(min(POLL, max(0.0, deadline - time.monotonic())))
+            fd = try_acquire()
+    env = dict(os.environ, HEAVY_SLOT_HELD="1")
+    try:
+        child = subprocess.Popen(cmd, env=env, close_fds=True)
+    except OSError as e:
+        print(f"heavy-slot: {e}", file=sys.stderr)
+        return 127
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda s, _f: child.send_signal(s))
+    while True:
+        try:
+            return child.wait()
+        except KeyboardInterrupt:
+            pass
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -43,8 +43,9 @@ Agents run hooks, landing, gate runs, builds, server starts and pair captures in
 foreground with a long Bash timeout (up to 600000 ms), never backgrounded: a subagent's
 background completions go to the main thread, not to the agent or its parent. Never
 background a command and then end the turn. Such a long command never shares a command
-with a commit. Never wait on another agent's process (no pgrep loops): if the machine is
-busy, just run the command. Subagents have no Monitor, and macOS has no `timeout`. Never
+with a commit. No pgrep loops. Heavy runs (app test suites,
+full builds) go through `~/dotfiles/claude/tools/heavy-slot`, which queues them (2 slots) and
+gives up after about 5 min with "machine busy, run again": then just run the command again. Subagents have no Monitor, and macOS has no `timeout`. Never
 poll with `sleep`. Never `sed -i`: use Edit or python3.
 
 Plain, separate commands with absolute paths. Keep `cd` out of the command doing the

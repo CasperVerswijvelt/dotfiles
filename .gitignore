@@ -2,3 +2,5 @@ __pycache__/
 
 # Engine-generated mod typings
 claude/mods/*/.claude-plugin/types/
+
+claude/tools/retro/wait-loop-hook.log

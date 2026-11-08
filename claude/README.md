@@ -62,6 +62,8 @@ and what to turn off. `claude/scripts/tool-usage.py` counts MCP and skill calls 
 | Skills `my-*` and agents `my-*` | Gate and land scripts, git hooks |
 | Retro tools: `claude/tools/retro` | Plans, tracker or status file |
 | Contract template: `claude/contract-template.md` | Decisions log, review rubric |
+| Run cap: `claude/tools/heavy-slot` (2 heavy runs machine-wide) | Justfile calls to it |
+| Hook: `claude/tools/wait-loop-hook.py` (logs waiting loops, log only) | |
 
 Nothing project-specific goes in dotfiles. A project without a contract is treated as
 `mature`.
