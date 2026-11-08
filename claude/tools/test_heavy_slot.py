@@ -80,6 +80,27 @@ class HeavySlotTest(unittest.TestCase):
     def test_exit_code_passes_through(self):
         self.assertEqual(self.run_tool("sh", "-c", "exit 3").returncode, 3)
 
+    def test_child_killed_by_signal_gives_128_plus_n(self):
+        self.assertEqual(self.run_tool("sh", "-c", "kill -9 $$").returncode, 137)
+
+    def test_sigterm_forwarded_to_child(self):
+        p = self.start("sleep", "30")
+        time.sleep(0.5)
+        p.send_signal(signal.SIGTERM)
+        p.communicate(timeout=10)
+        self.assertEqual(p.returncode, 143)
+
+    def test_signal_while_waiting_never_starts_child(self):
+        self.hold()
+        self.hold()
+        marker = os.path.join(self.dir.name, "started")
+        c = self.start("touch", marker, HEAVY_SLOT_WAIT="20")
+        time.sleep(0.7)
+        c.send_signal(signal.SIGTERM)
+        c.communicate(timeout=10)
+        self.assertEqual(c.returncode, 143)
+        self.assertFalse(os.path.exists(marker))
+
 
 if __name__ == "__main__":
     unittest.main()

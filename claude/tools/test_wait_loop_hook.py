@@ -36,22 +36,45 @@ class WaitLoopHookTest(unittest.TestCase):
             "pgrep": "while pgrep -f flutter >/dev/null; do :; done",
             "until-loop": "until [ -f /tmp/done ]; do\n  echo hi\ndone",
             "while-sleep": "while true; do\n  check\n  sleep 5\ndone",
-            "sleep-polling": "sleep 30 && git status",
         }
         for name, cmd in cases.items():
             self.send(cmd)
             got = self.lines()[-1].split("\t")
-            self.assertEqual(got[1:4], ["s1", "/x", got[3]])
-            self.assertEqual(got[3], name if name != "pgrep" else "pgrep", cmd)
-        self.assertEqual(len(self.lines()), 4)
+            self.assertEqual(got[1:3], ["s1", "/x"])
+            self.assertEqual(got[3], name, cmd)
+        self.assertEqual(len(self.lines()), 3)
         self.assertNotIn("\n", self.lines()[1])
         self.assertIn("\\n", self.lines()[1])
 
+    def test_logs_more_loops(self):
+        cases = {
+            "while-sleep": ["for i in 1 2; do sleep 1; done",
+                            "while ! curl -s x; do sleep 2; done"],
+            "until-loop": ["until curl -s x\ndo\n  echo w\ndone", "until false; do :; done"],
+            "pgrep": ["pgrep -f flutter", "x=$(pgrep foo)"],
+        }
+        for name, cmds in cases.items():
+            for cmd in cmds:
+                self.send(cmd)
+                self.assertEqual(self.lines()[-1].split("\t")[3], name, cmd)
+
     def test_ignores_plain_commands(self):
         for cmd in ["git status", "just gate", "grep -n sleep file.dart", "echo until",
-                    "grep -rn pgrep docs"]:
+                    "grep -rn pgrep docs", "cd x && sleep 1", "git commit -m 'a; sleep 2'",
+                    "git commit -m 'a\nsleep 3\nb'", "git commit -m \"x\nsleep 3\"",
+                    "sleep 1; echo hi", "sleep 30 && git status",
+                    "cat <<EOF\nwhile x; do sleep 1; done\nEOF\necho ok",
+                    "while x; do echo a; done; sleep 1"]:
             self.send(cmd)
         self.assertEqual(self.lines(), [])
+
+    def test_large_input_is_fast(self):
+        import time
+        cmd = "x" + "; while x; do echo a; done" * 8000
+        self.assertGreater(len(cmd), 200000)
+        t = time.monotonic()
+        self.send(cmd)
+        self.assertLess(time.monotonic() - t, 1.0)
 
     def test_bad_json_exits_zero(self):
         self.feed("not json")
@@ -60,7 +83,8 @@ class WaitLoopHookTest(unittest.TestCase):
 
     def test_truncates(self):
         self.send("pgrep x " + "a" * 2000)
-        self.assertLess(len(self.lines()[0]), 700)
+        self.assertLess(len(self.lines()[0]), 400)
+        self.assertNotIn("a" * 301, self.lines()[0])
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 # heavy-slot <command> [args...]: run a command under one of SLOTS machine-wide slots.
 # Scope: heavy = app test suites and full builds; format, lint and small package tests run
 # freely; the emulator is outside the cap.
-# Exit codes: the child's, or 75 when no slot freed within the wait limit.
+# Exit codes: the child's (128+N when killed by signal N), or 75 when no slot freed within the wait limit.
 import fcntl
 import os
 import signal
@@ -29,13 +29,25 @@ def try_acquire():
     return None
 
 
+child = None
+
+
+def on_signal(signum, _frame):
+    if child is None:
+        sys.exit(128 + signum)
+    child.send_signal(signum)
+
+
 def main():
+    global child
     cmd = sys.argv[1:]
     if not cmd:
         print("usage: heavy-slot <command> [args...]", file=sys.stderr)
         return 2
     if os.environ.get("HEAVY_SLOT_HELD") == "1":
         os.execvp(cmd[0], cmd)
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, on_signal)
     fd = try_acquire()
     if fd is None:
         print("waiting for a test slot", file=sys.stderr, flush=True)
@@ -52,13 +64,8 @@ def main():
     except OSError as e:
         print(f"heavy-slot: {e}", file=sys.stderr)
         return 127
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda s, _f: child.send_signal(s))
-    while True:
-        try:
-            return child.wait()
-        except KeyboardInterrupt:
-            pass
+    rc = child.wait()
+    return 128 - rc if rc < 0 else rc
 
 
 if __name__ == "__main__":
