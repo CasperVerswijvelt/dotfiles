@@ -75,8 +75,9 @@ shortest sentence that keeps the reason.
   added, complexity, upkeep, what it locks in). When that cost is high, it goes to Casper
   as a decision stating the cost, even when the change looks small or was already
   recommended.
-- Settled product and process decisions: one line each in the project's decisions log
-  (`my-decision-log`).
+- The project's decisions log takes product decisions and project-specific lasting choices
+  only, one line each (`my-decision-log`). Generic workflow rules live in this config and are
+  never logged or restated in a project.
 - This config stays generic and works in any project. Nothing project- or employer-specific
   goes here (trackers, hosts, team names, reviewers): it goes in that project's repo, reachable
   from its CLAUDE.md. Each side works without the other.

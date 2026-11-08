@@ -1,9 +1,13 @@
 ---
 name: my-decision-log
-description: Record a settled product or process decision in the project's decisions log, or check it before reopening a question. Use when Casper settles a decision, when a default is taken for an open question, or before proposing something that may contradict an earlier ruling.
+description: Record a settled product decision or project-specific lasting choice in the project's decisions log, or check it before reopening a question. Use when Casper settles a decision, when a default is taken for an open question, or before proposing something that may contradict an earlier ruling.
 ---
 
 # Decision log
+
+The log holds product decisions and project-specific lasting choices only. Generic workflow
+rules (sessions, plan review, test rule, caps, tooling) live in the dotfiles config and are
+never logged or restated in a project.
 
 The log is the file the contract names, else `docs/decisions.md` (create it with a
 `# Decisions` heading).

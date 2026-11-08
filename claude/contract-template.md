@@ -2,7 +2,8 @@
 
 Copy this section into a project's CLAUDE.md and fill it in. Delete lines that do not
 apply; the personal CLAUDE.md treats a missing contract as stage `mature`. Project specifics go in the
-project's CLAUDE.md, never in this repo.
+project's CLAUDE.md, never in this repo. A project's CLAUDE.md keeps only its own field values, tooling and
+genuine exceptions, and never restates a generic rule from the personal config.
 
 ```markdown
 ## Workflow contract
@@ -23,7 +24,7 @@ project's CLAUDE.md, never in this repo.
 - Pair tool: <skill or command and output folder, or none>   # before/after captures, only on Casper's request or at his milestone check
 - Tests: <override of the default test rule in CLAUDE.md, or omit>   # optional
 - Versioning: bump only on main when releasing
-- Decisions log: docs/decisions.md
+- Decisions log: docs/decisions.md   # product decisions and project-specific lasting choices only; never generic workflow rules
 - Status page: <artifact url>   # optional; without it the feature session lists what needs Casper in chat
 - Review pitfalls: <blockers and majors specific to this project, or the file that lists them>
 - Extra review areas: <name: what it covers>
