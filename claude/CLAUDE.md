@@ -115,7 +115,7 @@ shortest sentence that keeps the reason.
 - A plan file (`docs/plans/<feature>.md`) has the sections listed in `my-feature-flow`
   (Required plan sections).
 - On "Ship the plan" (or similar) it commits the plan on the feature's own branch (named by
-  the contract's rules, cut from the base branch) and pushes it without opening a PR. Implementation continues on that branch, unless the contract lands each task to the base.
+  the contract's rules, cut from the base branch) and pushes it without opening a PR. Tasks are cut from that branch and merge into it; the feature merges to the base at close with the plan deleted.
 - It then starts the `my-orchestrator` (several tasks) or a `my-implementer` then a
   `my-reviewer` (one task), receives their reports, answers their questions with Casper in
   the same session, and sees the plan closed (its agents do the close steps: merge per the

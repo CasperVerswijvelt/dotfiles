@@ -16,8 +16,8 @@ Agent descriptions follow the rule in `my-orchestrator`.
 ## 1. Branch off the base
 
 Work continues on the plan's feature branch, where `docs/plans/<feature>.md` lives until
-plan close. The contract's branch rules decide where task branches or worktrees are cut
-(from the feature branch, or from the base when the contract lands each task to the base).
+plan close. Task branches or worktrees are cut from the feature branch and merge into it; the
+feature branch merges to the base at plan close, with the plan file deleted.
 The commands below apply only when no branch exists yet.
 
 ```bash
