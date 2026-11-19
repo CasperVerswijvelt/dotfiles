@@ -5,7 +5,7 @@ Whoever applies a fix adds its row in the same commit. A later retro reviews eve
 against its own numbers and sets the status. Never auto-revert: a "worse" row goes to Casper
 as a question.
 
-Status: open, worked, no effect, worse, too little data.
+Status: open, worked, no effect, worse, too little data, removed <date>.
 
 | id | date | project | change | commits | prediction (metric, direction, size) | status | evidence |
 |---|---|---|---|---|---|---|---|

@@ -169,6 +169,7 @@ class EmulatorLeaseTest(unittest.TestCase):
 
     def test_boot_timeout_kills_started_emulator_and_leaves_no_lease(self):
         self.m.BOOT_TIMEOUT = 0.3
+        self.m.WAIT = 30
         self.m.start_emulator = lambda avd: 4242  # never comes up
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
@@ -182,9 +183,11 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.m.WAIT = 0.3
         self.m.start_emulator = lambda avd: 4242
         t0 = time.monotonic()
-        rc, _, _ = self.run_main("acquire", "a", "--avd", "pix")
-        self.assertEqual(rc, 1)
+        rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (75, ""))
         self.assertLess(time.monotonic() - t0, 3)
+        self.assertEqual(self.stopped, [])
+        self.assertFalse(self.lease_file_exists())
 
     def test_boot_early_exit_stops_waiting_and_kills(self):
         self.m.BOOT_TIMEOUT = 30

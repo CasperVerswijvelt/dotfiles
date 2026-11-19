@@ -119,25 +119,33 @@ def proc_exited(pid):
 
 
 def stop_emulator(pid):
+    """Ask adb to kill the emulator, then SIGTERM its whole process group (started with
+    start_new_session, so the pid is the pgid and the qemu child is in it)."""
+    serial = running_serial()
+    if serial:
+        adb("-s", serial, "emu", "kill", timeout=10)
     try:
-        os.kill(pid, signal.SIGTERM)
+        os.killpg(pid, signal.SIGTERM)
     except (OSError, TypeError):
-        pass
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except (OSError, TypeError):
+            pass
 
 
 def wait_booted(budget, epid=None):
-    """Serial of the booted emulator, or None on timeout or when the spawned process exited."""
+    """(serial, exited): serial of the booted emulator or None; exited is True when the spawned process died."""
     deadline = time.monotonic() + budget
     while time.monotonic() < deadline:
         if epid is not None and proc_exited(epid):
-            return None
+            return None, True
         serial = running_serial()
         if serial:
             adb("-s", serial, "wait-for-device", timeout=max(1, deadline - time.monotonic()))
             if booted(serial):
-                return serial
+                return serial, False
         time.sleep(min(POLL, 1))
-    return None
+    return None, False
 
 
 def take_ticket():
@@ -216,9 +224,14 @@ def try_take(owner, avd, pid, deadline):
                 log(f"booting {avd}")
                 epid = start_emulator(avd)
                 started = True
-            budget = max(0.0, min(BOOT_TIMEOUT, deadline - time.monotonic()))
-            serial = wait_booted(budget, epid if started else None)
+            remaining = deadline - time.monotonic()
+            budget = max(0.0, min(BOOT_TIMEOUT, remaining))
+            serial, exited = wait_booted(budget, epid if started else None)
             if not serial:
+                if not exited and remaining < BOOT_TIMEOUT:
+                    # Out of acquire time, not a boot failure: leave the emulator for the next acquire.
+                    log("acquire time ran out while booting, emulator left running")
+                    return "busy", None
                 if started:
                     stop_emulator(epid)
                 drop_lease()
@@ -262,7 +275,8 @@ def cmd_release(owner):
         if not lease or lease.get("owner") != owner:
             log(f"{owner} holds no lease, nothing stopped")
             return 0
-        adb("-s", lease["serial"], "emu", "kill")
+        if lease.get("serial"):
+            adb("-s", lease["serial"], "emu", "kill")
         drop_lease()
     return 0
 
