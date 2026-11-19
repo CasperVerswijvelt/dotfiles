@@ -99,5 +99,24 @@ class Resume(unittest.TestCase):
         self.assertGreater(a["time"]["generation"], 3000)
 
 
+class Dedupe(unittest.TestCase):
+    def test_same_session_in_two_project_dirs_counts_once(self):
+        d = tempfile.mkdtemp()
+        src = os.path.join(HERE, "fixtures/proj", SID + ".jsonl")
+        paths = []
+        for name, extra in (("a", ""), ("b", "\n")):  # b is the bigger copy
+            os.makedirs(os.path.join(d, name))
+            p = os.path.join(d, name, SID + ".jsonl")
+            open(p, "w").write(open(src).read() + extra)
+            paths.append(p)
+        ids, dropped = retro.dedupe(paths)
+        self.assertEqual((ids, dropped), ([(SID, os.path.join(d, "b"))], 1))
+
+    def test_gate_forms(self):
+        for c in ("just gate", "just check", "/Users/x/dotfiles/claude/tools/heavy-slot flutter test"):
+            self.assertEqual(retro.bash_class(c), "gate", c)
+        self.assertEqual(retro.bash_class("echo hi"), "other")
+
+
 if __name__ == "__main__":
     unittest.main()

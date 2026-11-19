@@ -22,7 +22,7 @@ LAND_RX = r"\bjust(\s+--[\w-]+(=|\s+)\S+)*\s+land\b"
 # first match wins; applied to the command with heredoc bodies stripped
 BASH_CLASSES = [
     ("land", LAND_RX), ("goldens", r"update-goldens|--tags[ =]golden|\bjust goldens\b"),
-    ("gate", r"\bjust check(-all)?\b|\bgit commit\b|\bgit push\b|\.githooks|pre-commit"),
+    ("gate", r"\bjust (check(-all)?|gate)\b|\bheavy-slot\b|\bgit commit\b|\bgit push\b|\.githooks|pre-commit"),
     ("tests", r"\b(flutter|dart) test\b|\bjust test"),
     ("walkthrough", r"\bwalk(-demo)?\b|playwright|chrome"),
     ("build", r"\bjust (preview|up|serve)|flutter build|\bjust preview-stop"),
@@ -353,10 +353,26 @@ def analyse(path, aid, role, idle):
 
 
 # ---------- tree ----------
+def dedupe(paths):
+    """Same session id in several project dirs: keep the largest copy (latest mtime on a tie).
+    -> ([(sid, project_dir)], dropped count)"""
+    best, n = {}, 0
+    for p in paths:
+        sid = os.path.basename(p)[:-6]
+        st = os.stat(p)
+        key = (st.st_size, st.st_mtime)
+        n += sid in best
+        if sid not in best or key > best[sid][0]:
+            best[sid] = (key, os.path.dirname(os.path.abspath(p)))
+    return [(s, v[1]) for s, v in best.items()], n
+
+
 def build(session_ids, project_dir, tasks_dirs, idle, exclude_desc):
     nodes, notes = {}, []
     spawn_owner = {}  # tool_use id -> owner agent id
     for sid in session_ids:
+        if isinstance(sid, tuple):
+            sid, project_dir = sid
         main_path, agents = discover(project_dir, sid, tasks_dirs)
         if not os.path.exists(main_path):
             notes.append("main transcript missing: " + main_path)
@@ -544,7 +560,8 @@ def render(r):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("sessions", nargs="*")
-    ap.add_argument("--project-dir", default=os.path.expanduser("~/.claude/projects/" + os.getcwd().replace("/", "-")))
+    ap.add_argument("--project-dir", action="append",
+                    help="repeatable (e.g. worktree project dirs); default: the cwd's project dir")
     ap.add_argument("--tasks-dir", action="append", default=[])
     ap.add_argument("--json")
     ap.add_argument("--last", type=int)
@@ -553,18 +570,28 @@ def main(argv=None):
     ap.add_argument("--tasks", type=int, help="landed task count, overrides the git lookup")
     ap.add_argument("--exclude-desc", default="retrospective|retro\\b")
     a = ap.parse_args(argv)
-    ids = []
+    dirs = a.project_dir or [os.path.expanduser("~/.claude/projects/" + os.getcwd().replace("/", "-"))]
+    paths = []
     for s in a.sessions:
         if s.endswith(".jsonl"):
-            a.project_dir = os.path.dirname(os.path.abspath(s)); s = os.path.basename(s)[:-6]
-        ids.append(s)
+            paths.append(os.path.abspath(s))
+        else:
+            paths += [os.path.join(d, s + ".jsonl") for d in dirs if os.path.exists(os.path.join(d, s + ".jsonl"))]
+            if not any(os.path.basename(p) == s + ".jsonl" for p in paths):
+                paths.append(os.path.join(dirs[0], s + ".jsonl"))  # reported as missing by build
     if a.last:
-        fs = sorted(glob.glob(os.path.join(a.project_dir, "*.jsonl")), key=os.path.getmtime)[-a.last:]
-        ids += [os.path.basename(f)[:-6] for f in fs]
-    if not ids:
+        fs = sorted((f for d in dirs for f in glob.glob(os.path.join(d, "*.jsonl"))), key=os.path.getmtime)
+        last, _ = dedupe(fs)
+        paths += [os.path.join(d, sid + ".jsonl") for sid, d in last[-a.last:]]
+    if not paths:
         ap.error("give a session id/jsonl or --last N")
+    missing = [p for p in paths if not os.path.exists(p)]
+    ids, dropped = dedupe([p for p in paths if os.path.exists(p)])
+    ids += [(os.path.basename(p)[:-6], os.path.dirname(p)) for p in missing]
     idle = a.idle_min * 60
-    agents, notes = build(ids, a.project_dir, a.tasks_dir, idle, a.exclude_desc)
+    agents, notes = build(ids, dirs[0], a.tasks_dir, idle, a.exclude_desc)
+    if dropped:
+        notes.append("dropped %d duplicate session copies (same session id in several project dirs)" % dropped)
     r = summarise(agents, notes, idle)
     r["per_task"] = per_task(r, a.repo, a.tasks)
     txt = render(r)
