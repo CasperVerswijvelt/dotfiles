@@ -29,5 +29,4 @@ genuine exceptions, and never restates a generic rule from the personal config.
 - Review pitfalls: <blockers and majors specific to this project, or the file that lists them>
 - Extra review areas: <name: what it covers>
 - Lasting choices: <extra areas beyond CLAUDE.md's list, e.g. device protocol>   # optional
-- Role exceptions: <e.g. hardware work keeps the feature session hands-on>
 ```

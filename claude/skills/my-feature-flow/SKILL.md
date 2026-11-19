@@ -64,7 +64,7 @@ Split any task expected to take over about 45 minutes at planning time. Scope ea
 Questions for Casper are raised here, in preflight. Dependent tasks wait; a default with
 its cost goes in the plan file.
 
-**Plan review.** Before the plan ships, a clean `my-reviewer` reads the draft with the spec and
+**Plan review**, for every plan including 1 to 2 task plans. Before the plan ships, a clean `my-reviewer` reads the draft with the spec and
 decisions log and lists every question an implementer would still have to ask. The feature
 session answers each with Casper or records a default.
 
@@ -93,9 +93,9 @@ merge or fix wave. A red full gate grades F in the final review.
 ## 5. Review
 
 Commit, then run `my-review` until it passes or round 2 ends. Fixes go to a fresh
-implementer and are committed before the next round. A review with minors only gets one fix wave and a
-verifier (see `my-review`). The implementer that did the task, or the last fix wave, lands it
-(step 6): no separate landing agent.
+implementer and are committed before the next round. A review with minors only gets one fix wave and no
+verifier (see `my-review`). The implementer that did the task, or the last fix wave, lands its
+own commit (step 6): no separate land, publish or merge agents. Version bump commits get no review.
 A fix after a failed land is a fix wave (gets the review rules) only if it changes more than the failing test.
 
 ## 6. Land
@@ -118,7 +118,7 @@ security also gets a closing review at its own close; other plans get none.
 1. Changelog entry, when the project keeps one (one line).
 2. Screenshots through the contract's `Pair tool`, only when Casper asked for them.
 3. Rebase on the base and run the full gate once, before the PR or MR. This is the last rebase.
-4. Push and open the PR or MR only when Casper asks. Never base one on another open PR or MR.
+4. After a `my-review` grade of A- or better, push and open the PR or MR without asking. Never base one on another open PR or MR.
    Its description ends with a "Local review" section from the `my-review` Report: the grade per round, each blocker, major and minor with how it closed (fixed, waived, kept on purpose with reason), and what was not done (device test, full gate parts not run).
 5. After posting: sync by merging the base in, never force-push. New commits get a
    round-2 review.

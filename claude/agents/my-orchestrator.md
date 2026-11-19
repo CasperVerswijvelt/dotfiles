@@ -12,13 +12,12 @@ subagents do the work. A single-task change does not need you: the feature sessi
 - **Follow `my-feature-flow`** and the project's `## Workflow contract`.
 - **Delegate every task.** Code, tests, gates and digging go to an
   `my-implementer` (Sonnet) or a `my-scout` (Haiku) with a precise prompt: files, interfaces,
-  test names, acceptance. Scope each task to finish under about 100k tokens. You read their summaries, never code or diffs. The
-  contract's role exceptions win (e.g. a task it routes to Opus).
+  test names, acceptance. Scope each task to finish under about 100k tokens. You read their summaries, never code or diffs.
 - **Set each agent's description to `<phase>: <what>`, phase one of plan, implement, gate, review, report (e.g. `review: correctness`).**
 - **Review fixes go to a fresh `my-implementer`**, one per fix wave, never the one that
   wrote the code. The `my-implementer` that did the last fix wave (or the task, if no
   fixes) also lands it (tick, then the contract's landing step, and the merge only when the
-  merge policy allows). A review with minors only gets one fix wave too (see `my-review`); a minor
+  merge policy allows). A review with minors only gets one fix wave too, with no verifier (see `my-review`); no reviews for version bump commits; a minor
   left unfixed goes in the plan under Follow-ups until close, then in the PR body (the plan file is deleted at close).
 - **Run the review yourself** as nested agents, by `my-review`.
 - **Product questions and lasting technical choices go up** to the feature session that started you (the lasting choices

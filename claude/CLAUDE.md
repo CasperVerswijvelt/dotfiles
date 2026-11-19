@@ -13,7 +13,7 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
 | `my-scout` | Haiku | Checkable lookups; runs the fast or full gate and reports failures. |
 
-- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus or the contract's role exceptions do.
+- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus.
 - A subagent saw none of your conversation: its prompt carries everything it needs.
 
 ## Verifying
@@ -36,6 +36,14 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
   round is a fresh agent. Native file sending does not work in remote sessions.
 - A project with a web build gets one quick real-browser check of it at plan close (loads,
   works offline).
+- Device checks: web build or goldens first. The emulator only for what web cannot show (blur,
+  insets, tablet metrics, native behaviour), only inside an agent, only through
+  `~/dotfiles/claude/tools/emulator-lease` (acquire prints the serial; exit 75 = busy), always
+  `-d <serial>`, released when done. Never boot an emulator any other way.
+- Hardware and live-device work runs in an agent, never hands-on in the feature session. The
+  agent asks the session through its final report; the session relays to Casper and resumes the
+  agent with SendMessage. Casper can pre-approve a class of live writes; the session puts those
+  in the agent prompt so not every write needs its own confirm.
 
 ## Shell hygiene
 
@@ -90,12 +98,10 @@ shortest sentence that keeps the reason.
   the task's last code commit, never in separate bookkeeping commits. The contract says
   what else waits for plan close (such as the tracker). Plan close also deletes the plan
   file (see Feature sessions).
-- Push, open a PR or merge only when Casper asks, or when the contract's merge policy
-  lets the agent merge (that includes pushing the base). Otherwise Casper
-  merges.
-- No new PR or MR, and no push to an open one, without a `my-review` grade of A- or
-  better for that change, whatever its size, the agent type or docs-only. A prompt that
-  asks an agent to open a PR names the review as the step before it.
+- After a `my-review` grade of A- or better the agent pushes and opens the PR or MR without
+  asking, whatever the change's size, the agent type or docs-only. No new PR or MR and no push
+  to an open one without that grade. Casper merges, unless the contract's merge policy lets the
+  agent merge (that includes pushing the base).
 - A worktree you create (`git worktree add`, or an agent isolation worktree) you remove
   once its work is merged into its target or pushed and reported (`git worktree remove`,
   never `--force`). Never remove one holding uncommitted or unpushed work. Leftovers: the
@@ -120,6 +126,11 @@ shortest sentence that keeps the reason.
   `my-reviewer` (one task), receives their reports, answers their questions with Casper in
   the same session, and sees the plan closed (its agents do the close steps: merge per the
   contract, tracker, cleanup).
+- Plan close: the closing agent stops only processes the feature itself started (its emulator
+  lease, dev servers, flutter/dart processes). It never stops a Claude session or
+  remote-control process: SIGTERM makes claude archive the session on claude.ai and delete its
+  worktree. Closing a session is Casper's call (archive on claude.ai; `rc prune` reaps archived
+  ones). The session then ends with "Done, close this session" or the list of what is left.
 - A worker hitting something unsettled takes the plan's default when one fits and lists it in
   its report. It stops only for a real product decision.
 - Parallel landings rely on the contract's landing step rejecting when the base moved (rerun)
@@ -138,4 +149,5 @@ Auto memory is off. Nothing is remembered unless Casper asks. When he asks to re
 
 When compacting, keep verbatim: the task, plan and approved approach; branch, PR number
 and last reviewed sha; open review findings with their state and the round; decisions
-pending with Casper; every dead end tried, and why it failed.
+pending with Casper; every dead end tried, and why it failed; the ids and purpose of running
+agents; Casper's answers verbatim (never "see the earlier summary").
