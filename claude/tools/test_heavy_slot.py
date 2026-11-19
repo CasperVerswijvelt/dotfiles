@@ -1,8 +1,11 @@
+import importlib.machinery
+import importlib.util
 import os
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 
@@ -100,6 +103,74 @@ class HeavySlotTest(unittest.TestCase):
         c.communicate(timeout=10)
         self.assertEqual(c.returncode, 143)
         self.assertFalse(os.path.exists(marker))
+
+    def test_waiters_get_slots_in_ticket_order(self):
+        log = os.path.join(self.dir.name, "log")
+        self.hold("1.5")
+        ws = []
+        for name in ("w1", "w2", "w3"):
+            ws.append(self.start("sh", "-c", f"echo {name} >> {log}; sleep 0.2",
+                                 HEAVY_SLOTS="1", HEAVY_SLOT_WAIT="20", HEAVY_SLOT_MIN_FREE_PCT="0"))
+            time.sleep(0.4)
+        for w in ws:
+            w.communicate(timeout=20)
+        with open(log) as f:
+            self.assertEqual(f.read().split(), ["w1", "w2", "w3"])
+
+    def test_dead_waiter_ticket_is_skipped(self):
+        dead = subprocess.Popen(["true"])
+        dead.wait()
+        q = os.path.join(self.dir.name, "queue")
+        os.makedirs(q)
+        with open(os.path.join(self.dir.name, "counter"), "w") as f:
+            f.write("5")
+        open(os.path.join(q, f"{3:010d}.{dead.pid}"), "w").close()
+        r = self.run_tool("echo", "ok", HEAVY_SLOT_WAIT="5")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("ok", r.stdout)
+        self.assertEqual(os.listdir(q), [])
+
+    def test_live_earlier_ticket_blocks_until_timeout(self):
+        q = os.path.join(self.dir.name, "queue")
+        os.makedirs(q)
+        with open(os.path.join(self.dir.name, "counter"), "w") as f:
+            f.write("5")
+        open(os.path.join(q, f"{3:010d}.{os.getppid()}"), "w").close()
+        r = self.run_tool("echo", "x", HEAVY_SLOT_WAIT="1")
+        self.assertEqual(r.returncode, 75)
+
+
+class MemoryCheckTest(unittest.TestCase):
+    def test_low_memory_holds_waiter_until_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.environ["HEAVY_SLOT_DIR"] = d
+            loader = importlib.machinery.SourceFileLoader("heavy_slot_mod", TOOL)
+            spec = importlib.util.spec_from_loader("heavy_slot_mod", loader)
+            mod = importlib.util.module_from_spec(spec)
+            loader.exec_module(mod)
+            level = {"pct": 3}
+            mod.free_pct = lambda: level["pct"]
+            mod.MIN_FREE_PCT = 10
+            got = []
+            t = threading.Thread(target=lambda: got.append(mod.acquire(10, 0.05)))
+            t.start()
+            time.sleep(0.5)
+            self.assertEqual(got, [])
+            level["pct"] = 50
+            t.join(5)
+            self.assertEqual(len(got), 1)
+            self.assertIsNotNone(got[0])
+            os.close(got[0])
+
+    def test_failed_probe_counts_as_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.environ["HEAVY_SLOT_DIR"] = d
+            loader = importlib.machinery.SourceFileLoader("heavy_slot_mod2", TOOL)
+            spec = importlib.util.spec_from_loader("heavy_slot_mod2", loader)
+            mod = importlib.util.module_from_spec(spec)
+            loader.exec_module(mod)
+            mod.free_pct = lambda: None
+            self.assertTrue(mod.memory_ok())
 
 
 if __name__ == "__main__":
