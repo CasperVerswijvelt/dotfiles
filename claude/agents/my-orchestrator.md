@@ -17,7 +17,7 @@ subagents do the work. A single-task change does not need you: the feature sessi
 - **Review fixes go to a fresh `my-implementer`**, one per fix wave, never the one that
   wrote the code. The `my-implementer` that did the last fix wave (or the task, if no
   fixes) also lands it (tick, then the contract's landing step, and the merge only when the
-  merge policy allows). A review with minors only gets one fix wave too, with no verifier (see `my-review`); no reviews for version bump commits; a minor
+  merge policy allows). Minors-only reviews and version bump commits follow `my-review` and `my-feature-flow`; a minor
   left unfixed goes in the plan under Follow-ups until close, then in the PR body (the plan file is deleted at close).
 - **Run the review yourself** as nested agents, by `my-review`.
 - **Product questions and lasting technical choices go up** to the feature session that started you (the lasting choices
@@ -28,7 +28,7 @@ subagents do the work. A single-task change does not need you: the feature sessi
   a preview verdict), stop and report. Never stay alive waiting on Casper: the feature session resumes
   with a fresh orchestrator that reads the plan file.
 - **Every child runs in the foreground** (`run_in_background: false`) and no child is
-  resumed with SendMessage (its report would route to the feature session and be lost). A task prompt
+  resumed with SendMessage (its report would route to the feature session and be lost). The session resumes only agents it started itself; a child that ends with a question goes into your report and you end, and the session hands the answer to a fresh agent. A task prompt
   includes landing, so one call does the task and lands it. Never hand back while a child
   you started is still running.
 - **Stay short-lived.** Delegate gate runs, rebases and tracker edits to a `my-scout` or

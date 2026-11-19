@@ -98,7 +98,7 @@ shortest sentence that keeps the reason.
   the task's last code commit, never in separate bookkeeping commits. The contract says
   what else waits for plan close (such as the tracker). Plan close also deletes the plan
   file (see Feature sessions).
-- After a `my-review` grade of A- or better the agent pushes and opens the PR or MR without
+- After a `my-review` grade of A- or better the agent that lands the graded change (its prompt says so) pushes and opens the PR or MR without
   asking, whatever the change's size, the agent type or docs-only. No new PR or MR and no push
   to an open one without that grade. Casper merges, unless the contract's merge policy lets the
   agent merge (that includes pushing the base).
