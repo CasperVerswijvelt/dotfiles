@@ -3,10 +3,16 @@
 #   emulator-lease acquire <owner> [--avd NAME] [--pid PID]   print the serial; boot the emulator if needed
 #   emulator-lease release <owner>                           drop the lease and stop the emulator
 #   emulator-lease status                                    free, or owner, serial, age
-# Usage: flutter run -d "$(emulator-lease acquire me)" ... then emulator-lease release me
-# Lease: JSON file (owner, owner pid, emulator pid, serial, time) in the state dir. The owner pid is
-# the caller's parent pid unless --pid is given. A lease is stale when that pid is dead or the lease
-# is older than EMULATOR_LEASE_MAX_AGE; a stale lease is reclaimed and its emulator reused if booted.
+# Two modes:
+#   Script holding the lease for its whole run (a justfile recipe): pass --pid $$. The lease is
+#     reclaimed as soon as that pid is dead.
+#   Agent, one short-lived shell per Bash call: no --pid. Start every Bash call with
+#     serial="$(emulator-lease acquire me)" || exit $?
+#     (the holder's acquire is a heartbeat: same serial, lease age reset), and run
+#     emulator-lease release me at the end. A busy exit 75 must be checked, never ignored.
+# Lease: JSON file (owner, owner pid or null, emulator pid, serial, time of last touch) in the state dir.
+# The owner pid is tracked only with --pid. A lease is stale when its pid is dead or it was last
+# touched more than EMULATOR_LEASE_MAX_AGE ago; a stale lease is reclaimed and its emulator reused if booted.
 # Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped.
 # Env: EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
 # EMULATOR_LEASE_WAIT seconds (540, under the 10 min Bash cap), EMULATOR_LEASE_POLL seconds (2),
@@ -68,7 +74,7 @@ def alive(pid):
 
 
 def stale(lease):
-    return not alive(lease.get("pid")) or time.time() - lease.get("time", 0) > MAX_AGE
+    return (lease.get("pid") is not None and not alive(lease["pid"])) or time.time() - lease.get("time", 0) > MAX_AGE
 
 
 def adb(*args, timeout=30):
@@ -165,6 +171,7 @@ def try_take(owner, avd, pid):
         lease = read_lease()
         if lease and lease.get("owner") == owner and not stale(lease):
             lease["pid"] = pid
+            lease["time"] = time.time()
             write_lease(lease)
             return "ok", lease["serial"]
         if lease and not stale(lease):
@@ -240,7 +247,7 @@ def cmd_status():
 def main(argv):
     usage = "usage: emulator-lease acquire <owner> [--avd NAME] [--pid PID] | release <owner> | status"
     args = list(argv)
-    avd, pid = os.environ.get("EMULATOR_AVD"), os.getppid()
+    avd, pid = os.environ.get("EMULATOR_AVD"), None
     for flag in ("--avd", "--pid"):
         if flag in args:
             i = args.index(flag)

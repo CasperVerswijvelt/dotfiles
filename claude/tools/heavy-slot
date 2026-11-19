@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # heavy-slot <command> [args...]: run a command under one of SLOTS machine-wide slots.
-# Scope: heavy = app test suites and full builds; format, lint and small package tests run
-# freely; the emulator is outside the cap.
+# Scope: heavy = app test suites and full builds. Hooks run format and analyze outside the slot
+# (they must stay seconds-fast); gate runs put analyze and tests inside it. The emulator is outside the cap.
 # Queue: FIFO. Each waiter takes a ticket (counter file plus a queue/ dir under the lock dir)
 # and may take a slot only when it holds the lowest live ticket. Tickets of dead pids are dropped.
 # Memory: at the head of the queue, a slot is taken only when free memory (macOS

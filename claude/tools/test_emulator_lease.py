@@ -107,6 +107,26 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(self.boots, ["pix"])
 
+    def test_no_pid_lease_stays_held_after_acquirer_is_gone(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.assertIsNone(self.lease()["pid"])
+        rc, out, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual((rc, out), (75, ""))
+        self.assertEqual(self.lease()["owner"], "a")
+
+    def test_holder_reacquire_refreshes_age(self):
+        self.m.MAX_AGE = 10
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.put_lease("a", None, age=8)
+        rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (0, "emulator-5554\n"))
+        self.assertLess(time.time() - self.lease()["time"], 2)
+        self.put_lease("a", None, age=8)
+        self.m.MAX_AGE = 10
+        self.run_main("acquire", "a", "--avd", "pix")
+        rc, _, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual(rc, 75)
+
     def test_max_age_lease_is_reclaimed(self):
         self.up = True
         self.m.MAX_AGE = 10
