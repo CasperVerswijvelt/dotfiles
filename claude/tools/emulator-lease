@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+# emulator-lease: share one headless Android emulator machine-wide, one owner at a time.
+#   emulator-lease acquire <owner> [--avd NAME] [--pid PID]   print the serial; boot the emulator if needed
+#   emulator-lease release <owner>                           drop the lease and stop the emulator
+#   emulator-lease status                                    free, or owner, serial, age
+# Usage: flutter run -d "$(emulator-lease acquire me)" ... then emulator-lease release me
+# Lease: JSON file (owner, owner pid, emulator pid, serial, time) in the state dir. The owner pid is
+# the caller's parent pid unless --pid is given. A lease is stale when that pid is dead or the lease
+# is older than EMULATOR_LEASE_MAX_AGE; a stale lease is reclaimed and its emulator reused if booted.
+# Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped.
+# Env: EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
+# EMULATOR_LEASE_WAIT seconds (540, under the 10 min Bash cap), EMULATOR_LEASE_POLL seconds (2),
+# EMULATOR_LEASE_MAX_AGE seconds (3600), EMULATOR_BOOT_TIMEOUT seconds (300).
+# Exit codes: 0 ok, 2 usage or no AVD, 75 emulator busy within the wait limit ("emulator busy, run again"),
+# 1 boot failed. Stdout carries only the serial; diagnostics go to stderr.
+import fcntl
+import json
+import os
+import subprocess
+import sys
+import time
+
+DIR = os.environ.get("EMULATOR_LEASE_DIR") or os.path.expanduser("~/.cache/emulator-lease")
+WAIT = float(os.environ.get("EMULATOR_LEASE_WAIT", "540"))
+POLL = float(os.environ.get("EMULATOR_LEASE_POLL", "2"))
+MAX_AGE = float(os.environ.get("EMULATOR_LEASE_MAX_AGE", "3600"))
+BOOT_TIMEOUT = float(os.environ.get("EMULATOR_BOOT_TIMEOUT", "300"))
+
+
+def log(msg):
+    print(f"emulator-lease: {msg}", file=sys.stderr, flush=True)
+
+
+def lease_path():
+    return os.path.join(DIR, "lease.json")
+
+
+def read_lease():
+    try:
+        with open(lease_path()) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def write_lease(lease):
+    tmp = lease_path() + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(lease, f)
+    os.replace(tmp, lease_path())
+
+
+def drop_lease():
+    try:
+        os.unlink(lease_path())
+    except OSError:
+        pass
+
+
+def alive(pid):
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except (OSError, TypeError, ValueError):
+        pass
+    return True
+
+
+def stale(lease):
+    return not alive(lease.get("pid")) or time.time() - lease.get("time", 0) > MAX_AGE
+
+
+def adb(*args, timeout=30):
+    """Stdout of adb, or "" when it fails."""
+    try:
+        return subprocess.run(["adb", *args], capture_output=True, text=True, timeout=timeout).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def running_serial():
+    for line in adb("devices").splitlines()[1:]:
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].startswith("emulator-"):
+            return parts[0]
+    return None
+
+
+def start_emulator(avd):
+    """Boot detached and headless; return the emulator pid."""
+    logf = open(os.path.join(DIR, "emulator.log"), "ab")
+    p = subprocess.Popen(
+        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only"],
+        stdout=logf, stderr=logf, stdin=subprocess.DEVNULL, start_new_session=True)
+    return p.pid
+
+
+def booted(serial):
+    return adb("-s", serial, "shell", "getprop", "sys.boot_completed").strip() == "1"
+
+
+def wait_booted():
+    """Serial of the booted emulator, or None on timeout."""
+    deadline = time.monotonic() + BOOT_TIMEOUT
+    while time.monotonic() < deadline:
+        serial = running_serial()
+        if serial:
+            adb("-s", serial, "wait-for-device", timeout=max(1, deadline - time.monotonic()))
+            if booted(serial):
+                return serial
+        time.sleep(min(POLL, 1))
+    return None
+
+
+def take_ticket():
+    qdir = os.path.join(DIR, "queue")
+    os.makedirs(qdir, exist_ok=True)
+    with open(os.path.join(DIR, "counter"), "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.seek(0)
+        n = int(f.read().strip() or "0")
+        f.seek(0)
+        f.truncate()
+        f.write(str(n + 1))
+    path = os.path.join(qdir, f"{n:010d}.{os.getpid()}")
+    open(path, "w").close()
+    return path
+
+
+def is_head(ticket):
+    qdir = os.path.dirname(ticket)
+    for name in sorted(os.listdir(qdir)):
+        path = os.path.join(qdir, name)
+        if path == ticket:
+            return True
+        try:
+            pid = int(name.split(".")[1])
+        except (IndexError, ValueError):
+            pid = 0
+        if pid and alive(pid):
+            return False
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    return False
+
+
+class State:
+    """Exclusive lock around lease changes."""
+
+    def __enter__(self):
+        os.makedirs(DIR, exist_ok=True)
+        self.f = open(os.path.join(DIR, "state.lock"), "a+")
+        fcntl.flock(self.f, fcntl.LOCK_EX)
+
+    def __exit__(self, *_):
+        self.f.close()
+
+
+def try_take(owner, avd, pid):
+    """Return (status, serial): status is 'ok', 'busy' or 'fail'."""
+    with State():
+        lease = read_lease()
+        if lease and lease.get("owner") == owner and not stale(lease):
+            lease["pid"] = pid
+            write_lease(lease)
+            return "ok", lease["serial"]
+        if lease and not stale(lease):
+            return "busy", None
+        epid = lease.get("emulator_pid") if lease else None
+        if lease:
+            log(f"reclaiming stale lease of {lease.get('owner')}")
+        serial = running_serial()
+        if serial and not booted(serial):
+            serial = None
+        if not serial:
+            if not avd:
+                return "fail", None
+            if running_serial() is None:
+                log(f"booting {avd}")
+                epid = start_emulator(avd)
+            serial = wait_booted()
+            if not serial:
+                return "fail", None
+        write_lease({"owner": owner, "pid": pid, "emulator_pid": epid, "serial": serial, "time": time.time()})
+        return "ok", serial
+
+
+def cmd_acquire(owner, avd, pid):
+    os.makedirs(DIR, exist_ok=True)
+    ticket = take_ticket()
+    deadline = time.monotonic() + WAIT
+    announced = False
+    try:
+        while True:
+            if is_head(ticket):
+                status, serial = try_take(owner, avd, pid)
+                if status == "ok":
+                    print(serial)
+                    return 0
+                if status == "fail":
+                    log("emulator failed to boot")
+                    return 1
+            if time.monotonic() >= deadline:
+                log("emulator busy, run again")
+                return 75
+            if not announced:
+                log("waiting for the emulator")
+                announced = True
+            time.sleep(min(POLL, max(0.0, deadline - time.monotonic())))
+    finally:
+        try:
+            os.unlink(ticket)
+        except OSError:
+            pass
+
+
+def cmd_release(owner):
+    with State():
+        lease = read_lease()
+        if not lease or lease.get("owner") != owner:
+            log(f"{owner} holds no lease, nothing stopped")
+            return 0
+        adb("-s", lease["serial"], "emu", "kill")
+        drop_lease()
+    return 0
+
+
+def cmd_status():
+    lease = read_lease()
+    if not lease or stale(lease):
+        print("free")
+    else:
+        print(f"{lease['owner']}, {lease['serial']}, {int(time.time() - lease['time'])}s")
+    return 0
+
+
+def main(argv):
+    usage = "usage: emulator-lease acquire <owner> [--avd NAME] [--pid PID] | release <owner> | status"
+    args = list(argv)
+    avd, pid = os.environ.get("EMULATOR_AVD"), os.getppid()
+    for flag in ("--avd", "--pid"):
+        if flag in args:
+            i = args.index(flag)
+            if i + 1 >= len(args):
+                print(usage, file=sys.stderr)
+                return 2
+            val = args[i + 1]
+            del args[i:i + 2]
+            if flag == "--avd":
+                avd = val
+            else:
+                pid = int(val)
+    if args == ["status"]:
+        return cmd_status()
+    if len(args) == 2 and args[0] == "release":
+        return cmd_release(args[1])
+    if len(args) == 2 and args[0] == "acquire":
+        if not avd:
+            log("no AVD: pass --avd NAME or set EMULATOR_AVD")
+            return 2
+        return cmd_acquire(args[1], avd, pid)
+    print(usage, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
