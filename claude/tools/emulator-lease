@@ -22,6 +22,7 @@
 import fcntl
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -106,10 +107,30 @@ def booted(serial):
     return adb("-s", serial, "shell", "getprop", "sys.boot_completed").strip() == "1"
 
 
-def wait_booted():
-    """Serial of the booted emulator, or None on timeout."""
-    deadline = time.monotonic() + BOOT_TIMEOUT
+def proc_exited(pid):
+    """True when the emulator process we spawned has exited."""
+    try:
+        done, _ = os.waitpid(pid, os.WNOHANG)
+        return done == pid
+    except ChildProcessError:
+        return not alive(pid)
+    except OSError:
+        return False
+
+
+def stop_emulator(pid):
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except (OSError, TypeError):
+        pass
+
+
+def wait_booted(budget, epid=None):
+    """Serial of the booted emulator, or None on timeout or when the spawned process exited."""
+    deadline = time.monotonic() + budget
     while time.monotonic() < deadline:
+        if epid is not None and proc_exited(epid):
+            return None
         serial = running_serial()
         if serial:
             adb("-s", serial, "wait-for-device", timeout=max(1, deadline - time.monotonic()))
@@ -129,8 +150,8 @@ def take_ticket():
         f.seek(0)
         f.truncate()
         f.write(str(n + 1))
-    path = os.path.join(qdir, f"{n:010d}.{os.getpid()}")
-    open(path, "w").close()
+        path = os.path.join(qdir, f"{n:010d}.{os.getpid()}")
+        open(path, "w").close()
     return path
 
 
@@ -165,19 +186,24 @@ class State:
         self.f.close()
 
 
-def try_take(owner, avd, pid):
-    """Return (status, serial): status is 'ok', 'busy' or 'fail'."""
+def try_take(owner, avd, pid, deadline):
+    """Return (status, serial): status is 'ok', 'busy' or 'fail'.
+    The state lock is held while booting (bounded by BOOT_TIMEOUT and the acquire deadline),
+    so other acquirers and release wait for the boot."""
     with State():
         lease = read_lease()
-        if lease and lease.get("owner") == owner and not stale(lease):
-            lease["pid"] = pid
-            lease["time"] = time.time()
-            write_lease(lease)
-            return "ok", lease["serial"]
-        if lease and not stale(lease):
-            return "busy", None
         epid = lease.get("emulator_pid") if lease else None
-        if lease:
+        if lease and lease.get("owner") == owner and not stale(lease):
+            serial = lease.get("serial")
+            if serial and adb("-s", serial, "get-state").strip() == "device":
+                lease["pid"] = pid
+                lease["time"] = time.time()
+                write_lease(lease)
+                return "ok", serial
+            log("holder's emulator is gone, booting again")
+        elif lease and not stale(lease):
+            return "busy", None
+        elif lease:
             log(f"reclaiming stale lease of {lease.get('owner')}")
         serial = running_serial()
         if serial and not booted(serial):
@@ -185,11 +211,17 @@ def try_take(owner, avd, pid):
         if not serial:
             if not avd:
                 return "fail", None
+            started = False
             if running_serial() is None:
                 log(f"booting {avd}")
                 epid = start_emulator(avd)
-            serial = wait_booted()
+                started = True
+            budget = max(0.0, min(BOOT_TIMEOUT, deadline - time.monotonic()))
+            serial = wait_booted(budget, epid if started else None)
             if not serial:
+                if started:
+                    stop_emulator(epid)
+                drop_lease()
                 return "fail", None
         write_lease({"owner": owner, "pid": pid, "emulator_pid": epid, "serial": serial, "time": time.time()})
         return "ok", serial
@@ -203,7 +235,7 @@ def cmd_acquire(owner, avd, pid):
     try:
         while True:
             if is_head(ticket):
-                status, serial = try_take(owner, avd, pid)
+                status, serial = try_take(owner, avd, pid, deadline)
                 if status == "ok":
                     print(serial)
                     return 0
@@ -240,7 +272,7 @@ def cmd_status():
     if not lease or stale(lease):
         print("free")
     else:
-        print(f"{lease['owner']}, {lease['serial']}, {int(time.time() - lease['time'])}s")
+        print(f"{lease.get('owner')}, {lease.get('serial')}, {int(time.time() - lease.get('time', 0))}s")
     return 0
 
 

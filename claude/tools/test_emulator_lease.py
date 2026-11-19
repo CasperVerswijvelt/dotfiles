@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import tempfile
+import threading
 import time
 import unittest
 
@@ -29,6 +30,9 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.adb_calls = []
         self.m.adb = self.fake_adb
         self.m.start_emulator = self.fake_start
+        self.stopped = []
+        self.m.stop_emulator = self.stopped.append
+        self.m.proc_exited = lambda pid: False
         os.environ.pop("EMULATOR_AVD", None)
 
     def tearDown(self):
@@ -40,6 +44,8 @@ class EmulatorLeaseTest(unittest.TestCase):
             return "List of devices attached\n" + ("emulator-5554\tdevice\n" if self.up else "")
         if args[-1:] == ("sys.boot_completed",):
             return "1\n" if self.up else ""
+        if args[2:] == ("get-state",):
+            return "device\n" if self.up else ""
         if args[2:] == ("emu", "kill"):
             self.up = False
         return ""
@@ -157,6 +163,85 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.put_lease("a", os.getpid(), age=5)
         out = self.run_main("status")[1]
         self.assertRegex(out, r"^a, emulator-5554, \d+s\n$")
+
+    def lease_file_exists(self):
+        return os.path.exists(os.path.join(self.dir.name, "lease.json"))
+
+    def test_boot_timeout_kills_started_emulator_and_leaves_no_lease(self):
+        self.m.BOOT_TIMEOUT = 0.3
+        self.m.start_emulator = lambda avd: 4242  # never comes up
+        t0 = time.monotonic()
+        rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertLess(time.monotonic() - t0, 2)
+        self.assertEqual(self.stopped, [4242])
+        self.assertFalse(self.lease_file_exists())
+
+    def test_boot_wait_is_capped_by_acquire_budget(self):
+        self.m.BOOT_TIMEOUT = 30
+        self.m.WAIT = 0.3
+        self.m.start_emulator = lambda avd: 4242
+        t0 = time.monotonic()
+        rc, _, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual(rc, 1)
+        self.assertLess(time.monotonic() - t0, 3)
+
+    def test_boot_early_exit_stops_waiting_and_kills(self):
+        self.m.BOOT_TIMEOUT = 30
+        self.m.start_emulator = lambda avd: 4242
+        self.m.proc_exited = lambda pid: True
+        t0 = time.monotonic()
+        rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertLess(time.monotonic() - t0, 2)
+        self.assertEqual(self.stopped, [4242])
+        self.assertFalse(self.lease_file_exists())
+
+    def test_holder_reacquire_with_dead_emulator_reboots(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.up = False
+        rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (0, "emulator-5554\n"))
+        self.assertEqual(self.boots, ["pix", "pix"])
+        self.assertEqual(self.lease()["owner"], "a")
+
+    def test_busy_waiters_are_served_in_fifo_order(self):
+        self.m.WAIT = 10
+        self.run_main("acquire", "a", "--avd", "pix")
+        order = []
+        real = self.m.try_take
+
+        def spy(owner, avd, pid, deadline):
+            r = real(owner, avd, pid, deadline)
+            if r[0] == "ok":
+                order.append(owner)
+            return r
+
+        self.m.try_take = spy
+        qdir = os.path.join(self.dir.name, "queue")
+        threads = []
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            for i, owner in enumerate(("b", "c")):
+                t = threading.Thread(target=self.m.cmd_acquire, args=(owner, "pix", None))
+                t.start()
+                threads.append(t)
+                end = time.monotonic() + 5
+                while len(os.listdir(qdir)) < i + 1 and time.monotonic() < end:
+                    time.sleep(0.01)
+            self.m.main(["release", "a"])
+            end = time.monotonic() + 5
+            while "b" not in order and time.monotonic() < end:
+                time.sleep(0.01)
+            self.assertEqual(order, ["b"])
+            self.m.main(["release", "b"])
+            for t in threads:
+                t.join(10)
+        self.assertEqual(order, ["b", "c"])
+
+    def test_status_with_malformed_lease_does_not_raise(self):
+        with open(os.path.join(self.dir.name, "lease.json"), "w") as f:
+            json.dump({"owner": "a"}, f)
+        self.assertEqual(self.run_main("status")[0], 0)
 
 
 if __name__ == "__main__":

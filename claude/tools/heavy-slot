@@ -64,9 +64,9 @@ def take_ticket():
         f.seek(0)
         f.truncate()
         f.write(str(n + 1))
-    path = os.path.join(qdir, f"{n:010d}.{os.getpid()}")
-    with open(path, "w"):
-        pass
+        path = os.path.join(qdir, f"{n:010d}.{os.getpid()}")
+        with open(path, "w"):
+            pass
     return path
 
 
