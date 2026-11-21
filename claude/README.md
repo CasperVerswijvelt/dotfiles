@@ -59,7 +59,6 @@ and what to turn off. `claude/scripts/tool-usage.py` counts MCP and skill calls 
 | Retro tools: `claude/tools/retro` | Plans, tracker or status file |
 | Contract template: `claude/contract-template.md` | Decisions log, review rubric |
 | Run cap: `claude/tools/heavy-slot` (2 heavy runs machine-wide) | Justfile calls to it |
-| Hook: `claude/tools/wait-loop-hook.py` (logs waiting loops, log only) | |
 
 Nothing project-specific goes in dotfiles. A project without a contract is treated as
 `mature`.
@@ -71,6 +70,6 @@ Nothing project-specific goes in dotfiles. A project without a contract is treat
 - The session does no hands-on work: it hands paths and tasks to agents.
 - Ask me only product questions and lasting choices, batched, with a recommendation.
 - Motion and feel are my call on the contract's `Preview`; the work waits for my verdict.
-- Every commit goes through the hooks. Nothing is pushed or merged unless I ask or the
-  contract's merge policy says so.
+- Every commit goes through the hooks. After a `my-review` grade of A- or better the agent pushes and opens the PR or MR;
+  I merge unless the contract's merge policy lets the agent.
 - Product decisions and project-specific choices go in the project's decisions log, one line each; workflow rules stay in dotfiles.

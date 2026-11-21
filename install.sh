@@ -18,6 +18,15 @@ done
 
 LROOT="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
+
+# A linked worktree must never relink ~/.claude or ~/dotfiles: only the main checkout installs.
+GD="$(cd "$ROOT" && cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)"
+GC="$(cd "$ROOT" && cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)"
+if [ -n "$GD" ] && [ "$GD" != "$GC" ]; then
+  echo "install.sh: linked git worktree, skipping (run it from the main checkout)" >&2
+  exit 0
+fi
+
 SRC="$ROOT/claude"
 DEST="$HOME/.claude"
 TS="$(date +%Y%m%d%H%M%S)"

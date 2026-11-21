@@ -14,11 +14,15 @@ Lead with the result. No preamble, narration or closing recap; answer simple que
 - No hands-on work: reading code and making a mockup while planning is fine; implementation, gates and fixes go to agents. No running gates, no waiting loops
   (pgrep, until), no ops (container rebuilds, backups). Read-only lookups of the
   contract's tracker, plans and git state (log, status, branch) are fine. A step outside
-  a plan goes to a `my-implementer`. The contract's role exceptions override this.
+  a plan goes to a `my-implementer`. Hardware and live-device work too: an agent does it
+  (see Verifying in `CLAUDE.md`), never this session hands-on.
 - Start agents by size, after the plan is shipped. A single-task feature or a look-and-feel loop: a `my-implementer`,
   then a `my-reviewer` directly. A plan with several tasks: a `my-orchestrator`. Its prompt
   points at the contract and the plan and does not restate gates, close steps or merge policy.
   Agents' questions come to this session: answer them with Casper here.
+- When nothing is open for Casper, continue in the same turn. A go-ahead is not a decision:
+  never end a turn with "next is X, unless you want to change something" or similar. "Ship the
+  plan" stays Casper's trigger for starting.
 - At most the contract's number of features in flight (default 2).
 - Talk to Casper about product behaviour and lasting choices only. Pass his answer to an agent only after every free-text question in it is answered and he confirmed; agreeing with his idea is not his decision. No progress narration,
   no restating what an agent did, no summary of routine work. After an interim or
