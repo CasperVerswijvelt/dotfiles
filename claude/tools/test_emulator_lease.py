@@ -25,34 +25,46 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.m.POLL = 0.05
         self.m.BOOT_TIMEOUT = 2
         self.m.MAX_AGE = 3600
-        self.up = False  # fake emulator state
+        self.m.MAX = 1
+        self.serials = set()  # fake emulators that are up
         self.boots = []
+        self.ports = []
         self.adb_calls = []
         self.m.adb = self.fake_adb
         self.m.start_emulator = self.fake_start
         self.stopped = []
-        self.m.stop_emulator = self.stopped.append
+        self.m.stop_emulator = lambda pid, serial=None: self.stopped.append(pid)
         self.m.proc_exited = lambda pid: False
         os.environ.pop("EMULATOR_AVD", None)
 
     def tearDown(self):
         self.dir.cleanup()
 
+    @property
+    def up(self):
+        return "emulator-5554" in self.serials
+
+    @up.setter
+    def up(self, value):
+        (self.serials.add if value else self.serials.discard)("emulator-5554")
+
     def fake_adb(self, *args, timeout=30):
         self.adb_calls.append(args)
         if args == ("devices",):
-            return "List of devices attached\n" + ("emulator-5554\tdevice\n" if self.up else "")
+            return "List of devices attached\n" + "".join(f"{s}\tdevice\n" for s in sorted(self.serials))
+        up = len(args) > 1 and args[1] in self.serials
         if args[-1:] == ("sys.boot_completed",):
-            return "1\n" if self.up else ""
+            return "1\n" if up else ""
         if args[2:] == ("get-state",):
-            return "device\n" if self.up else ""
+            return "device\n" if up else ""
         if args[2:] == ("emu", "kill"):
-            self.up = False
+            self.serials.discard(args[1])
         return ""
 
-    def fake_start(self, avd):
+    def fake_start(self, avd, port):
         self.boots.append(avd)
-        self.up = True
+        self.ports.append(port)
+        self.serials.add(f"emulator-{port}")
         return 4242
 
     def run_main(self, *argv):
@@ -61,14 +73,14 @@ class EmulatorLeaseTest(unittest.TestCase):
             rc = self.m.main(list(argv))
         return rc, out.getvalue(), err.getvalue()
 
-    def lease(self):
-        with open(os.path.join(self.dir.name, "lease.json")) as f:
+    def lease(self, slot=0):
+        with open(os.path.join(self.dir.name, f"lease-{slot}.json")) as f:
             return json.load(f)
 
-    def put_lease(self, owner, pid, age=0):
-        with open(os.path.join(self.dir.name, "lease.json"), "w") as f:
-            json.dump({"owner": owner, "pid": pid, "emulator_pid": 1, "serial": "emulator-5554",
-                       "time": time.time() - age}, f)
+    def put_lease(self, owner, pid, age=0, slot=0, name=None):
+        with open(os.path.join(self.dir.name, name or f"lease-{slot}.json"), "w") as f:
+            json.dump({"owner": owner, "pid": pid, "emulator_pid": 1,
+                       "serial": f"emulator-{5554 + 2 * slot}", "time": time.time() - age}, f)
 
     def dead_pid(self):
         p = subprocess.Popen(["true"])
@@ -147,7 +159,7 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn(("-s", "emulator-5554", "emu", "kill"), self.adb_calls)
         self.assertFalse(self.up)
-        self.assertFalse(os.path.exists(os.path.join(self.dir.name, "lease.json")))
+        self.assertFalse(self.lease_file_exists())
 
     def test_release_by_non_holder_is_noop(self):
         self.run_main("acquire", "a", "--avd", "pix", "--pid", str(os.getpid()))
@@ -164,13 +176,13 @@ class EmulatorLeaseTest(unittest.TestCase):
         out = self.run_main("status")[1]
         self.assertRegex(out, r"^a, emulator-5554, \d+s\n$")
 
-    def lease_file_exists(self):
-        return os.path.exists(os.path.join(self.dir.name, "lease.json"))
+    def lease_file_exists(self, slot=0):
+        return os.path.exists(os.path.join(self.dir.name, f"lease-{slot}.json"))
 
     def test_boot_timeout_kills_started_emulator_and_leaves_no_lease(self):
         self.m.BOOT_TIMEOUT = 0.3
         self.m.WAIT = 30
-        self.m.start_emulator = lambda avd: 4242  # never comes up
+        self.m.start_emulator = lambda avd, port: 4242  # never comes up
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
         self.assertEqual((rc, out), (1, ""))
@@ -181,7 +193,7 @@ class EmulatorLeaseTest(unittest.TestCase):
     def test_boot_wait_is_capped_by_acquire_budget(self):
         self.m.BOOT_TIMEOUT = 30
         self.m.WAIT = 0.3
-        self.m.start_emulator = lambda avd: 4242
+        self.m.start_emulator = lambda avd, port: 4242
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
         self.assertEqual((rc, out), (75, ""))
@@ -191,7 +203,7 @@ class EmulatorLeaseTest(unittest.TestCase):
 
     def test_boot_early_exit_stops_waiting_and_kills(self):
         self.m.BOOT_TIMEOUT = 30
-        self.m.start_emulator = lambda avd: 4242
+        self.m.start_emulator = lambda avd, port: 4242
         self.m.proc_exited = lambda pid: True
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
@@ -242,9 +254,108 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertEqual(order, ["b", "c"])
 
     def test_status_with_malformed_lease_does_not_raise(self):
-        with open(os.path.join(self.dir.name, "lease.json"), "w") as f:
+        with open(os.path.join(self.dir.name, "lease-0.json"), "w") as f:
             json.dump({"owner": "a"}, f)
         self.assertEqual(self.run_main("status")[0], 0)
+
+    def test_second_lease_granted_at_max_2_with_different_serial(self):
+        self.m.MAX = 2
+        rc_a, out_a, _ = self.run_main("acquire", "a", "--avd", "pix")
+        rc_b, out_b, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual((rc_a, out_a, rc_b, out_b), (0, "emulator-5554\n", 0, "emulator-5556\n"))
+        self.assertEqual(self.ports, [5554, 5556])
+        self.assertEqual((self.lease(0)["owner"], self.lease(1)["owner"]), ("a", "b"))
+
+    def test_third_owner_is_busy_at_max_2(self):
+        self.m.MAX = 2
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.run_main("acquire", "b", "--avd", "pix")
+        rc, out, _ = self.run_main("acquire", "c", "--avd", "pix")
+        self.assertEqual((rc, out), (75, ""))
+
+    def test_second_owner_queues_at_max_1(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        rc, out, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual((rc, out), (75, ""))
+        self.assertFalse(self.lease_file_exists(1))
+
+    def test_release_frees_only_that_slot(self):
+        self.m.MAX = 2
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.run_main("acquire", "b", "--avd", "pix")
+        self.run_main("release", "b")
+        self.assertEqual(self.serials, {"emulator-5554"})
+        self.assertFalse(self.lease_file_exists(1))
+        self.assertEqual(self.lease(0)["owner"], "a")
+        rc, out, _ = self.run_main("acquire", "c", "--avd", "pix")
+        self.assertEqual((rc, out), (0, "emulator-5556\n"))
+
+    def test_owner_reacquire_keeps_its_slot(self):
+        self.m.MAX = 2
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.run_main("acquire", "b", "--avd", "pix")
+        rc, out, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual((rc, out), (0, "emulator-5556\n"))
+        self.assertEqual(self.boots, ["pix", "pix"])
+
+    def test_stale_slot_1_reclaimed_and_emulator_reused(self):
+        self.m.MAX = 2
+        self.serials = {"emulator-5554", "emulator-5556"}
+        self.put_lease("a", os.getpid(), slot=0)
+        self.put_lease("x", self.dead_pid(), slot=1)
+        rc, out, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual((rc, out), (0, "emulator-5556\n"))
+        self.assertEqual(self.boots, [])
+        self.assertEqual(self.lease(1)["owner"], "b")
+
+    def test_legacy_lease_json_becomes_slot_0(self):
+        self.up = True
+        self.put_lease("a", None, name="lease.json")
+        rc, _, _ = self.run_main("acquire", "b", "--avd", "pix")
+        self.assertEqual(rc, 75)
+        self.assertEqual(self.lease(0)["owner"], "a")
+        self.assertFalse(os.path.exists(os.path.join(self.dir.name, "lease.json")))
+
+    def test_status_lists_every_slot(self):
+        self.m.MAX = 2
+        self.put_lease("a", os.getpid(), age=5, slot=1)
+        out = self.run_main("status")[1]
+        self.assertRegex(out, r"^slot 0: free\nslot 1: a, emulator-5556, \d+s\n$")
+
+    def test_max_default_follows_ram(self):
+        import resources
+        real = resources.sysctl
+        self.addCleanup(setattr, resources, "sysctl", real)
+        resources.sysctl = lambda name: {"hw.memsize": 48 * 2**30}.get(name)
+        self.assertEqual(resources.default_emulator_max(), 2)
+        resources.sysctl = lambda name: {"hw.memsize": 24 * 2**30}.get(name)
+        self.assertEqual(resources.default_emulator_max(), 1)
+        resources.sysctl = lambda name: None
+        self.assertEqual(resources.default_emulator_max(), 1)
+
+    def test_release_frees_every_slot_of_the_owner(self):
+        self.m.MAX = 2
+        self.serials = {"emulator-5554", "emulator-5556"}
+        self.put_lease("a", None, slot=0)
+        self.put_lease("a", None, slot=1)
+        self.run_main("release", "a")
+        self.assertFalse(self.lease_file_exists(0))
+        self.assertFalse(self.lease_file_exists(1))
+        self.assertEqual(self.serials, set())
+
+    def test_lease_above_lowered_max_is_listed_and_released(self):
+        self.put_lease("a", None, slot=1)
+        self.assertRegex(self.run_main("status")[1], r"^slot 0: free\nslot 1: a, emulator-5556, \d+s\n$")
+        self.run_main("release", "a")
+        self.assertFalse(self.lease_file_exists(1))
+
+    def test_foreign_emulator_on_port_fails_fast_with_message(self):
+        self.m.BOOT_TIMEOUT = 30
+        self.m.start_emulator = lambda avd, port: 4242  # exits at once: port taken
+        self.m.proc_exited = lambda pid: True
+        rc, out, err = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertIn("console port 5554", err)
 
 
 if __name__ == "__main__":

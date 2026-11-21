@@ -173,5 +173,50 @@ class MemoryCheckTest(unittest.TestCase):
             self.assertTrue(mod.memory_ok())
 
 
+class DefaultSlotsTest(unittest.TestCase):
+    def load(self, values, env=None):
+        sys.path.insert(0, os.path.dirname(TOOL))
+        import resources
+        self.addCleanup(sys.path.remove, os.path.dirname(TOOL))
+        real = resources.sysctl
+        self.addCleanup(setattr, resources, "sysctl", real)
+        resources.sysctl = lambda name: values.get(name)
+        old = os.environ.pop("HEAVY_SLOTS", None)
+        if env:
+            os.environ["HEAVY_SLOTS"] = env
+        self.addCleanup(os.environ.pop, "HEAVY_SLOTS", None)
+        if old is not None:
+            self.addCleanup(os.environ.__setitem__, "HEAVY_SLOTS", old)
+        loader = importlib.machinery.SourceFileLoader("heavy_slot_default", TOOL)
+        spec = importlib.util.spec_from_loader("heavy_slot_default", loader)
+        mod = importlib.util.module_from_spec(spec)
+        loader.exec_module(mod)
+        return mod.SLOTS
+
+    def test_24gb_4_perf_cores_gives_2(self):
+        self.assertEqual(self.load({"hw.memsize": 24 * 2**30, "hw.nperflevels": 2, "hw.perflevel0.name": "Performance",
+                                    "hw.perflevel0.physicalcpu": 4, "hw.perflevel1.name": "Efficiency",
+                                    "hw.perflevel1.physicalcpu": 4}), 2)
+
+    def test_48gb_m5_pro_super_and_performance_levels_give_4(self):
+        self.assertEqual(self.load({
+            "hw.memsize": 48 * 2**30, "hw.nperflevels": 3,
+            "hw.perflevel0.name": "Super", "hw.perflevel0.physicalcpu": 6,
+            "hw.perflevel1.name": "Performance", "hw.perflevel1.physicalcpu": 6,
+            "hw.perflevel2.name": "Efficiency", "hw.perflevel2.physicalcpu": 4}), 4)
+
+    def test_perf_cores_skips_efficiency_level(self):
+        import resources
+        self.load({"hw.nperflevels": 2, "hw.perflevel0.name": "Performance", "hw.perflevel0.physicalcpu": 6,
+                   "hw.perflevel1.name": "Efficiency", "hw.perflevel1.physicalcpu": 4})
+        self.assertEqual(resources.perf_cores(), 6)
+
+    def test_sysctl_failure_gives_2(self):
+        self.assertEqual(self.load({}), 2)
+
+    def test_env_override_wins(self):
+        self.assertEqual(self.load({"hw.memsize": 48 * 2**30, "hw.physicalcpu": 12}, env="7"), 7)
+
+
 if __name__ == "__main__":
     unittest.main()

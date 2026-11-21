@@ -6,9 +6,11 @@
 # and may take a slot only when it holds the lowest live ticket. Tickets of dead pids are dropped.
 # Memory: at the head of the queue, a slot is taken only when free memory (macOS
 # `memory_pressure -Q`, "ok" if the probe fails) is at least HEAVY_SLOT_MIN_FREE_PCT; else keep waiting.
-# Env: HEAVY_SLOTS (2), HEAVY_SLOT_WAIT seconds (540, under the 10 min Bash cap),
+# Slots: default max(1, min((ram_gb - 8) // 8, ceil(perf_cores / 3))) from sysctl (claude/tools/resources.py);
+# 2 when sysctl fails. HEAVY_SLOTS overrides.
+# Env: HEAVY_SLOTS (from machine resources), HEAVY_SLOT_WAIT seconds (540, under the 10 min Bash cap),
 # HEAVY_SLOT_POLL seconds (2), HEAVY_SLOT_MIN_FREE_PCT (10), HEAVY_SLOT_DIR (~/.cache/heavy-slot).
-# Concurrency: flutter test has no env var for it; flutter test runs inside the slot pass --concurrency=4.
+# Concurrency: flutter test has no env var for it; callers pass --concurrency themselves.
 # Exit codes: the child's (128+N when killed by signal N), or 75 when no slot freed within the wait limit
 # ("machine busy, run again").
 import fcntl
@@ -19,7 +21,10 @@ import subprocess
 import sys
 import time
 
-SLOTS = int(os.environ.get("HEAVY_SLOTS", "2"))
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import resources  # noqa: E402
+
+SLOTS = int(os.environ.get("HEAVY_SLOTS") or resources.default_heavy_slots())
 WAIT = float(os.environ.get("HEAVY_SLOT_WAIT", "540"))
 POLL = float(os.environ.get("HEAVY_SLOT_POLL", "2"))
 MIN_FREE_PCT = float(os.environ.get("HEAVY_SLOT_MIN_FREE_PCT", "10"))
