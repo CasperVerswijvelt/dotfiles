@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# emulator-lease: share one headless Android emulator machine-wide, one owner at a time.
+# emulator-lease: share headless Android emulators machine-wide, one owner per emulator.
 #   emulator-lease acquire <owner> [--avd NAME] [--pid PID]   print the serial; boot the emulator if needed
 #   emulator-lease release <owner>                           drop the lease and stop the emulator
-#   emulator-lease status                                    free, or owner, serial, age
+#   emulator-lease status                                    per slot: free, or owner, serial, age
 # Two modes:
 #   Script holding the lease for its whole run (a justfile recipe): pass --pid $$. The lease is
 #     reclaimed as soon as that pid is dead.
@@ -10,11 +10,16 @@
 #     serial="$(emulator-lease acquire me)" || exit $?
 #     (the holder's acquire is a heartbeat: same serial, lease age reset), and run
 #     emulator-lease release me at the end. A busy exit 75 must be checked, never ignored.
-# Lease: JSON file (owner, owner pid or null, emulator pid, serial, time of last touch) in the state dir.
+# Slots: at most MAX emulators at once (2 when RAM >= 32 GB, else 1; probe in claude/tools/resources.py).
+# One lease file per slot (lease-0.json, lease-1.json) in the state dir; an owner holds at most one slot.
+# Slot 0 boots as a single emulator always did (first free console port, normally 5554). Slot N>0 boots
+# the same AVD as an extra -read-only instance on console port 5554+2N, so its serial is emulator-(5554+2N).
+# A legacy lease.json from an older run is renamed to lease-0.json.
+# Lease: JSON file (owner, owner pid or null, emulator pid, serial, time of last touch) per slot.
 # The owner pid is tracked only with --pid. A lease is stale when its pid is dead or it was last
 # touched more than EMULATOR_LEASE_MAX_AGE ago; a stale lease is reclaimed and its emulator reused if booted.
-# Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped.
-# Env: EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
+# Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped. The head takes the first free slot.
+# Env: EMULATOR_LEASE_MAX (from machine RAM), EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
 # EMULATOR_LEASE_WAIT seconds (540, under the 10 min Bash cap), EMULATOR_LEASE_POLL seconds (2),
 # EMULATOR_LEASE_MAX_AGE seconds (3600), EMULATOR_BOOT_TIMEOUT seconds (300).
 # Exit codes: 0 ok, 2 usage or no AVD, 75 emulator busy within the wait limit ("emulator busy, run again"),
@@ -27,39 +32,58 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import resources  # noqa: E402
+
 DIR = os.environ.get("EMULATOR_LEASE_DIR") or os.path.expanduser("~/.cache/emulator-lease")
 WAIT = float(os.environ.get("EMULATOR_LEASE_WAIT", "540"))
 POLL = float(os.environ.get("EMULATOR_LEASE_POLL", "2"))
 MAX_AGE = float(os.environ.get("EMULATOR_LEASE_MAX_AGE", "3600"))
 BOOT_TIMEOUT = float(os.environ.get("EMULATOR_BOOT_TIMEOUT", "300"))
+MAX = max(1, int(os.environ.get("EMULATOR_LEASE_MAX") or resources.default_emulator_max()))
+BASE_PORT = 5554
 
 
 def log(msg):
     print(f"emulator-lease: {msg}", file=sys.stderr, flush=True)
 
 
-def lease_path():
-    return os.path.join(DIR, "lease.json")
+def lease_path(slot):
+    return os.path.join(DIR, f"lease-{slot}.json")
 
 
-def read_lease():
+def slot_port(slot):
+    """Console port for slot N>0; slot 0 takes the emulator's default."""
+    return None if slot == 0 else BASE_PORT + 2 * slot
+
+
+def migrate_legacy():
+    """A lease.json from before slots becomes slot 0 (call under the state lock)."""
+    old = os.path.join(DIR, "lease.json")
+    if os.path.exists(old) and not os.path.exists(lease_path(0)):
+        os.replace(old, lease_path(0))
+    elif os.path.exists(old):
+        os.unlink(old)
+
+
+def read_lease(slot):
     try:
-        with open(lease_path()) as f:
+        with open(lease_path(slot)) as f:
             return json.load(f)
     except (OSError, ValueError):
         return None
 
 
-def write_lease(lease):
-    tmp = lease_path() + ".tmp"
+def write_lease(slot, lease):
+    tmp = lease_path(slot) + ".tmp"
     with open(tmp, "w") as f:
         json.dump(lease, f)
-    os.replace(tmp, lease_path())
+    os.replace(tmp, lease_path(slot))
 
 
-def drop_lease():
+def drop_lease(slot):
     try:
-        os.unlink(lease_path())
+        os.unlink(lease_path(slot))
     except OSError:
         pass
 
@@ -86,19 +110,26 @@ def adb(*args, timeout=30):
         return ""
 
 
-def running_serial():
+def running_serial(slot=0):
+    """Serial of the emulator of this slot: slot N>0 is fixed to its port; slot 0 is the first
+    emulator that is not on another slot's port."""
+    others = {f"emulator-{slot_port(i)}" for i in range(1, MAX)}
     for line in adb("devices").splitlines()[1:]:
         parts = line.split()
         if len(parts) >= 2 and parts[0].startswith("emulator-"):
-            return parts[0]
+            if slot == 0 and parts[0] not in others:
+                return parts[0]
+            if slot != 0 and parts[0] == f"emulator-{slot_port(slot)}":
+                return parts[0]
     return None
 
 
-def start_emulator(avd):
+def start_emulator(avd, port=None):
     """Boot detached and headless; return the emulator pid."""
     logf = open(os.path.join(DIR, "emulator.log"), "ab")
+    extra = ["-port", str(port)] if port else []
     p = subprocess.Popen(
-        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only"],
+        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only", *extra],
         stdout=logf, stderr=logf, stdin=subprocess.DEVNULL, start_new_session=True)
     return p.pid
 
@@ -118,10 +149,9 @@ def proc_exited(pid):
         return False
 
 
-def stop_emulator(pid):
+def stop_emulator(pid, serial=None):
     """Ask adb to kill the emulator, then SIGTERM its whole process group (started with
     start_new_session, so the pid is the pgid and the qemu child is in it)."""
-    serial = running_serial()
     if serial:
         adb("-s", serial, "emu", "kill", timeout=10)
     try:
@@ -133,13 +163,13 @@ def stop_emulator(pid):
             pass
 
 
-def wait_booted(budget, epid=None):
+def wait_booted(budget, epid=None, slot=0):
     """(serial, exited): serial of the booted emulator or None; exited is True when the spawned process died."""
     deadline = time.monotonic() + budget
     while time.monotonic() < deadline:
         if epid is not None and proc_exited(epid):
             return None, True
-        serial = running_serial()
+        serial = running_serial(slot)
         if serial:
             adb("-s", serial, "wait-for-device", timeout=max(1, deadline - time.monotonic()))
             if booted(serial):
@@ -189,9 +219,22 @@ class State:
         os.makedirs(DIR, exist_ok=True)
         self.f = open(os.path.join(DIR, "state.lock"), "a+")
         fcntl.flock(self.f, fcntl.LOCK_EX)
+        migrate_legacy()
 
     def __exit__(self, *_):
         self.f.close()
+
+
+def pick_slot(owner):
+    """(slot, lease) to use: the owner's live slot, else the first free or stale slot, else (None, None)."""
+    free = None
+    for slot in range(MAX):
+        lease = read_lease(slot)
+        if lease and lease.get("owner") == owner and not stale(lease):
+            return slot, lease
+        if free is None and (not lease or stale(lease)):
+            free = (slot, lease)
+    return free or (None, None)
 
 
 def try_take(owner, avd, pid, deadline):
@@ -199,44 +242,45 @@ def try_take(owner, avd, pid, deadline):
     The state lock is held while booting (bounded by BOOT_TIMEOUT and the acquire deadline),
     so other acquirers and release wait for the boot."""
     with State():
-        lease = read_lease()
+        slot, lease = pick_slot(owner)
+        if slot is None:
+            return "busy", None
         epid = lease.get("emulator_pid") if lease else None
         if lease and lease.get("owner") == owner and not stale(lease):
             serial = lease.get("serial")
             if serial and adb("-s", serial, "get-state").strip() == "device":
                 lease["pid"] = pid
                 lease["time"] = time.time()
-                write_lease(lease)
+                write_lease(slot, lease)
                 return "ok", serial
             log("holder's emulator is gone, booting again")
-        elif lease and not stale(lease):
-            return "busy", None
         elif lease:
             log(f"reclaiming stale lease of {lease.get('owner')}")
-        serial = running_serial()
+        serial = running_serial(slot)
         if serial and not booted(serial):
             serial = None
         if not serial:
             if not avd:
                 return "fail", None
             started = False
-            if running_serial() is None:
+            if running_serial(slot) is None:
                 log(f"booting {avd}")
-                epid = start_emulator(avd)
+                epid = start_emulator(avd, slot_port(slot)) if slot else start_emulator(avd)
                 started = True
             remaining = deadline - time.monotonic()
             budget = max(0.0, min(BOOT_TIMEOUT, remaining))
-            serial, exited = wait_booted(budget, epid if started else None)
+            serial, exited = wait_booted(budget, epid if started else None, slot)
             if not serial:
                 if not exited and remaining < BOOT_TIMEOUT:
                     # Out of acquire time, not a boot failure: leave the emulator for the next acquire.
                     log("acquire time ran out while booting, emulator left running")
                     return "busy", None
                 if started:
-                    stop_emulator(epid)
-                drop_lease()
+                    stop_emulator(epid, running_serial(slot))
+                drop_lease(slot)
                 return "fail", None
-        write_lease({"owner": owner, "pid": pid, "emulator_pid": epid, "serial": serial, "time": time.time()})
+        write_lease(slot, {"owner": owner, "pid": pid, "emulator_pid": epid, "serial": serial,
+                           "time": time.time()})
         return "ok", serial
 
 
@@ -271,22 +315,27 @@ def cmd_acquire(owner, avd, pid):
 
 def cmd_release(owner):
     with State():
-        lease = read_lease()
-        if not lease or lease.get("owner") != owner:
-            log(f"{owner} holds no lease, nothing stopped")
-            return 0
-        if lease.get("serial"):
-            adb("-s", lease["serial"], "emu", "kill")
-        drop_lease()
+        for slot in range(MAX):
+            lease = read_lease(slot)
+            if lease and lease.get("owner") == owner:
+                if lease.get("serial"):
+                    adb("-s", lease["serial"], "emu", "kill")
+                drop_lease(slot)
+                return 0
+    log(f"{owner} holds no lease, nothing stopped")
     return 0
 
 
 def cmd_status():
-    lease = read_lease()
-    if not lease or stale(lease):
-        print("free")
-    else:
-        print(f"{lease.get('owner')}, {lease.get('serial')}, {int(time.time() - lease.get('time', 0))}s")
+    with State():
+        for slot in range(MAX):
+            lease = read_lease(slot)
+            prefix = f"slot {slot}: " if MAX > 1 else ""
+            if not lease or stale(lease):
+                print(f"{prefix}free")
+            else:
+                print(f"{prefix}{lease.get('owner')}, {lease.get('serial')}, "
+                      f"{int(time.time() - lease.get('time', 0))}s")
     return 0
 
 
