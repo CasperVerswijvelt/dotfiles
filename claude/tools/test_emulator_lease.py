@@ -61,10 +61,10 @@ class EmulatorLeaseTest(unittest.TestCase):
             self.serials.discard(args[1])
         return ""
 
-    def fake_start(self, avd, port=None):
+    def fake_start(self, avd, port):
         self.boots.append(avd)
         self.ports.append(port)
-        self.serials.add(f"emulator-{port or 5554}")
+        self.serials.add(f"emulator-{port}")
         return 4242
 
     def run_main(self, *argv):
@@ -182,7 +182,7 @@ class EmulatorLeaseTest(unittest.TestCase):
     def test_boot_timeout_kills_started_emulator_and_leaves_no_lease(self):
         self.m.BOOT_TIMEOUT = 0.3
         self.m.WAIT = 30
-        self.m.start_emulator = lambda avd: 4242  # never comes up
+        self.m.start_emulator = lambda avd, port: 4242  # never comes up
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
         self.assertEqual((rc, out), (1, ""))
@@ -193,7 +193,7 @@ class EmulatorLeaseTest(unittest.TestCase):
     def test_boot_wait_is_capped_by_acquire_budget(self):
         self.m.BOOT_TIMEOUT = 30
         self.m.WAIT = 0.3
-        self.m.start_emulator = lambda avd: 4242
+        self.m.start_emulator = lambda avd, port: 4242
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
         self.assertEqual((rc, out), (75, ""))
@@ -203,7 +203,7 @@ class EmulatorLeaseTest(unittest.TestCase):
 
     def test_boot_early_exit_stops_waiting_and_kills(self):
         self.m.BOOT_TIMEOUT = 30
-        self.m.start_emulator = lambda avd: 4242
+        self.m.start_emulator = lambda avd, port: 4242
         self.m.proc_exited = lambda pid: True
         t0 = time.monotonic()
         rc, out, _ = self.run_main("acquire", "a", "--avd", "pix")
@@ -263,7 +263,7 @@ class EmulatorLeaseTest(unittest.TestCase):
         rc_a, out_a, _ = self.run_main("acquire", "a", "--avd", "pix")
         rc_b, out_b, _ = self.run_main("acquire", "b", "--avd", "pix")
         self.assertEqual((rc_a, out_a, rc_b, out_b), (0, "emulator-5554\n", 0, "emulator-5556\n"))
-        self.assertEqual(self.ports, [None, 5556])
+        self.assertEqual(self.ports, [5554, 5556])
         self.assertEqual((self.lease(0)["owner"], self.lease(1)["owner"]), ("a", "b"))
 
     def test_third_owner_is_busy_at_max_2(self):
@@ -332,6 +332,30 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertEqual(resources.default_emulator_max(), 1)
         resources.sysctl = lambda name: None
         self.assertEqual(resources.default_emulator_max(), 1)
+
+    def test_release_frees_every_slot_of_the_owner(self):
+        self.m.MAX = 2
+        self.serials = {"emulator-5554", "emulator-5556"}
+        self.put_lease("a", None, slot=0)
+        self.put_lease("a", None, slot=1)
+        self.run_main("release", "a")
+        self.assertFalse(self.lease_file_exists(0))
+        self.assertFalse(self.lease_file_exists(1))
+        self.assertEqual(self.serials, set())
+
+    def test_lease_above_lowered_max_is_listed_and_released(self):
+        self.put_lease("a", None, slot=1)
+        self.assertRegex(self.run_main("status")[1], r"^slot 0: free\nslot 1: a, emulator-5556, \d+s\n$")
+        self.run_main("release", "a")
+        self.assertFalse(self.lease_file_exists(1))
+
+    def test_foreign_emulator_on_port_fails_fast_with_message(self):
+        self.m.BOOT_TIMEOUT = 30
+        self.m.start_emulator = lambda avd, port: 4242  # exits at once: port taken
+        self.m.proc_exited = lambda pid: True
+        rc, out, err = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertIn("console port 5554", err)
 
 
 if __name__ == "__main__":

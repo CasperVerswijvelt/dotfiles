@@ -194,16 +194,28 @@ class DefaultSlotsTest(unittest.TestCase):
         return mod.SLOTS
 
     def test_24gb_4_perf_cores_gives_2(self):
-        self.assertEqual(self.load({"hw.memsize": 24 * 2**30, "hw.perflevel0.physicalcpu": 4}), 2)
+        self.assertEqual(self.load({"hw.memsize": 24 * 2**30, "hw.nperflevels": 2, "hw.perflevel0.name": "Performance",
+                                    "hw.perflevel0.physicalcpu": 4, "hw.perflevel1.name": "Efficiency",
+                                    "hw.perflevel1.physicalcpu": 4}), 2)
 
-    def test_48gb_12_perf_cores_gives_4(self):
-        self.assertEqual(self.load({"hw.memsize": 48 * 2**30, "hw.perflevel0.physicalcpu": 12}), 4)
+    def test_48gb_m5_pro_super_and_performance_levels_give_4(self):
+        self.assertEqual(self.load({
+            "hw.memsize": 48 * 2**30, "hw.nperflevels": 3,
+            "hw.perflevel0.name": "Super", "hw.perflevel0.physicalcpu": 6,
+            "hw.perflevel1.name": "Performance", "hw.perflevel1.physicalcpu": 6,
+            "hw.perflevel2.name": "Efficiency", "hw.perflevel2.physicalcpu": 4}), 4)
+
+    def test_perf_cores_skips_efficiency_level(self):
+        import resources
+        self.load({"hw.nperflevels": 2, "hw.perflevel0.name": "Performance", "hw.perflevel0.physicalcpu": 6,
+                   "hw.perflevel1.name": "Efficiency", "hw.perflevel1.physicalcpu": 4})
+        self.assertEqual(resources.perf_cores(), 6)
 
     def test_sysctl_failure_gives_2(self):
         self.assertEqual(self.load({}), 2)
 
     def test_env_override_wins(self):
-        self.assertEqual(self.load({"hw.memsize": 48 * 2**30, "hw.perflevel0.physicalcpu": 12}, env="7"), 7)
+        self.assertEqual(self.load({"hw.memsize": 48 * 2**30, "hw.physicalcpu": 12}, env="7"), 7)
 
 
 if __name__ == "__main__":

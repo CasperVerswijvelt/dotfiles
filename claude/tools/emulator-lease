@@ -12,8 +12,9 @@
 #     emulator-lease release me at the end. A busy exit 75 must be checked, never ignored.
 # Slots: at most MAX emulators at once (2 when RAM >= 32 GB, else 1; probe in claude/tools/resources.py).
 # One lease file per slot (lease-0.json, lease-1.json) in the state dir; an owner holds at most one slot.
-# Slot 0 boots as a single emulator always did (first free console port, normally 5554). Slot N>0 boots
-# the same AVD as an extra -read-only instance on console port 5554+2N, so its serial is emulator-(5554+2N).
+# Every instance boots -read-only with an explicit console port: slot N gets 5554+2N, so its serial is
+# emulator-(5554+2N). A foreign emulator on that port makes the boot fail fast (exit 1).
+# status and release scan every lease file, so lowering EMULATOR_LEASE_MAX never orphans a lease.
 # A legacy lease.json from an older run is renamed to lease-0.json.
 # Lease: JSON file (owner, owner pid or null, emulator pid, serial, time of last touch) per slot.
 # The owner pid is tracked only with --pid. A lease is stale when its pid is dead or it was last
@@ -27,6 +28,7 @@
 import fcntl
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -53,8 +55,20 @@ def lease_path(slot):
 
 
 def slot_port(slot):
-    """Console port for slot N>0; slot 0 takes the emulator's default."""
-    return None if slot == 0 else BASE_PORT + 2 * slot
+    return BASE_PORT + 2 * slot
+
+
+def lease_slots():
+    """Every slot with a lease file, plus the slots below MAX."""
+    found = set(range(MAX))
+    try:
+        for name in os.listdir(DIR):
+            m = re.fullmatch(r"lease-(\d+)\.json", name)
+            if m:
+                found.add(int(m.group(1)))
+    except OSError:
+        pass
+    return sorted(found)
 
 
 def migrate_legacy():
@@ -111,25 +125,20 @@ def adb(*args, timeout=30):
 
 
 def running_serial(slot=0):
-    """Serial of the emulator of this slot: slot N>0 is fixed to its port; slot 0 is the first
-    emulator that is not on another slot's port."""
-    others = {f"emulator-{slot_port(i)}" for i in range(1, MAX)}
+    """Serial of the emulator on this slot's console port, or None."""
+    want = f"emulator-{slot_port(slot)}"
     for line in adb("devices").splitlines()[1:]:
         parts = line.split()
-        if len(parts) >= 2 and parts[0].startswith("emulator-"):
-            if slot == 0 and parts[0] not in others:
-                return parts[0]
-            if slot != 0 and parts[0] == f"emulator-{slot_port(slot)}":
-                return parts[0]
+        if len(parts) >= 2 and parts[0] == want:
+            return want
     return None
 
 
-def start_emulator(avd, port=None):
+def start_emulator(avd, port):
     """Boot detached and headless; return the emulator pid."""
     logf = open(os.path.join(DIR, "emulator.log"), "ab")
-    extra = ["-port", str(port)] if port else []
     p = subprocess.Popen(
-        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only", *extra],
+        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only", "-port", str(port)],
         stdout=logf, stderr=logf, stdin=subprocess.DEVNULL, start_new_session=True)
     return p.pid
 
@@ -226,15 +235,17 @@ class State:
 
 
 def pick_slot(owner):
-    """(slot, lease) to use: the owner's live slot, else the first free or stale slot, else (None, None)."""
-    free = None
-    for slot in range(MAX):
+    """(slot, lease) to use: the owner's live slot, else the first free or stale slot below MAX,
+    else (None, None)."""
+    for slot in lease_slots():
         lease = read_lease(slot)
         if lease and lease.get("owner") == owner and not stale(lease):
             return slot, lease
-        if free is None and (not lease or stale(lease)):
-            free = (slot, lease)
-    return free or (None, None)
+    for slot in range(MAX):
+        lease = read_lease(slot)
+        if not lease or stale(lease):
+            return slot, lease
+    return None, None
 
 
 def try_take(owner, avd, pid, deadline):
@@ -265,7 +276,7 @@ def try_take(owner, avd, pid, deadline):
             started = False
             if running_serial(slot) is None:
                 log(f"booting {avd}")
-                epid = start_emulator(avd, slot_port(slot)) if slot else start_emulator(avd)
+                epid = start_emulator(avd, slot_port(slot))
                 started = True
             remaining = deadline - time.monotonic()
             budget = max(0.0, min(BOOT_TIMEOUT, remaining))
@@ -275,6 +286,8 @@ def try_take(owner, avd, pid, deadline):
                     # Out of acquire time, not a boot failure: leave the emulator for the next acquire.
                     log("acquire time ran out while booting, emulator left running")
                     return "busy", None
+                if exited:
+                    log(f"emulator exited at boot; is another emulator using console port {slot_port(slot)}?")
                 if started:
                     stop_emulator(epid, running_serial(slot))
                 drop_lease(slot)
@@ -314,23 +327,26 @@ def cmd_acquire(owner, avd, pid):
 
 
 def cmd_release(owner):
+    released = False
     with State():
-        for slot in range(MAX):
+        for slot in lease_slots():
             lease = read_lease(slot)
             if lease and lease.get("owner") == owner:
                 if lease.get("serial"):
                     adb("-s", lease["serial"], "emu", "kill")
                 drop_lease(slot)
-                return 0
-    log(f"{owner} holds no lease, nothing stopped")
+                released = True
+    if not released:
+        log(f"{owner} holds no lease, nothing stopped")
     return 0
 
 
 def cmd_status():
     with State():
-        for slot in range(MAX):
+        slots = lease_slots()
+        for slot in slots:
             lease = read_lease(slot)
-            prefix = f"slot {slot}: " if MAX > 1 else ""
+            prefix = f"slot {slot}: " if len(slots) > 1 else ""
             if not lease or stale(lease):
                 print(f"{prefix}free")
             else:

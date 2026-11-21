@@ -3,22 +3,39 @@ import subprocess
 
 
 def sysctl(name):
-    """Integer value of a sysctl key, or None when it is missing or the call fails."""
+    """Value of a sysctl key as a string, or None when it is missing or the call fails."""
     try:
         out = subprocess.run(["sysctl", "-n", name], capture_output=True, text=True, timeout=5)
-        return int(out.stdout.strip()) if out.returncode == 0 else None
-    except (OSError, ValueError, subprocess.SubprocessError):
+        return out.stdout.strip() if out.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def sysctl_int(name):
+    try:
+        return int(sysctl(name))
+    except (TypeError, ValueError):
         return None
 
 
 def ram_gb():
-    mem = sysctl("hw.memsize")
+    mem = sysctl_int("hw.memsize")
     return None if mem is None else mem // 2**30
 
 
 def perf_cores():
-    cores = sysctl("hw.perflevel0.physicalcpu")
-    return cores if cores else sysctl("hw.physicalcpu")
+    """Physical cores of every performance level except Efficiency. Level 0 is not always the
+    Performance cluster (a Super cluster can sit above it), so all levels are read."""
+    levels = sysctl_int("hw.nperflevels")
+    if not levels:
+        return sysctl_int("hw.physicalcpu")
+    total = 0
+    for i in range(levels):
+        name = sysctl(f"hw.perflevel{i}.name")
+        cores = sysctl_int(f"hw.perflevel{i}.physicalcpu")
+        if cores and (name or "").strip().lower() != "efficiency":
+            total += cores
+    return total or sysctl_int("hw.physicalcpu")
 
 
 def default_heavy_slots():
