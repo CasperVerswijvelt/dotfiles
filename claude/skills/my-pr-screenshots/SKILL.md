@@ -24,8 +24,8 @@ enter it from. Drop pairs that show no change (`cmp before.png after.png` exits 
 ImageMagick, `compare -metric AE before.png after.png null:` prints 0). A pure refactor keeps at most one pair,
 captioned "No visual change (refactor)".
 
-Images shown to Casper himself follow the Verifying rule in `claude/CLAUDE.md`, not this
-skill. The PR body is for the reviewer.
+Images meant for Casper himself follow the image rule in `claude/CLAUDE.md` (Verifying), not
+this skill. The PR body is for the reviewer.
 
 ## Body layout
 
