@@ -65,8 +65,8 @@ gh pr view <N> --json body -q .body | grep -c '\./.*\.png'   # must print 0
 Every `./...png` reference must have been rewritten to an uploaded URL. The help documents
 only markdown references, so `<img src>` may not be rewritten. If any is left, redo it with
 markdown references `![<alt>](./<state>-before.png)` in the same place (full width, no side
-by side). The first real run confirms which form works: the agent that runs it updates this
-paragraph with the result.
+by side). Confirmed on a real run: `<img src>` refs are NOT rewritten (they stay `./...png`), markdown
+references `![alt](./x.png)` are. Use markdown references, one image per line, full width.
 
 Fallback when `gh` lacks it: a branch `pr-shots-<N>`, one per PR, never merged, never
 in a PR diff. Plumbing only, no checkout:
