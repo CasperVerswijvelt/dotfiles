@@ -55,6 +55,13 @@ if command -v lsof >/dev/null 2>&1; then
     [ -n "$c" ] || continue
     CWDS+=("$(cd -P "$c" 2>/dev/null && pwd -P || echo "$c")")
   done < <(lsof -a -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | sort -u)
+  # This script's own cwd must show up, else lsof gave no usable output (denied, sandboxed, crashed).
+  me="$(pwd -P)"; seen=0
+  for c in ${CWDS[@]+"${CWDS[@]}"}; do [ "$c" = "$me" ] && seen=1; done
+  if [ "$seen" = 0 ]; then
+    NOLSOF=1
+    echo "note: lsof gave no usable output, cannot check for running processes: keeping every worktree" >&2
+  fi
 else
   NOLSOF=1
   echo "note: lsof not found, cannot check for running processes: keeping every worktree" >&2
@@ -101,7 +108,7 @@ classify() {
   esac
   if [ "$p" = "$HERE" ]; then REASON="current worktree"; return; fi
   if [ "${LK[$i]}" = 1 ]; then REASON="locked"; return; fi
-  if [ "$NOLSOF" = 1 ]; then REASON="lsof missing, cannot check running processes"; return; fi
+  if [ "$NOLSOF" = 1 ]; then REASON="lsof unavailable, cannot check running processes"; return; fi
   rp="$(cd -P "$p" 2>/dev/null && pwd -P || echo "$p")"
   for c in ${CWDS[@]+"${CWDS[@]}"}; do
     if [ "$c" = "$rp" ] || [[ "$c" == "$rp"/* ]]; then REASON="in use by a running process"; return; fi
