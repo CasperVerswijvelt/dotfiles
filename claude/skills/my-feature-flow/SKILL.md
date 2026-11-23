@@ -115,7 +115,7 @@ security also gets a closing review at its own close; other plans get none.
 
 **mature**:
 1. Changelog entry, when the project keeps one (one line).
-2. Screenshots through the contract's `Pair tool`, only when Casper asked for them.
+2. A change with a visible UI result ships before/after screenshots in the PR or MR body, shot once at the final reviewed head, per `my-pr-screenshots` (captured with the contract's `Pair tool`).
 3. Rebase on the base and run the full gate once, before the PR or MR. This is the last rebase.
 4. After a `my-review` grade of A- or better, push and open the PR or MR without asking. Never base one on another open PR or MR.
    Its description ends with a "Local review" section from the `my-review` Report: the grade per round, each blocker, major and minor with how it closed (fixed, waived, kept on purpose with reason), and what was not done (device test, full gate parts not run).

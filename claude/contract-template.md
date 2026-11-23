@@ -8,7 +8,7 @@ genuine exceptions, and never restates a generic rule from the personal config.
 ```markdown
 ## Workflow contract
 
-- Stage: mature                 # mvp: review then merge, no changelog or PR screenshots
+- Stage: mature                 # mvp: review then merge, no changelog or PR screenshots; mature: both
 - Tracker: GitHub issues; read with `gh issue view <n> --comments`
 - Host CLI: gh                  # gh | glab
 - Fast gate: `<command>`        # format, lint/analyze on touched code; seconds to a minute; no full test suite
@@ -21,7 +21,7 @@ genuine exceptions, and never restates a generic rule from the personal config.
 - Parallelism: <features in flight>   # optional; feature sessions in flight, default 2; the landing step rejects when the base moved: rerun it
 - Changelog: CHANGELOG.md, `## [Unreleased]`   # or: none
 - Preview: <command, or none>   # runs the branch for Casper's live check
-- Pair tool: <skill or command and output folder, or none>   # before/after captures, only on Casper's request or at his milestone check
+- Pair tool: <skill or command and output folder, or none>   # before/after captures: for PR screenshots (`my-pr-screenshots`), and on Casper's request or at his milestone check
 - Tests: <override of the default test rule in CLAUDE.md, or omit>   # optional
 - Versioning: bump only on main when releasing
 - Decisions log: docs/decisions.md   # product decisions and project-specific lasting choices only; never generic workflow rules

@@ -28,7 +28,8 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
   hands the verdict to a fresh agent. No Opus agent idles waiting.
 - A layout or look decision gets a mockup on the real UI before it is built. No per-task
   before/after pairs: shoot pairs (the contract's `Pair tool`) only when Casper asks for
-  shots of a screen or at his milestone check, on the status page when the contract names
+  shots of a screen, at his milestone check, or for the PR body of a visible change at stage
+  `mature` (`my-pr-screenshots`), on the status page when the contract names
   one. A mockup gets its images on the page the same way.
 - Images for Casper go on a private artifact page through `files`, never read by the model.
   A single quick shot: copy it shrunk with `sips -Z 800` into a gitignored folder in the cwd
@@ -68,7 +69,7 @@ shortest sentence that keeps the reason.
 
 ## Rules and decisions
 
-- Tests (mvp stage default; a project's contract `Tests:` line may override): test logic that
+- Tests (default; a project's contract `Tests:` line may override): test logic that
   can lose data or give a wrong answer (sync, save, undo, schedule and date rules, migrations,
   parsing, error paths). Flow tests only for multi-step user paths. No tests for layout
   constants, colour, copy, tokens or component choice (reviewers and repo rule tests cover
