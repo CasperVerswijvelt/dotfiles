@@ -67,7 +67,9 @@ change never claimed, or a refactor taste is a follow-up, never a finding.
   path; a broken project principle; the ticket's problem still reachable; a bypassed
   gate (`--no-verify`).
 - **Major**: wrong in a rare reachable state; risky logic with no test (per the Tests rule in CLAUDE.md: never a missing layout, colour or copy test); a UI rule
-  broken; logic duplicated where a shared helper exists; dead code added; docs now
+  broken; logic duplicated where a shared helper exists; logic or state copied across blocks
+  (save, validation, error or undo handling, a computation) where one helper or a loop over a
+  list would do (repeated calls of a shared component or function with different arguments are fine); dead code added; docs now
   contradicting the code; a product dead end; a requirement missing or unasked work added.
 - **Minor**: everything else. At most five reported.
 
