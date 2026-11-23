@@ -21,12 +21,13 @@ the merge base with the base branch, built in its own worktree, never by checkin
 the base in the branch worktree. Is the state new? Before is the screen right after the
 same action on the base. Can the base not reach the screen? Before is the screen you
 enter it from. Is the state absent on the base altogether? No repeated before: show the entry
-screen on the base once ("Before: <screen> on <base>"), then after-only shots for the new states.
+screen on the base once, beside the first after shot in the first row, captioned
+"Before: <screen> on <base> (left). After: <state> (right)". The other new states are after-only shots.
 Drop pairs that show no change (`cmp before.png after.png` exits 0 when identical; with
 ImageMagick, `compare -metric AE before.png after.png null:` prints 0). A pure refactor keeps at most one pair,
 captioned "No visual change (refactor)".
 
-Images meant for Casper himself follow the image rule in `claude/CLAUDE.md` (Verifying), not
+Images meant for the user personally (not the reviewer) follow the image rule in `claude/CLAUDE.md` (Verifying), not
 this skill. The PR body is for the reviewer.
 
 ## Body layout
@@ -34,6 +35,7 @@ this skill. The PR body is for the reviewer.
 No tables: a caption column squeezes the images. One intro line, then per state a bold
 one-line caption (the state and what changed) and a paragraph with two images at
 `width="49%"`. No `height`, no pixel widths. After-only shots go two per row (a last odd one alone).
+With a single before, adapt the intro, e.g. "Left of the first row is before, right is after."
 
 ```
 In each pair, left is before (`main`), right is after.
