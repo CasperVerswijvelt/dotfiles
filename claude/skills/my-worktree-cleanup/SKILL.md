@@ -32,9 +32,9 @@ An agent cleaning up after its own plan applies to worktrees it created itself w
 ## Verdicts
 
 - `remove`: clean (no tracked changes, no untracked files), no commit missing from the
-  remote (merged, pushed or detached), not locked, not the current worktree, any submodules clean and pushed too, and no
+  remote (merged, pushed or detached), not locked, not the current worktree, no running process with its working directory in it (`lsof`; without `lsof` everything is kept), any submodules clean and pushed too, and no
   activity in the last 24 h (newest mtime of index, HEAD, reflog).
-- `keep`: anything else; the reason says dirty, unpushed commits, locked, current, recent or submodule.
+- `keep`: anything else; the reason says dirty, unpushed commits, locked, current, in use, recent or submodule.
 - `app`: a desktop app session (under `<repo>/.claude/worktrees`, branch `claude/*`). Never
   removed here; archiving the session in the app cleans it (Settings > Storage).
 
