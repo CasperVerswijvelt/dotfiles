@@ -20,11 +20,12 @@ bar leaks personal data).
 the merge base with the base branch, built in its own worktree, never by checking out
 the base in the branch worktree. Is the state new? Before is the screen right after the
 same action on the base. Can the base not reach the screen? Before is the screen you
-enter it from. Drop pairs that show no change. A pure refactor keeps at most one pair,
+enter it from. Drop pairs that show no change (`cmp before.png after.png` exits 0 when identical; with
+ImageMagick, `compare -metric AE before.png after.png null:` prints 0). A pure refactor keeps at most one pair,
 captioned "No visual change (refactor)".
 
-The images for Casper's own review go to his private artifact page (`files`), never read
-by the model. The PR body is for the reviewer.
+Images shown to Casper himself follow the Verifying rule in `claude/CLAUDE.md`, not this
+skill. The PR body is for the reviewer.
 
 ## Body layout
 
@@ -44,10 +45,28 @@ State the source of the shots (web, golden, emulator) and the widths driven.
 
 ## Hosting
 
-Check first for a supported upload: `gh pr create --attach` and `gh pr edit --attach`
-(`gh --help`) upload images and append them to the body, rewriting a body reference like
-`![alt](./after.png)`. When `gh` has it, use it and skip the rest of this section. Name
-files `<state>-before.png` and `<state>-after.png`.
+`gh pr create --attach` and `gh pr edit --attach` (gh 2.105+) upload images and rewrite
+body references to them. Use them when `gh` has them (`gh pr edit --help`).
+
+Recipe: write the body to a file, with the shot references as local paths in the layout
+above, placed before the `## Review` block:
+
+```
+<p><img src="./<state>-before.png" width="49%"> <img src="./<state>-after.png" width="49%"></p>
+```
+
+Then, with the PNGs beside the body file (paths are relative to its directory):
+
+```
+gh pr edit <N> --body-file body.md --attach './<state>-before.png#<alt>' --attach './<state>-after.png#<alt>'
+gh pr view <N> --json body -q .body | grep -c '\./.*\.png'   # must print 0
+```
+
+Every `./...png` reference must have been rewritten to an uploaded URL. The help documents
+only markdown references, so `<img src>` may not be rewritten. If any is left, redo it with
+markdown references `![<alt>](./<state>-before.png)` in the same place (full width, no side
+by side). The first real run confirms which form works: the agent that runs it updates this
+paragraph with the result.
 
 Fallback when `gh` lacks it: a branch `pr-shots-<N>`, one per PR, never merged, never
 in a PR diff. Plumbing only, no checkout:
