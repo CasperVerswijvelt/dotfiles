@@ -20,7 +20,9 @@ bar leaks personal data).
 the merge base with the base branch, built in its own worktree, never by checking out
 the base in the branch worktree. Is the state new? Before is the screen right after the
 same action on the base. Can the base not reach the screen? Before is the screen you
-enter it from. Drop pairs that show no change (`cmp before.png after.png` exits 0 when identical; with
+enter it from. Is the state absent on the base altogether? No repeated before: show the entry
+screen on the base once ("Before: <screen> on <base>"), then after-only shots for the new states.
+Drop pairs that show no change (`cmp before.png after.png` exits 0 when identical; with
 ImageMagick, `compare -metric AE before.png after.png null:` prints 0). A pure refactor keeps at most one pair,
 captioned "No visual change (refactor)".
 
@@ -30,15 +32,15 @@ this skill. The PR body is for the reviewer.
 ## Body layout
 
 No tables: a caption column squeezes the images. One intro line, then per state a bold
-one-line caption (the state and what changed) and a paragraph with exactly two images at
-`width="49%"`. No `height`, no pixel widths.
+one-line caption (the state and what changed) and a paragraph with two images at
+`width="49%"`. No `height`, no pixel widths. After-only shots go two per row (a last odd one alone).
 
 ```
 In each pair, left is before (`main`), right is after.
 
 **Review step: the summary card moves above the list**
 
-<p><img src="<url>" width="49%"> <img src="<url>" width="49%"></p>
+<p><img src="<url>" alt="<alt>" width="49%"> <img src="<url>" alt="<alt>" width="49%"></p>
 ```
 
 State the source of the shots (web, golden, emulator) and the widths driven.
@@ -46,29 +48,28 @@ State the source of the shots (web, golden, emulator) and the widths driven.
 ## Hosting
 
 `gh pr create --attach` and `gh pr edit --attach` (gh 2.105+) upload images and rewrite
-body references to them. Use them when `gh` has them (`gh pr edit --help`).
+body references to them. Use them when `gh` has them (`gh pr edit --help`). They rewrite only
+markdown references `![alt](./x.png)`; `<img src="./x.png">` stays local. So hosting takes two steps.
 
-Recipe: write the body to a file, with the shot references as local paths in the layout
-above, placed before the `## Review` block:
-
-```
-<p><img src="./<state>-before.png" width="49%"> <img src="./<state>-after.png" width="49%"></p>
-```
-
-Then, with the PNGs beside the body file (paths are relative to its directory):
+1. Write the body to a file with markdown references (`![<alt>](./<name>.png)`, one per image,
+   before the `## Review` block). With the PNGs beside it (paths are relative to its directory):
 
 ```
-gh pr edit <N> --body-file body.md --attach './<state>-before.png#<alt>' --attach './<state>-after.png#<alt>'
+gh pr edit <N> --body-file body.md --attach './<name>.png#<alt>' --attach './<name2>.png#<alt>'
+```
+
+2. Read the rewritten body and turn each row's markdown images into the side-by-side form
+   (`<p><img src="<url>" alt="<alt>" width="49%"> <img ...></p>`). Change nothing else. Set it
+   with no `--attach`:
+
+```
+gh pr view <N> --json body -q .body > new.md   # edit the image rows in new.md
+gh pr edit <N> --body-file new.md
 gh pr view <N> --json body -q .body | grep -c '\./.*\.png'   # must print 0
+gh pr view <N> --json body -q .body | grep -o '<img' | wc -l   # must equal your image count
 ```
 
-Every `./...png` reference must have been rewritten to an uploaded URL. The help documents
-only markdown references, so `<img src>` may not be rewritten. If any is left, redo it with
-markdown references `![<alt>](./<state>-before.png)` in the same place (full width, no side
-by side). Confirmed on a real run: `<img src>` refs are NOT rewritten (they stay `./...png`), markdown
-references `![alt](./x.png)` are. Use markdown references, one image per line, full width.
-
-Fallback when `gh` lacks it: a branch `pr-shots-<N>`, one per PR, never merged, never
+Fallback when `gh` lacks it (embed the URLs below in the same `<p><img>` rows): a branch `pr-shots-<N>`, one per PR, never merged, never
 in a PR diff. Plumbing only, no checkout:
 
 ```
