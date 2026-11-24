@@ -53,7 +53,7 @@ foreground with a long Bash timeout (up to 600000 ms), never backgrounded: a sub
 background completions go to the feature session, not to the agent or its parent. Never
 background a command and then end the turn. Such a long command never shares a command
 with a commit. No pgrep loops. Heavy runs (app test suites,
-full builds) go through `~/dotfiles/claude/tools/heavy-slot`, which queues them (2 slots) and
+full builds) go through `~/dotfiles/claude/tools/heavy-slot`, which queues them (slots scale with RAM and cores) and
 gives up after about 5 min with "machine busy, run again": then just run the command again. Subagents have no Monitor, and macOS has no `timeout`. Never
 poll with `sleep`. Never `sed -i`: use Edit or python3.
 
