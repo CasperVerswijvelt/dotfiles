@@ -10,6 +10,7 @@
   "permissions": {
     "disableAutoMode": "disable"
   },
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -35,7 +36,6 @@
       }
     ]
   },
-  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/dotfiles/claude/scripts/status-line.sh"
@@ -67,9 +67,10 @@
   },
   "outputStyle": "Main thread",
   "tui": "fullscreen",
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "dark-daltonized",
   "autoCompactEnabled": true,
-  "autoMemoryEnabled": false
+  "autoContinueAtUsageLimit": true
 }
