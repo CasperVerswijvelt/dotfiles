@@ -139,6 +139,35 @@ class HeavySlotTest(unittest.TestCase):
         r = self.run_tool("echo", "x", HEAVY_SLOT_WAIT="1")
         self.assertEqual(r.returncode, 75)
 
+    def rows(self):
+        with open(os.path.join(self.dir.name, "runs.tsv")) as f:
+            return [line.rstrip("\n").split("\t") for line in f]
+
+    def test_run_logs_header_and_row(self):
+        self.run_tool("sh", "-c", "exit 3")
+        header, row = self.rows()
+        self.assertEqual(header[:5], ["start", "wait_s", "run_s", "exit", "slots"])
+        self.assertEqual(len(row), len(header))
+        self.assertEqual(row[3], "3")
+        float(row[2])
+
+    def test_second_run_appends_without_second_header(self):
+        self.run_tool("true")
+        self.run_tool("true")
+        rows = self.rows()
+        self.assertEqual([r[0] for r in rows].count("start"), 1)
+        self.assertEqual(len(rows), 3)
+
+    def test_unwritable_log_dir_keeps_exit_code(self):
+        os.mkdir(os.path.join(self.dir.name, "runs.tsv"))
+        self.assertEqual(self.run_tool("sh", "-c", "exit 3").returncode, 3)
+
+    def test_non_utf8_arg_keeps_exit_code_and_logs_row(self):
+        r = subprocess.run([sys.executable, TOOL, "sh", "-c", "exit 0", b"a\xffb"], env=self.env,
+                           capture_output=True, timeout=20)
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(len(self.rows()), 2)
+
 
 class MemoryCheckTest(unittest.TestCase):
     def test_low_memory_holds_waiter_until_ok(self):
