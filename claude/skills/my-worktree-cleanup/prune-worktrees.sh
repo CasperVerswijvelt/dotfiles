@@ -47,6 +47,26 @@ HERE="$(/usr/bin/git rev-parse --show-toplevel 2>/dev/null || true)"
 mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null; }
 fmt() { date -r "$1" '+%Y-%m-%d' 2>/dev/null || date -d "@$1" '+%Y-%m-%d' 2>/dev/null; }
 
+# Working directories of all running processes, resolved (a worktree is in use when one is in it).
+# Without lsof we cannot tell, so every worktree is kept.
+CWDS=(); NOLSOF=0
+if command -v lsof >/dev/null 2>&1; then
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    CWDS+=("$(cd -P "$c" 2>/dev/null && pwd -P || echo "$c")")
+  done < <(lsof -a -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | sort -u)
+  # This script's own cwd must show up, else lsof gave no usable output (denied, sandboxed, crashed).
+  me="$(pwd -P)"; seen=0
+  for c in ${CWDS[@]+"${CWDS[@]}"}; do [ "$c" = "$me" ] && seen=1; done
+  if [ "$seen" = 0 ]; then
+    NOLSOF=1
+    echo "note: lsof gave no usable output, cannot check for running processes: keeping every worktree" >&2
+  fi
+else
+  NOLSOF=1
+  echo "note: lsof not found, cannot check for running processes: keeping every worktree" >&2
+fi
+
 # Parse the porcelain list into parallel arrays (the first block is the main checkout).
 WT=(); BR=(); LK=(); PR=(); MAIN=""
 path=""; br=""; lk=0; pr=0; n=0
@@ -70,7 +90,7 @@ done < <(g worktree list --porcelain; echo)
 
 # Sets VERDICT, REASON, LAST for worktree index $1.
 classify() {
-  local i="$1" p="${WT[$1]}" b="${BR[$1]}" gd ts t f out
+  local i="$1" p="${WT[$1]}" b="${BR[$1]}" gd ts t f out rp c
   VERDICT=keep; REASON=""; LAST="-"; SUB=0
   if [ ! -d "$p" ]; then
     if [ "${PR[$i]}" = 1 ]; then VERDICT=remove; REASON="directory missing"; else REASON="directory missing, not prunable"; fi
@@ -88,6 +108,11 @@ classify() {
   esac
   if [ "$p" = "$HERE" ]; then REASON="current worktree"; return; fi
   if [ "${LK[$i]}" = 1 ]; then REASON="locked"; return; fi
+  if [ "$NOLSOF" = 1 ]; then REASON="lsof unavailable, cannot check running processes"; return; fi
+  rp="$(cd -P "$p" 2>/dev/null && pwd -P || echo "$p")"
+  for c in ${CWDS[@]+"${CWDS[@]}"}; do
+    if [ "$c" = "$rp" ] || [[ "$c" == "$rp"/* ]]; then REASON="in use by a running process"; return; fi
+  done
   out="$(/usr/bin/git -C "$p" status --porcelain 2>/dev/null | head -n 1)"
   if [ -n "$out" ]; then REASON="dirty"; return; fi
   out="$(/usr/bin/git -C "$p" rev-list HEAD --not --remotes 2>/dev/null | head -n 1)"
