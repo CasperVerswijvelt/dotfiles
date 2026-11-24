@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+import unittest.mock
 
 TOOL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "emulator-lease")
 
@@ -31,10 +32,13 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.ports = []
         self.adb_calls = []
         self.m.adb = self.fake_adb
+        self.real_start = self.m.start_emulator
         self.m.start_emulator = self.fake_start
         self.stopped = []
-        self.m.stop_emulator = lambda pid, serial=None: self.stopped.append(pid)
+        self.m.stop_emulator = self.fake_stop
         self.m.proc_exited = lambda pid: False
+        self.m.adb_available = lambda: True
+        self.m.STOP_WAIT = 0.3
         os.environ.pop("EMULATOR_AVD", None)
 
     def tearDown(self):
@@ -60,6 +64,11 @@ class EmulatorLeaseTest(unittest.TestCase):
         if args[2:] == ("emu", "kill"):
             self.serials.discard(args[1])
         return ""
+
+    def fake_stop(self, pid, serial=None):
+        self.stopped.append(pid)
+        if serial:
+            self.fake_adb("-s", serial, "emu", "kill")
 
     def fake_start(self, avd, port):
         self.boots.append(avd)
@@ -169,6 +178,57 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertIn("holds no lease", err)
         self.assertEqual(self.adb_calls, [])
         self.assertEqual(self.lease()["owner"], "a")
+
+    def test_release_without_adb_and_running_emulator_keeps_lease_and_fails(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.m.adb_available = lambda: False
+        self.m.adb = lambda *a, timeout=30: ""  # adb missing: swallowed, as in the field
+        self.put_lease("a", None)  # emulator_pid 1 stays alive
+        rc, _, err = self.run_main("release", "a")
+        self.assertEqual(rc, 1)
+        self.assertIn("lease of a kept", err)
+        self.assertTrue(self.lease_file_exists())
+
+    def test_release_without_adb_stops_by_pid_and_frees(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.m.adb_available = lambda: False
+        self.m.adb = lambda *a, timeout=30: ""
+        p = subprocess.Popen(["sleep", "60"], start_new_session=True)
+        self.addCleanup(p.kill)
+        lease = self.lease()
+        lease["emulator_pid"] = p.pid
+        with open(os.path.join(self.dir.name, "lease-0.json"), "w") as f:
+            json.dump(lease, f)
+        import signal
+        self.m.stop_emulator = lambda pid, serial=None: os.killpg(pid, signal.SIGTERM)
+        threading.Thread(target=p.wait, daemon=True).start()  # reap so the pid is dead
+        rc, _, _ = self.run_main("release", "a")
+        self.assertEqual(rc, 0)
+        self.assertFalse(self.lease_file_exists())
+
+    def test_release_passes_stored_pid_to_stop_emulator(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.run_main("release", "a")
+        self.assertEqual(self.stopped, [4242])
+
+    def test_find_bin_falls_back_to_sdk_dirs(self):
+        sdk = os.path.join(self.dir.name, "sdk")
+        os.makedirs(os.path.join(sdk, "emulator"))
+        path = os.path.join(sdk, "emulator", "emulator")
+        with open(path, "w") as f:
+            f.write("#!/bin/sh\n")
+        os.chmod(path, 0o755)
+        env = {"PATH": self.dir.name, "ANDROID_HOME": sdk}
+        with unittest.mock.patch.dict(os.environ, env):
+            self.assertEqual(self.m.find_bin("emulator"), path)
+
+    def test_acquire_without_emulator_binary_fails_cleanly(self):
+        self.m.start_emulator = self.real_start
+        self.m.find_bin = lambda name: None
+        rc, out, err = self.run_main("acquire", "a", "--avd", "pix")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertIn("emulator binary not found", err)
+        self.assertFalse(self.lease_file_exists())
 
     def test_status(self):
         self.assertEqual(self.run_main("status")[1], "free\n")

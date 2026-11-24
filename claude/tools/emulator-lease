@@ -20,15 +20,20 @@
 # The owner pid is tracked only with --pid. A lease is stale when its pid is dead or it was last
 # touched more than EMULATOR_LEASE_MAX_AGE ago; a stale lease is reclaimed and its emulator reused if booted.
 # Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped. The head takes the first free slot.
+# adb and emulator are found on PATH, else under $ANDROID_HOME, $ANDROID_SDK_ROOT or ~/Library/Android/sdk
+# (agent shells often lack the SDK on PATH).
+# release stops the emulator (adb emu kill, then SIGTERM to its process group; with no stored pid, the
+# process on that console port) and drops the lease only once it is gone. Otherwise it exits 1, lease kept.
 # Env: EMULATOR_LEASE_MAX (from machine RAM), EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
 # EMULATOR_LEASE_WAIT seconds (540, under the 10 min Bash cap), EMULATOR_LEASE_POLL seconds (2),
 # EMULATOR_LEASE_MAX_AGE seconds (3600), EMULATOR_BOOT_TIMEOUT seconds (300).
 # Exit codes: 0 ok, 2 usage or no AVD, 75 emulator busy within the wait limit ("emulator busy, run again"),
-# 1 boot failed. Stdout carries only the serial; diagnostics go to stderr.
+# 1 boot failed, emulator binary not found, or release could not stop the emulator (lease kept). Stdout carries only the serial; diagnostics go to stderr.
 import fcntl
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -43,7 +48,9 @@ POLL = float(os.environ.get("EMULATOR_LEASE_POLL", "2"))
 MAX_AGE = float(os.environ.get("EMULATOR_LEASE_MAX_AGE", "3600"))
 BOOT_TIMEOUT = float(os.environ.get("EMULATOR_BOOT_TIMEOUT", "300"))
 MAX = max(1, int(os.environ.get("EMULATOR_LEASE_MAX") or resources.default_emulator_max()))
+STOP_WAIT = float(os.environ.get("EMULATOR_STOP_WAIT", "15"))
 BASE_PORT = 5554
+SDK_PATHS = {"adb": "platform-tools/adb", "emulator": "emulator/emulator"}
 
 
 def log(msg):
@@ -116,10 +123,28 @@ def stale(lease):
     return (lease.get("pid") is not None and not alive(lease["pid"])) or time.time() - lease.get("time", 0) > MAX_AGE
 
 
+def find_bin(name):
+    """Path of an SDK binary: PATH first, else the Android SDK dirs. None when not found."""
+    found = shutil.which(name)
+    if found:
+        return found
+    roots = [os.environ.get("ANDROID_HOME"), os.environ.get("ANDROID_SDK_ROOT"),
+             os.path.expanduser("~/Library/Android/sdk")]
+    for root in filter(None, roots):
+        path = os.path.join(root, SDK_PATHS[name])
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return None
+
+
+def adb_available():
+    return find_bin("adb") is not None
+
+
 def adb(*args, timeout=30):
     """Stdout of adb, or "" when it fails."""
     try:
-        return subprocess.run(["adb", *args], capture_output=True, text=True, timeout=timeout).stdout
+        return subprocess.run([find_bin("adb") or "adb", *args], capture_output=True, text=True, timeout=timeout).stdout
     except (OSError, subprocess.SubprocessError):
         return ""
 
@@ -136,9 +161,12 @@ def running_serial(slot=0):
 
 def start_emulator(avd, port):
     """Boot detached and headless; return the emulator pid."""
+    binary = find_bin("emulator")
+    if not binary:
+        raise FileNotFoundError("emulator binary not found on PATH, $ANDROID_HOME, $ANDROID_SDK_ROOT or ~/Library/Android/sdk")
     logf = open(os.path.join(DIR, "emulator.log"), "ab")
     p = subprocess.Popen(
-        ["emulator", "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only", "-port", str(port)],
+        [binary, "-avd", avd, "-no-window", "-no-audio", "-no-boot-anim", "-read-only", "-port", str(port)],
         stdout=logf, stderr=logf, stdin=subprocess.DEVNULL, start_new_session=True)
     return p.pid
 
@@ -170,6 +198,51 @@ def stop_emulator(pid, serial=None):
             os.kill(pid, signal.SIGTERM)
         except (OSError, TypeError):
             pass
+
+
+def port_pids(port):
+    """Pids of emulator processes started with this console port (for leases without a stored pid)."""
+    try:
+        out = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pids = []
+    for line in out.splitlines():
+        parts = line.split(None, 1)
+        if len(parts) == 2 and parts[0].isdigit() and int(parts[0]) != os.getpid() \
+                and "emulator" in parts[1] and f"-port {port}" in parts[1]:
+            pids.append(int(parts[0]))
+    return pids
+
+
+def emulator_gone(serial, pids):
+    """True when the emulator is verifiably gone: adb no longer lists it, or all known pids are dead.
+    Without a working adb and without pids nothing can be verified, so it counts as running."""
+    if adb_available() and serial not in [ln.split()[0] for ln in adb("devices").splitlines()[1:] if ln.split()]:
+        return True
+    return bool(pids) and not any(alive(p) for p in pids)
+
+
+def stop_and_wait(lease):
+    """Stop the lease's emulator; True once it is gone (bounded wait)."""
+    serial, pid = lease.get("serial"), lease.get("emulator_pid")
+    pids = [pid] if pid else []
+    stop_emulator(pid, serial)
+    if not pid and serial:
+        m = re.fullmatch(r"emulator-(\d+)", serial)
+        pids = port_pids(m.group(1)) if m else []
+        for p in pids:
+            try:
+                os.kill(p, signal.SIGTERM)
+            except OSError:
+                pass
+    deadline = time.monotonic() + STOP_WAIT
+    while True:
+        if emulator_gone(serial, pids):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(min(POLL, 0.5))
 
 
 def wait_booted(budget, epid=None, slot=0):
@@ -276,7 +349,11 @@ def try_take(owner, avd, pid, deadline):
             started = False
             if running_serial(slot) is None:
                 log(f"booting {avd}")
-                epid = start_emulator(avd, slot_port(slot))
+                try:
+                    epid = start_emulator(avd, slot_port(slot))
+                except OSError as e:
+                    log(f"cannot start the emulator: {e}")
+                    return "fail", None
                 started = True
             remaining = deadline - time.monotonic()
             budget = max(0.0, min(BOOT_TIMEOUT, remaining))
@@ -327,15 +404,19 @@ def cmd_acquire(owner, avd, pid):
 
 
 def cmd_release(owner):
-    released = False
+    released = failed = False
     with State():
         for slot in lease_slots():
             lease = read_lease(slot)
             if lease and lease.get("owner") == owner:
-                if lease.get("serial"):
-                    adb("-s", lease["serial"], "emu", "kill")
+                if not stop_and_wait(lease):
+                    log(f"could not stop {lease.get('serial')} (is adb reachable?), lease of {owner} kept")
+                    failed = True
+                    continue
                 drop_lease(slot)
                 released = True
+    if failed:
+        return 1
     if not released:
         log(f"{owner} holds no lease, nothing stopped")
     return 0
