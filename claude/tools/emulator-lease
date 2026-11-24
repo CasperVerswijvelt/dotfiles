@@ -22,8 +22,9 @@
 # Queue: FIFO tickets as in heavy-slot; tickets of dead pids are dropped. The head takes the first free slot.
 # adb and emulator are found on PATH, else under $ANDROID_HOME, $ANDROID_SDK_ROOT or ~/Library/Android/sdk
 # (agent shells often lack the SDK on PATH).
-# release stops the emulator (adb emu kill, then SIGTERM to its process group; with no stored pid, the
-# process on that console port) and drops the lease only once it is gone. Otherwise it exits 1, lease kept.
+# release stops the emulator (adb emu kill, then SIGTERM to the process group of every qemu-system or emulator
+# process whose argv has -port <slot port>, found with ps) and drops the lease only once ps finds none left.
+# If that cannot be verified (ps fails, process survives) it exits 1 and keeps the lease until MAX_AGE (1 h).
 # Env: EMULATOR_LEASE_MAX (from machine RAM), EMULATOR_AVD (AVD when --avd is absent), EMULATOR_LEASE_DIR (~/.cache/emulator-lease),
 # EMULATOR_LEASE_WAIT seconds (540, under the 10 min Bash cap), EMULATOR_LEASE_POLL seconds (2),
 # EMULATOR_LEASE_MAX_AGE seconds (3600), EMULATOR_BOOT_TIMEOUT seconds (300).
@@ -137,10 +138,6 @@ def find_bin(name):
     return None
 
 
-def adb_available():
-    return find_bin("adb") is not None
-
-
 def adb(*args, timeout=30):
     """Stdout of adb, or "" when it fails."""
     try:
@@ -200,46 +197,64 @@ def stop_emulator(pid, serial=None):
             pass
 
 
-def port_pids(port):
-    """Pids of emulator processes started with this console port (for leases without a stored pid)."""
+def ps_output():
+    """Raw `ps` listing, or None when ps fails."""
     try:
-        out = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, timeout=10).stdout
+        r = subprocess.run(["ps", "-Ao", "pid=,pgid=,command="], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
-        return []
-    pids = []
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def emulator_procs(port):
+    """[(pid, pgid)] of the emulator processes on this console port, or None when ps fails.
+    A process counts when argv[0] is qemu-system* or emulator and argv has the tokens -port <port>."""
+    out = ps_output()
+    if out is None:
+        return None
+    found = []
     for line in out.splitlines():
-        parts = line.split(None, 1)
-        if len(parts) == 2 and parts[0].isdigit() and int(parts[0]) != os.getpid() \
-                and "emulator" in parts[1] and f"-port {port}" in parts[1]:
-            pids.append(int(parts[0]))
-    return pids
+        parts = line.split()
+        if len(parts) < 4 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        argv = parts[2:]
+        name = os.path.basename(argv[0])
+        if not (name.startswith("qemu-system") or name == "emulator"):
+            continue
+        if any(argv[i] == "-port" and argv[i + 1] == str(port) for i in range(len(argv) - 1)):
+            found.append((int(parts[0]), int(parts[1])))
+    return found
 
 
-def emulator_gone(serial, pids):
-    """True when the emulator is verifiably gone: adb no longer lists it, or all known pids are dead.
-    Without a working adb and without pids nothing can be verified, so it counts as running."""
-    if adb_available() and serial not in [ln.split()[0] for ln in adb("devices").splitlines()[1:] if ln.split()]:
-        return True
-    return bool(pids) and not any(alive(p) for p in pids)
+def terminate(pid, pgid):
+    """SIGTERM a matched emulator process and its process group (never our own group)."""
+    if pgid != os.getpgrp():
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+        except OSError:
+            pass
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
 
 
 def stop_and_wait(lease):
-    """Stop the lease's emulator; True once it is gone (bounded wait)."""
-    serial, pid = lease.get("serial"), lease.get("emulator_pid")
-    pids = [pid] if pid else []
-    stop_emulator(pid, serial)
-    if not pid and serial:
-        m = re.fullmatch(r"emulator-(\d+)", serial)
-        pids = port_pids(m.group(1)) if m else []
-        for p in pids:
-            try:
-                os.kill(p, signal.SIGTERM)
-            except OSError:
-                pass
+    """Stop the lease's emulator; True once ps finds no emulator process on its port (bounded wait).
+    adb not listing the serial proves nothing, since adb failures read as empty output."""
+    serial = lease.get("serial") or ""
+    m = re.fullmatch(r"emulator-(\d+)", serial)
+    if not m:
+        return False
+    port = m.group(1)
+    adb("-s", serial, "emu", "kill", timeout=10)
     deadline = time.monotonic() + STOP_WAIT
     while True:
-        if emulator_gone(serial, pids):
+        procs = emulator_procs(port)
+        if procs == []:
             return True
+        for pid, pgid in procs or []:
+            terminate(pid, pgid)
         if time.monotonic() >= deadline:
             return False
         time.sleep(min(POLL, 0.5))
@@ -410,7 +425,7 @@ def cmd_release(owner):
             lease = read_lease(slot)
             if lease and lease.get("owner") == owner:
                 if not stop_and_wait(lease):
-                    log(f"could not stop {lease.get('serial')} (is adb reachable?), lease of {owner} kept")
+                    log(f"could not stop {lease.get('serial')} (not verified gone), lease of {owner} kept")
                     failed = True
                     continue
                 drop_lease(slot)

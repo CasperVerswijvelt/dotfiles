@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import threading
@@ -21,6 +22,8 @@ class EmulatorLeaseTest(unittest.TestCase):
         spec = importlib.util.spec_from_loader("emulator_lease_mod", loader)
         self.m = importlib.util.module_from_spec(spec)
         loader.exec_module(self.m)
+        emulator_procs_real = self.m.emulator_procs
+        self.real_terminate = self.m.terminate
         self.m.DIR = self.dir.name
         self.m.WAIT = 0.3
         self.m.POLL = 0.05
@@ -37,7 +40,10 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.stopped = []
         self.m.stop_emulator = self.fake_stop
         self.m.proc_exited = lambda pid: False
-        self.m.adb_available = lambda: True
+        self.terminated = []
+        self.m.emulator_procs = self.fake_procs
+        self.m.terminate = lambda pid, pgid: self.terminated.append((pid, pgid))
+        self.real_procs = emulator_procs_real
         self.m.STOP_WAIT = 0.3
         os.environ.pop("EMULATOR_AVD", None)
 
@@ -64,6 +70,9 @@ class EmulatorLeaseTest(unittest.TestCase):
         if args[2:] == ("emu", "kill"):
             self.serials.discard(args[1])
         return ""
+
+    def fake_procs(self, port):
+        return [(4242, 4242)] if f"emulator-{port}" in self.serials else []
 
     def fake_stop(self, pid, serial=None):
         self.stopped.append(pid)
@@ -179,37 +188,62 @@ class EmulatorLeaseTest(unittest.TestCase):
         self.assertEqual(self.adb_calls, [])
         self.assertEqual(self.lease()["owner"], "a")
 
-    def test_release_without_adb_and_running_emulator_keeps_lease_and_fails(self):
+    PS = (" 100   100 /sdk/emulator/qemu/darwin-aarch64/qemu-system-aarch64 -avd pix -port 5554 -read-only\n"
+          " 101   100 /sdk/emulator/emulator -avd pix -port 5554\n"
+          " 102   102 /sdk/emulator/emulator -avd pix -port 55540\n"
+          " 103   103 /sdk/emulator/emulator -avd pix -port 5556\n"
+          " 104   104 sh -c cd x && emulator -port 5554\n"
+          " 105   105 vim emulator -port 5554\n")
+
+    def use_ps(self, text):
+        self.m.emulator_procs = self.real_procs
+        self.m.ps_output = lambda: text
+
+    def test_emulator_procs_match_is_anchored(self):
+        self.use_ps(self.PS)
+        self.assertEqual(self.m.emulator_procs(5554), [(100, 100), (101, 100)])
+        self.assertEqual(self.m.emulator_procs(5556), [(103, 103)])
+        self.assertEqual(self.m.emulator_procs(55540), [(102, 102)])
+
+    def test_release_with_adb_blind_and_qemu_alive_keeps_lease_and_fails(self):
         self.run_main("acquire", "a", "--avd", "pix")
-        self.m.adb_available = lambda: False
-        self.m.adb = lambda *a, timeout=30: ""  # adb missing: swallowed, as in the field
-        self.put_lease("a", None)  # emulator_pid 1 stays alive
+        self.m.adb = lambda *a, timeout=30: ""  # adb lists nothing
+        self.use_ps(self.PS)
         rc, _, err = self.run_main("release", "a")
         self.assertEqual(rc, 1)
         self.assertIn("lease of a kept", err)
         self.assertTrue(self.lease_file_exists())
+        self.assertIn((100, 100), self.terminated)
 
-    def test_release_without_adb_stops_by_pid_and_frees(self):
+    def test_release_with_ps_failure_keeps_lease(self):
         self.run_main("acquire", "a", "--avd", "pix")
-        self.m.adb_available = lambda: False
-        self.m.adb = lambda *a, timeout=30: ""
-        p = subprocess.Popen(["sleep", "60"], start_new_session=True)
-        self.addCleanup(p.kill)
-        lease = self.lease()
-        lease["emulator_pid"] = p.pid
-        with open(os.path.join(self.dir.name, "lease-0.json"), "w") as f:
-            json.dump(lease, f)
-        import signal
-        self.m.stop_emulator = lambda pid, serial=None: os.killpg(pid, signal.SIGTERM)
-        threading.Thread(target=p.wait, daemon=True).start()  # reap so the pid is dead
+        self.use_ps(None)
+        rc, _, _ = self.run_main("release", "a")
+        self.assertEqual(rc, 1)
+        self.assertTrue(self.lease_file_exists())
+
+    def test_release_does_not_signal_reused_stored_pid(self):
+        self.run_main("acquire", "a", "--avd", "pix")
+        self.put_lease("a", None)  # stored emulator_pid 1 is alive but not an emulator
+        self.use_ps(" 1   1 /sbin/launchd\n")
         rc, _, _ = self.run_main("release", "a")
         self.assertEqual(rc, 0)
+        self.assertEqual(self.terminated, [])
         self.assertFalse(self.lease_file_exists())
 
-    def test_release_passes_stored_pid_to_stop_emulator(self):
+    def test_release_without_adb_kills_matched_group_and_frees(self):
         self.run_main("acquire", "a", "--avd", "pix")
-        self.run_main("release", "a")
-        self.assertEqual(self.stopped, [4242])
+        self.m.adb = lambda *a, timeout=30: ""
+        self.m.terminate = self.real_terminate
+        state = {"up": True}
+        self.m.emulator_procs = self.real_procs
+        self.m.ps_output = lambda: self.PS if state["up"] else ""
+        with unittest.mock.patch.object(os, "killpg", side_effect=lambda g, s: state.update(up=False)) as kg, \
+                unittest.mock.patch.object(os, "kill") as k:
+            rc, _, _ = self.run_main("release", "a")
+        self.assertEqual(rc, 0)
+        self.assertIn(unittest.mock.call(100, signal.SIGTERM), kg.call_args_list)
+        self.assertFalse(self.lease_file_exists())
 
     def test_find_bin_falls_back_to_sdk_dirs(self):
         sdk = os.path.join(self.dir.name, "sdk")
