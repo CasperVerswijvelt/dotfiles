@@ -161,19 +161,19 @@ def repo_name():
 
 
 def log_run(start, t, cmd, rc):
-    """Append one row to runs.tsv under flock. Never raises on I/O errors."""
+    """Append one row to runs.tsv under flock. Never raises."""
     try:
         wait = f"{t['taken'] - t['begin']:.1f}" if "taken" in t else f"{time.monotonic() - t['begin']:.1f}"
         run = f"{t['end'] - t['taken']:.1f}" if "end" in t else ""
         text = " ".join(cmd).replace("\t", " ").replace("\n", " ").replace("\r", " ")[:200]
         row = "\t".join([start, wait, run, str(rc), str(SLOTS), host(), repo_name(), text]) + "\n"
         os.makedirs(LOCK_DIR, exist_ok=True)
-        with open(os.path.join(LOCK_DIR, "runs.tsv"), "a+") as f:
+        with open(os.path.join(LOCK_DIR, "runs.tsv"), "a+", errors="replace") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
             if f.seek(0, 2) == 0:
                 f.write(LOG_HEADER)
             f.write(row)
-    except OSError:
+    except Exception:
         pass
 
 
@@ -193,6 +193,7 @@ def run(cmd, t):
         print(f"heavy-slot: {e}", file=sys.stderr)
         return 127
     rc = child.wait()
+    os.close(fd)  # free the slot before logging
     t["end"] = time.monotonic()
     return 128 - rc if rc < 0 else rc
 

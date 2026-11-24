@@ -162,6 +162,12 @@ class HeavySlotTest(unittest.TestCase):
         os.mkdir(os.path.join(self.dir.name, "runs.tsv"))
         self.assertEqual(self.run_tool("sh", "-c", "exit 3").returncode, 3)
 
+    def test_non_utf8_arg_keeps_exit_code_and_logs_row(self):
+        r = subprocess.run([sys.executable, TOOL, "sh", "-c", "exit 0", b"a\xffb"], env=self.env,
+                           capture_output=True, timeout=20)
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(len(self.rows()), 2)
+
 
 class MemoryCheckTest(unittest.TestCase):
     def test_low_memory_holds_waiter_until_ok(self):
