@@ -12,6 +12,18 @@
   },
   "model": "opus[1m]",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/dotfiles/claude/scripts/agent-guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "startup",

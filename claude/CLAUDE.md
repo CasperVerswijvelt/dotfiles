@@ -13,7 +13,7 @@ CLAUDE.md wins where they differ. Its `## Workflow contract` section sets the pr
 | `my-reviewer` | Sonnet, judge on Opus | One review area, one verification, or the judgement. |
 | `my-scout` | Haiku | Checkable lookups; runs the fast or full gate and reports failures. |
 
-- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus.
+- Each `my-*` agent sets its own model. Ask for Opus only where the table says Opus (a hook enforces it).
 - A subagent saw none of your conversation: its prompt carries everything it needs.
 
 ## Verifying
